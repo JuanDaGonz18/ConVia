@@ -1,0 +1,23 @@
+diff --git a/node_modules/onnxruntime-react-native/android/build.gradle b/node_modules/onnxruntime-react-native/android/build.gradle
+index 41b4359..ab70213 100644
+--- a/node_modules/onnxruntime-react-native/android/build.gradle
++++ b/node_modules/onnxruntime-react-native/android/build.gradle
+@@ -247,7 +247,7 @@ dependencies {
+     extractLibs "com.microsoft.onnxruntime:onnxruntime-android:latest.integration@aar"
+   }
+
+-  if (VersionNumber.parse(REACT_NATIVE_VERSION) < VersionNumber.parse("0.71")) {
++  if (REACT_NATIVE_VERSION.startsWith("0.6") || REACT_NATIVE_VERSION.startsWith("0.7")) {
+     extractLibs "com.facebook.fbjni:fbjni:+:headers"
+     extractLibs "com.facebook.fbjni:fbjni:+"
+   }
+diff --git a/node_modules/onnxruntime-react-native/expo-module.config.json b/node_modules/onnxruntime-react-native/expo-module.config.json
+new file mode 100644
+index 0000000..fb40f9f
+--- /dev/null
++++ b/node_modules/onnxruntime-react-native/expo-module.config.json
+@@ -0,0 +1,3 @@
++{
++  "platforms": ["android", "ios"]
++}
+\ No newline at end of file

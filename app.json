@@ -1,0 +1,79 @@
+{
+  "expo": {
+    "name": "WheelsApp",
+    "slug": "wheelsapp",
+    "scheme": "wheelsapp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "WheelsApp necesita acceso a la cámara para verificar tu identidad."
+      }
+    },
+    "android": {
+      "package": "com.juanda1809.wheelsapp",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCGbJmMaeTzeXCwH_YfBCE2ih707-OkJZk"
+        }
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "onnxruntime-react-native",
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "WheelsApp necesita acceso a la camara para verificar tu identidad.",
+          "barcodeScannerEnabled": false
+        }
+      ],
+      "expo-dev-client",
+      "expo-local-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "WheelsApp necesita acceso a tus fotos para registrar el vehiculo."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "WheelsApp usa tu ubicacion para mostrar viajes cercanos."
+        }
+      ],
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
+    ]
+  }
+}
