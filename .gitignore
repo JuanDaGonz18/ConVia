@@ -25,6 +25,7 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+hs_err_pid*.log
 
 # macOS
 .DS_Store
@@ -34,6 +35,8 @@ yarn-error.*
 .env*
 !.env.example
 !.env.*.example
+google-services.json
+*-firebase-adminsdk-*.json
 
 # typescript
 *.tsbuildinfo
@@ -41,3 +44,5 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+android/local.properties
+supabase/.temp/

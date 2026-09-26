@@ -1,67 +1,108 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  FlatList,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { PlaceSearchField } from '@/components/forms/PlaceSearchField';
 import { MapContainer } from '@/components/map/MapContainer';
+import { DriverApprovalNotice } from '@/components/profile/DriverApprovalNotice';
 import { TripCard } from '@/components/trip/TripCard';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { colors } from '@/constants/colors';
+import { isSupabaseEnabled } from '@/lib/supabase';
 import { dimensions } from '@/constants/dimensions';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { radius } from '@/constants/radius';
-import { mockLocations } from '@/data/mock/locations';
-import { mockTrips } from '@/data/mock/trips';
+import { locationService } from '@/services/locationService';
+import { tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
+import { errorMessage, formatDateTime } from '@/utils/format';
+
+/** Trips saved without coordinates map to 0,0; keep them off the map. */
+function hasCoordinates(location: Location) {
+  return location.latitude !== 0 || location.longitude !== 0;
+}
+
+/** How far (km) a trip may end from the chosen destination to count as a match. */
+const DESTINATION_RADIUS_KM = 5;
 
 export default function HomeScreen() {
   const currentUser = useAppStore((state) => state.currentUser);
   const role = currentUser?.role ?? 'client';
 
-  const originLocation: Location = mockLocations[0]; // Colina Campestre
-  const [selectedDestination, setSelectedDestination] = useState<Location>(
-    mockLocations[2] // Parque 93
+  const [origin, setOrigin] = useState<Location | null>(null);
+  const [originError, setOriginError] = useState<string | null>(null);
+  const [destination, setDestination] = useState<Location | null>(null);
+  const [isCardCollapsed, setIsCardCollapsed] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
+  const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
+
+  const locate = useCallback(async () => {
+    setOriginError(null);
+    try {
+      setOrigin(await locationService.getCurrentLocation());
+    } catch (error) {
+      setOriginError(errorMessage(error, 'No se pudo obtener tu ubicación.'));
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void locate(), 0);
+    return () => clearTimeout(timer);
+  }, [locate]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (role !== 'client') return;
+      void tripService.getAvailableTrips().then((trips) => {
+        setAvailableTrips(trips);
+        setLoadError(null);
+      }).catch((error) => {
+        setLoadError(errorMessage(error, 'No se pudieron cargar los viajes.'));
+      });
+    }, [role]),
   );
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [isCardCollapsed, setIsCardCollapsed] = useState(false);
-  const [booked, setBooked] = useState(false);
+  // With a destination: the soonest trip ending near it. Without one: the soonest trip.
+  const matchingTrips = destination
+    ? availableTrips.filter((trip) =>
+        hasCoordinates(trip.destination)
+          ? locationService.distanceKm(trip.destination, destination) <= DESTINATION_RADIUS_KM
+          : trip.destination.label.toLowerCase().includes(destination.label.toLowerCase()),
+      )
+    : availableTrips;
+  const nextTrip = matchingTrips[0] ?? null;
+  const tripPins = availableTrips.map((trip) => trip.origin).filter(hasCoordinates);
 
-  // Search results filtering
-  const searchResults = mockLocations.filter((loc) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      loc.label.toLowerCase().includes(q) ||
-      loc.address.toLowerCase().includes(q)
-    );
-  });
-
-  const handleSelectDestination = (loc: Location) => {
-    setSelectedDestination(loc);
-    setSearchQuery(loc.label);
-    setIsSearching(false);
-    setBooked(false);
+  // Tapping the map (or a named place on it) sets the destination there.
+  const pickDestinationOnMap = async (point: { latitude: number; longitude: number; name?: string }) => {
+    setDestination({
+      id: `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`,
+      label: point.name ?? 'Punto en el mapa',
+      address: 'Buscando la dirección…',
+      latitude: point.latitude,
+      longitude: point.longitude,
+    });
+    const resolved = await locationService.fromCoordinate(point.latitude, point.longitude, point.name);
+    // Keep it only if the user has not picked something else meanwhile.
+    setDestination((current) => (current && current.id === resolved.id ? resolved : current));
   };
 
-  // Dynamic trip based on chosen destination
-  const activeTrip: Trip = {
-    ...mockTrips[0],
-    origin: originLocation,
-    destination: selectedDestination,
-    price: selectedDestination.id === mockLocations[5].id ? 22000 : 12000,
+  const selectTripFromPin = (pin: Location) => {
+    const trip = availableTrips.find((item) => item.origin.id === pin.id);
+    if (!trip) return;
+    setSelectedTrip(trip);
+    router.push('/trip-details');
   };
 
   return (
@@ -69,13 +110,19 @@ export default function HomeScreen() {
       {/* Top Header & Search Bar */}
       <View style={styles.header}>
         <View style={styles.userInfo}>
-          <View>
+          <View style={styles.userText}>
             <Text style={styles.greeting}>
               Hola, {currentUser?.name || 'Usuario'}
             </Text>
-            <Text style={styles.currentOrigin}>
-              📍 Salida: {originLocation.label}
-            </Text>
+            {originError ? (
+              <Pressable onPress={() => void locate()}>
+                <Text style={styles.originError}>{originError} Toca para reintentar.</Text>
+              </Pressable>
+            ) : (
+              <Text numberOfLines={1} style={styles.currentOrigin}>
+                📍 {origin ? origin.label : 'Obteniendo tu ubicación...'}
+              </Text>
+            )}
           </View>
           <View style={styles.roleBadge}>
             <Ionicons
@@ -89,84 +136,25 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Search Bar Input with Icon and Clear */}
-        <View style={styles.searchBarWrapper}>
-          <Ionicons
-            color={colors.textSecondary}
-            name="search-outline"
-            size={20}
-            style={styles.searchIcon}
+        {role === 'client' ? (
+          <PlaceSearchField
+            mapTitle="¿A dónde vas?"
+            near={origin}
+            onChange={setDestination}
+            placeholder="¿A dónde vas?"
+            value={destination}
           />
-          <TextInput
-            onBlur={() => {
-              // slight delay to allow press event on search results
-              setTimeout(() => setIsSearching(false), 200);
-            }}
-            onChangeText={(text) => {
-              setSearchQuery(text);
-              setIsSearching(true);
-            }}
-            onFocus={() => setIsSearching(true)}
-            placeholder="¿A dónde vas en Bogotá? (Ej. Unicentro, 93)"
-            placeholderTextColor={colors.textSecondary}
-            style={styles.searchInput}
-            value={searchQuery}
-          />
-          {searchQuery ? (
-            <Pressable
-              onPress={() => {
-                setSearchQuery('');
-                setIsSearching(true);
-              }}
-              style={styles.clearBtn}
-            >
-              <Ionicons color={colors.textSecondary} name="close-circle" size={18} />
-            </Pressable>
-          ) : null}
-        </View>
+        ) : null}
       </View>
 
-      {/* Predictive Destination Search Dropdown */}
-      {isSearching ? (
-        <View style={styles.searchDropdown}>
-          <Text style={styles.dropdownTitle}>Destinos Sugeridos en Bogotá</Text>
-          <FlatList
-            data={searchResults}
-            keyboardShouldPersistTaps="handled"
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => handleSelectDestination(item)}
-                style={styles.searchResultItem}
-              >
-                <View style={styles.resultIconBox}>
-                  <Ionicons color={colors.primary} name="location" size={18} />
-                </View>
-                <View style={styles.resultTextBox}>
-                  <Text style={styles.resultLabel}>{item.label}</Text>
-                  <Text numberOfLines={1} style={styles.resultAddress}>
-                    {item.address}
-                  </Text>
-                </View>
-                <Ionicons
-                  color={colors.border}
-                  name="arrow-forward"
-                  size={16}
-                />
-              </Pressable>
-            )}
-            style={styles.searchResultsList}
-          />
-        </View>
-      ) : null}
-
-      {/* Interactive Map View with Route */}
+      {/* Map with the user's real position, destination and trip departure points */}
       <View style={styles.mapWrapper}>
         <MapContainer
-          destination={selectedDestination}
-          locations={mockLocations}
-          onSelectLocation={(loc) => handleSelectDestination(loc)}
-          origin={originLocation}
+          destination={destination}
+          locations={role === 'client' ? tripPins : []}
+          onMapPress={role === 'client' ? (point) => void pickDestinationOnMap(point) : undefined}
+          onSelectLocation={selectTripFromPin}
+          origin={origin}
         />
       </View>
 
@@ -187,7 +175,7 @@ export default function HomeScreen() {
             <Text style={styles.collapseTitle}>
               {role === 'driver'
                 ? 'Panel de Conductor'
-                : `Destino: ${selectedDestination.label}`}
+                : destination ? `Destino: ${destination.label}` : 'Próximos viajes'}
             </Text>
             <Ionicons
               color={colors.textSecondary}
@@ -206,12 +194,20 @@ export default function HomeScreen() {
                 <Text style={styles.driverStatusText}>Modo Conductor Activo</Text>
               </View>
               <Text style={styles.driverSubtext}>
-                Hay 2 pasajeros buscando viaje hacia {selectedDestination.label}
+                Publica un viaje y gestiona las solicitudes de tus pasajeros.
               </Text>
               <View style={styles.buttonRow}>
-                <ButtonPrimary
-                  onPress={() => alert('Ruta compartida publicada con éxito')}
-                  title="Publicar Cupos Disponibles"
+                {currentUser?.driverStatus === 'aprobado' ? (
+                  <ButtonPrimary
+                    onPress={() => router.push('/create-trip')}
+                    title="Publicar Cupos Disponibles"
+                  />
+                ) : (
+                  <DriverApprovalNotice status={currentUser?.driverStatus} />
+                )}
+                <ButtonSecondary
+                  onPress={() => router.push('/requests')}
+                  title="Ver solicitudes"
                 />
                 <ButtonSecondary
                   onPress={() => router.push('/(tabs)/chats')}
@@ -221,47 +217,52 @@ export default function HomeScreen() {
             </View>
           ) : (
             <View style={styles.clientSection}>
-              <View style={styles.routeQuickInfo}>
-                <View style={styles.infoBadge}>
-                  <Ionicons color={colors.primary} name="time-outline" size={14} />
-                  <Text style={styles.infoBadgeText}>~20 min</Text>
+              {nextTrip ? (
+                <View style={styles.routeQuickInfo}>
+                  <View style={styles.infoBadge}>
+                    <Ionicons color={colors.primary} name="time-outline" size={14} />
+                    <Text style={styles.infoBadgeText}>{formatDateTime(nextTrip.departureTime)}</Text>
+                  </View>
+                  <View style={styles.infoBadge}>
+                    <Ionicons color={colors.primary} name="people-outline" size={14} />
+                    <Text style={styles.infoBadgeText}>{nextTrip.seatsAvailable} cupos libres</Text>
+                  </View>
                 </View>
-                <View style={styles.infoBadge}>
-                  <Ionicons color={colors.primary} name="car-outline" size={14} />
-                  <Text style={styles.infoBadgeText}>7.8 km</Text>
-                </View>
-                <View style={styles.infoBadge}>
-                  <Ionicons color={colors.primary} name="people-outline" size={14} />
-                  <Text style={styles.infoBadgeText}>2 cupos libres</Text>
-                </View>
-              </View>
+              ) : null}
 
-              <TripCard trip={activeTrip} />
+              {nextTrip ? (
+                <TripCard trip={nextTrip} />
+              ) : (
+                <Text style={styles.noTripsText}>
+                  {loadError ??
+                    (!isSupabaseEnabled
+                      ? 'Activa Supabase para ver viajes reales.'
+                      : destination
+                        ? 'No hay viajes hacia ese destino por ahora.'
+                        : 'No hay viajes disponibles por ahora.')}
+                </Text>
+              )}
 
-              <View style={styles.actionButtonsRow}>
-                <View style={styles.reserveBtnWrapper}>
-                  <ButtonPrimary
-                    disabled={booked}
-                    onPress={() => setBooked(true)}
-                    title={
-                      booked
-                        ? '¡Viaje reservado!'
-                        : `Reservar cupo ($${activeTrip.price.toLocaleString('es-CO')})`
-                    }
-                  />
+              {nextTrip ? (
+                <View style={styles.actionButtonsRow}>
+                  <View style={styles.reserveBtnWrapper}>
+                    <ButtonPrimary
+                      onPress={() => {
+                        setSelectedTrip(nextTrip);
+                        router.push('/trip-details');
+                      }}
+                      title="Ver y reservar"
+                    />
+                  </View>
+                  <Pressable
+                    accessibilityLabel="Ver todos los viajes"
+                    onPress={() => router.push('/(tabs)/trips')}
+                    style={styles.chatIconButton}
+                  >
+                    <Ionicons color={colors.primary} name="list" size={22} />
+                  </Pressable>
                 </View>
-                <Pressable
-                  accessibilityLabel="Chatear con conductor"
-                  onPress={() => router.push('/(tabs)/chats')}
-                  style={styles.chatIconButton}
-                >
-                  <Ionicons
-                    color={colors.primary}
-                    name="chatbubbles"
-                    size={22}
-                  />
-                </Pressable>
-              </View>
+              ) : null}
             </View>
           )
         ) : null}
@@ -293,6 +294,15 @@ const styles = StyleSheet.create({
     ...typography.headingM,
     color: colors.text,
   },
+  userText: {
+    flex: 1,
+    marginRight: spacing[8],
+  },
+  originError: {
+    ...typography.caption,
+    color: colors.error,
+    marginTop: 2,
+  },
   currentOrigin: {
     ...typography.caption,
     color: colors.textSecondary,
@@ -312,84 +322,11 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
   },
-  searchBarWrapper: {
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: radius.radiusMedium,
-    borderWidth: 1,
-    flexDirection: 'row',
-    height: dimensions.controlHeight,
-    paddingHorizontal: spacing[12],
-  },
-  searchIcon: {
-    marginRight: spacing[8],
-  },
-  searchInput: {
+  noTripsText: {
     ...typography.body,
-    color: colors.text,
-    flex: 1,
-  },
-  clearBtn: {
-    padding: spacing[4],
-  },
-  searchDropdown: {
-    backgroundColor: colors.white,
-    borderBottomLeftRadius: radius.radiusLarge,
-    borderBottomRightRadius: radius.radiusLarge,
-    elevation: 12,
-    left: 0,
-    maxHeight: 280,
-    position: 'absolute',
-    right: 0,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    top: 125,
-    zIndex: 99,
-  },
-  dropdownTitle: {
-    ...typography.caption,
-    backgroundColor: colors.background,
     color: colors.textSecondary,
-    fontWeight: '700',
-    paddingHorizontal: spacing[16],
-    paddingVertical: spacing[8],
-    textTransform: 'uppercase',
-  },
-  searchResultsList: {
-    maxHeight: 240,
-  },
-  searchResultItem: {
-    alignItems: 'center',
-    borderBottomColor: colors.lightGray,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    gap: spacing[12],
-    paddingHorizontal: spacing[16],
-    paddingVertical: spacing[12],
-  },
-  resultIconBox: {
-    alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.radiusFull,
-    height: 32,
-    justifyContent: 'center',
-    width: 32,
-  },
-  resultTextBox: {
-    flex: 1,
-    gap: 2,
-  },
-  resultLabel: {
-    ...typography.bodyMedium,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  resultAddress: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    paddingVertical: spacing[16],
+    textAlign: 'center',
   },
   mapWrapper: {
     flex: 1,

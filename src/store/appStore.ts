@@ -9,7 +9,6 @@ import {
   UserRole,
   Vehicle,
 } from '@/types';
-import { faceStorageService } from '@/services/faceStorageService';
 
 type AuthState = 'anonymous' | 'authenticated';
 
@@ -85,19 +84,16 @@ export const useAppStore = create<AppStore>((set) => ({
     })),
 
   logout: () =>
-    set((state) => {
-      if (state.currentUser) void faceStorageService.deleteEmbedding(state.currentUser.id);
-      return {
-        authenticationState: 'anonymous',
-        currentUser: null,
-        role: null,
-        selectedDestination: null,
-        selectedTrip: null,
-        currentTrip: null,
-        vehicle: null,
-        notifications: [],
-        faceVerificationState: 'IDLE',
-        activeLivenessSessionId: null,
-      };
+    set({
+      authenticationState: 'anonymous',
+      currentUser: null,
+      role: null,
+      selectedDestination: null,
+      selectedTrip: null,
+      currentTrip: null,
+      vehicle: null,
+      notifications: [],
+      faceVerificationState: 'IDLE',
+      activeLivenessSessionId: null,
     }),
 }));

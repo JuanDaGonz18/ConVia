@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Avatar } from '@/components/ui/Avatar';
@@ -20,92 +21,75 @@ import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
-import { mockChatConversations } from '@/data/mock/chats';
 import { ChatConversation, ChatMessage } from '@/types';
+import { chatService } from '@/services/chatService';
+import { useAppStore } from '@/store/appStore';
+import { errorMessage } from '@/utils/format';
 
 export default function ChatsScreen() {
-  const [conversations, setConversations] = useState<ChatConversation[]>(
-    mockChatConversations
-  );
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeChat, setActiveChat] = useState<ChatConversation | null>(null);
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const currentUser = useAppStore((state) => state.currentUser);
 
   const flatListRef = useRef<FlatList>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void chatService.getConversations().then((items) => {
+        if (!active) return;
+        setConversations(items);
+        setError(null);
+      }).catch((loadError) => {
+        if (active) setError(errorMessage(loadError, 'No se pudieron cargar los chats.'));
+      }).finally(() => {
+        if (active) setLoading(false);
+      });
+      return () => { active = false; };
+    }, []),
+  );
+
+  const appendMessage = useCallback((message: ChatMessage) => {
+    setActiveChat((current) => {
+      if (!current || current.messages.some((item) => item.id === message.id)) return current;
+      return { ...current, messages: [...current.messages, message], lastMessage: message.text, lastMessageTime: message.timestamp };
+    });
+  }, []);
 
   // Auto scroll to bottom when messages update
   useEffect(() => {
     if (activeChat) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      const timer = setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      return () => clearTimeout(timer);
     }
   }, [activeChat]);
 
-  const handleSendMessage = (textToSend?: string) => {
+  useEffect(() => {
+    if (!activeChat?.tripId || !currentUser?.id) return;
+    return chatService.subscribe(activeChat.tripId, appendMessage, currentUser.id, activeChat.participantNames);
+    // Resubscribe only when the open trip changes, not on every new message.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChat?.tripId, currentUser?.id, appendMessage]);
+
+  const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend || inputText).trim();
-    if (!text || !activeChat) return;
-
-    const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      senderId: 'current-user',
-      senderName: 'Yo',
-      text,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true,
-    };
-
-    const updatedMessages = [...activeChat.messages, newMsg];
-
-    const updatedChat: ChatConversation = {
-      ...activeChat,
-      lastMessage: text,
-      lastMessageTime: 'Ahora',
-      unreadCount: 0,
-      messages: updatedMessages,
-    };
-
-    setActiveChat(updatedChat);
-    setConversations((prev) =>
-      prev.map((c) => (c.id === activeChat.id ? updatedChat : c))
-    );
-    setInputText('');
-
-    // Simulate driver reply after 1.4 seconds
-    setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
-      const automatedReplies = [
-        '¡Entendido! Ya voy en camino.',
-        'Perfecto, te espero con las intermitentes puestas.',
-        'Listo, voy pasando por la 153 en este momento.',
-        '¡Excelente! Nos vemos en el punto de recogida.',
-      ];
-      const randomReply =
-        automatedReplies[Math.floor(Math.random() * automatedReplies.length)];
-
-      const replyMsg: ChatMessage = {
-        id: `reply-${Date.now()}`,
-        senderId: activeChat.participantId,
-        senderName: activeChat.participantName.split(' ')[0],
-        text: randomReply,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isMe: false,
-      };
-
-      const finalMessages = [...updatedMessages, replyMsg];
-      const finalChat: ChatConversation = {
-        ...updatedChat,
-        lastMessage: randomReply,
-        lastMessageTime: 'Ahora',
-        messages: finalMessages,
-      };
-
-      setActiveChat(finalChat);
-      setConversations((prev) =>
-        prev.map((c) => (c.id === activeChat.id ? finalChat : c))
-      );
-    }, 1400);
+    if (!text || !activeChat?.tripId || sending) return;
+    setSendError(null);
+    setSending(true);
+    try {
+      appendMessage(await chatService.sendMessage(activeChat.tripId, text));
+      // Keep the typed text if sending fails so the user can retry.
+      if (!textToSend) setInputText('');
+    } catch (sendFailure) {
+      setSendError(errorMessage(sendFailure, 'No se pudo enviar el mensaje.'));
+    } finally {
+      setSending(false);
+    }
   };
 
   // If in an active conversation view
@@ -116,13 +100,16 @@ export default function ChatsScreen() {
         <View style={styles.detailHeader}>
           <Pressable
             accessibilityLabel="Volver a lista de chats"
-            onPress={() => setActiveChat(null)}
+            onPress={() => {
+              setActiveChat(null);
+              setSendError(null);
+            }}
             style={styles.backButton}
           >
             <Ionicons color={colors.text} name="arrow-back" size={24} />
           </Pressable>
 
-          <Avatar name={activeChat.participantName} size={42} />
+          <Avatar imageUrl={activeChat.participantAvatar} name={activeChat.participantName} size={42} />
 
           <View style={styles.participantInfo}>
             <Text numberOfLines={1} style={styles.participantName}>
@@ -130,18 +117,11 @@ export default function ChatsScreen() {
             </Text>
             {activeChat.vehicleInfo ? (
               <Text style={styles.vehicleInfo}>
-                🚗 {activeChat.vehicleInfo} • {activeChat.plate}
+                🚗 {activeChat.vehicleInfo}
               </Text>
             ) : null}
           </View>
 
-          <Pressable
-            accessibilityLabel="Llamar"
-            onPress={() => alert(`Llamando a ${activeChat.participantName}...`)}
-            style={styles.callButton}
-          >
-            <Ionicons color={colors.primary} name="call" size={20} />
-          </Pressable>
         </View>
 
         <KeyboardAvoidingView
@@ -158,14 +138,8 @@ export default function ChatsScreen() {
             renderItem={({ item }) => <ChatMessageItem message={item} />}
           />
 
-          {/* Typing Indicator */}
-          {isTyping ? (
-            <View style={styles.typingBox}>
-              <Text style={styles.typingText}>
-                {activeChat.participantName.split(' ')[0]} está escribiendo...
-              </Text>
-            </View>
-          ) : null}
+          {sendError ? <Text style={styles.errorText}>{sendError}</Text> : null}
+          {activeChat.messages.length === 0 ? <Text style={styles.emptyText}>Escribe el primer mensaje para coordinar el viaje.</Text> : null}
 
           {/* Quick Replies Chips */}
           <QuickReplies onSelect={(reply) => handleSendMessage(reply)} />
@@ -173,6 +147,7 @@ export default function ChatsScreen() {
           {/* Message Input Box */}
           <View style={styles.inputContainer}>
             <TextInput
+              maxLength={2000}
               onChangeText={setInputText}
               placeholder="Escribe un mensaje..."
               placeholderTextColor={colors.textSecondary}
@@ -181,11 +156,11 @@ export default function ChatsScreen() {
             />
             <Pressable
               accessibilityLabel="Enviar mensaje"
-              disabled={!inputText.trim()}
+              disabled={!inputText.trim() || sending}
               onPress={() => handleSendMessage()}
               style={[
                 styles.sendButton,
-                !inputText.trim() ? styles.sendButtonDisabled : null,
+                !inputText.trim() || sending ? styles.sendButtonDisabled : null,
               ]}
             >
               <Ionicons color={colors.white} name="send" size={18} />
@@ -207,6 +182,9 @@ export default function ChatsScreen() {
         </Text>
       </View>
 
+      {loading ? <Text style={styles.emptyText}>Cargando conversaciones...</Text> : null}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {!loading && !error && conversations.length === 0 ? <Text style={styles.emptyText}>Tus viajes activos aparecerán aquí para coordinar con el conductor o los pasajeros.</Text> : null}
       <FlatList
         contentContainerStyle={styles.conversationListContent}
         data={conversations}
@@ -222,7 +200,7 @@ export default function ChatsScreen() {
             }}
             style={styles.conversationCard}
           >
-            <Avatar name={item.participantName} size={50} />
+            <Avatar imageUrl={item.participantAvatar} name={item.participantName} size={50} />
 
             <View style={styles.cardCenter}>
               <View style={styles.cardHeaderRow}>
@@ -234,7 +212,7 @@ export default function ChatsScreen() {
 
               {item.vehicleInfo ? (
                 <Text style={styles.cardVehicle}>
-                  🚗 {item.vehicleInfo} • {item.plate}
+                  🚗 {item.vehicleInfo}
                 </Text>
               ) : null}
 
@@ -397,6 +375,19 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     fontStyle: 'italic',
+  },
+  emptyText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    padding: dimensions.screenPadding,
+    textAlign: 'center',
+  },
+  errorText: {
+    ...typography.bodySmall,
+    color: colors.error,
+    paddingHorizontal: dimensions.screenPadding,
+    paddingTop: spacing[12],
+    textAlign: 'center',
   },
   inputContainer: {
     alignItems: 'center',

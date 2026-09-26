@@ -1,5 +1,4 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Avatar } from '@/components/ui/Avatar';
@@ -10,26 +9,20 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { Trip } from '@/types';
+import { formatDateTime, formatPrice } from '@/utils/format';
 
 type TripCardProps = {
   trip: Trip;
   onChatPress?: () => void;
+  onTripPress?: () => void;
 };
 
-export function TripCard({ trip, onChatPress }: TripCardProps) {
-  const handleChat = () => {
-    if (onChatPress) {
-      onChatPress();
-    } else {
-      router.push('/(tabs)/chats');
-    }
-  };
-
+export function TripCard({ trip, onChatPress, onTripPress }: TripCardProps) {
   return (
-    <View style={styles.card}>
+    <Pressable disabled={!onTripPress} onPress={onTripPress} style={styles.card}>
       <View style={styles.header}>
         <View style={styles.driver}>
-          <Avatar name={trip.driver.name} size={44} />
+          <Avatar imageUrl={trip.driver.avatarUrl} name={trip.driver.name} size={44} />
           <View>
             <Text style={styles.driverName}>{trip.driver.name}</Text>
             <Rating score={trip.driver.rating.score} />
@@ -37,13 +30,15 @@ export function TripCard({ trip, onChatPress }: TripCardProps) {
         </View>
 
         <View style={styles.headerRight}>
-          <Pressable
-            accessibilityLabel="Abrir chat con conductor"
-            onPress={handleChat}
-            style={styles.chatIconBtn}
-          >
-            <Ionicons color={colors.primary} name="chatbubble-ellipses-outline" size={18} />
-          </Pressable>
+          {onChatPress ? (
+            <Pressable
+              accessibilityLabel="Abrir chat con conductor"
+              onPress={onChatPress}
+              style={styles.chatIconBtn}
+            >
+              <Ionicons color={colors.primary} name="chatbubble-ellipses-outline" size={18} />
+            </Pressable>
+          ) : null}
           <StatusBadge status={trip.status} />
         </View>
       </View>
@@ -56,10 +51,10 @@ export function TripCard({ trip, onChatPress }: TripCardProps) {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.meta}>{trip.departureTime} • {trip.seatsAvailable} cupos</Text>
-        <Text style={styles.price}>${trip.price.toLocaleString('es-CO')}</Text>
+        <Text style={styles.meta}>{formatDateTime(trip.departureTime)} • {trip.seatsAvailable} cupos</Text>
+        <Text style={styles.price}>{formatPrice(trip.price)}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

@@ -25,8 +25,18 @@ import { typography } from '@/constants/typography';
 import { radius } from '@/constants/radius';
 import { useAppStore } from '@/store/appStore';
 import { authService } from '@/services/authService';
-import { faceVerificationService } from '@/services/faceVerificationService';
 import { FaceVerificationResult, UserRole } from '@/types';
+import { errorMessage } from '@/utils/format';
+
+function registerErrorMessage(error: unknown) {
+  const message = errorMessage(error, '');
+  if (message.includes('DOMINIO_NO_PERMITIDO')) return 'Usa el correo de tu institución (por ejemplo @unisabana.edu.co).';
+  if (message.includes('CONFIRMACION_DE_CORREO_REQUERIDA')) return 'Te enviamos un correo de confirmación. Ábrelo desde este teléfono y luego inicia sesión.';
+  if (message.includes('SUPABASE_ENV_MISSING')) return 'La app no está configurada con Supabase.';
+  if (/already registered/i.test(message)) return 'Ya existe una cuenta con este correo. Inicia sesión.';
+  if (/password/i.test(message)) return 'La contraseña no cumple los requisitos de seguridad.';
+  return message || 'Ocurrió un error al registrar la cuenta.';
+}
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -43,12 +53,22 @@ export default function RegisterScreen() {
   const { setCurrentUser, markUserFaceVerified } = useAppStore();
 
   const handleRegister = async () => {
+    // The account already exists; only the identity check is pending.
+    if (registeredUserId) {
+      setError(null);
+      setShowFaceVerification(true);
+      return;
+    }
     if (!name.trim()) {
       setError('Por favor ingresa tu nombre completo');
       return;
     }
     if (!email.trim()) {
       setError('Por favor ingresa tu correo electrónico');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Ingresa un correo electrónico válido');
       return;
     }
     if (!password.trim()) {
@@ -70,15 +90,16 @@ export default function RegisterScreen() {
     try {
       const newUser = await authService.register(
         name.trim(),
-        email.trim(),
+        email.trim().toLowerCase(),
+        password,
         selectedRole
       );
       setCurrentUser(newUser);
       // Abrir verificación facial para capturar foto de referencia
       setRegisteredUserId(newUser.id);
       setShowFaceVerification(true);
-    } catch {
-      setError('Ocurrió un error al registrar la cuenta.');
+    } catch (registerError) {
+      setError(registerErrorMessage(registerError));
     } finally {
       setLoading(false);
     }
@@ -88,27 +109,21 @@ export default function RegisterScreen() {
   const handleFaceSuccess = async (result: FaceVerificationResult) => {
     setShowFaceVerification(false);
     if (!registeredUserId) {
-      router.replace('/(tabs)');
+      setError('No se pudo completar la verificación de identidad.');
       return;
     }
-    try {
-      // Registrar referencia facial en el backend
-      const { faceReferenceId } = await faceVerificationService.registerFaceReference({
-        userId: registeredUserId,
-        imageBase64: result.sessionId ?? registeredUserId,
-      });
-      markUserFaceVerified(faceReferenceId);
-    } catch {
-      // No bloqueamos el registro si falla el guardado de referencia
-      console.warn('[Register] No se pudo guardar la referencia facial');
+    if (!result.faceReferenceId) {
+      setError('La verificación no devolvió una referencia válida. Inténtalo de nuevo.');
+      return;
     }
+    markUserFaceVerified(result.faceReferenceId);
     router.replace('/(tabs)');
   };
 
-  /** El usuario cerró o falló la verificación; navegamos igual */
+  /** Keep the account out of the app until identity verification succeeds. */
   const handleFaceClose = () => {
     setShowFaceVerification(false);
-    router.replace('/(tabs)');
+    setError('La verificación facial es obligatoria para publicar o solicitar viajes. Puedes intentarlo de nuevo o hacerlo después desde tu perfil.');
   };
 
   return (
@@ -120,7 +135,7 @@ export default function RegisterScreen() {
           trigger="register"
           userId={registeredUserId}
           onSuccess={handleFaceSuccess}
-          onFailure={handleFaceClose}
+          onFailure={() => undefined}
           onClose={handleFaceClose}
         />
       ) : null}
@@ -251,8 +266,14 @@ export default function RegisterScreen() {
               <ButtonPrimary
                 loading={loading}
                 onPress={handleRegister}
-                title="Crear cuenta"
+                title={registeredUserId ? 'Verificar identidad' : 'Crear cuenta'}
               />
+              {registeredUserId ? (
+                <ButtonSecondary
+                  onPress={() => router.replace('/(tabs)')}
+                  title="Verificar más tarde"
+                />
+              ) : null}
               <ButtonSecondary
                 onPress={() => router.back()}
                 title="Ya tengo cuenta (Iniciar sesión)"

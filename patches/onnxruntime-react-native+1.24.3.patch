@@ -11,13 +11,3 @@ index 41b4359..ab70213 100644
      extractLibs "com.facebook.fbjni:fbjni:+:headers"
      extractLibs "com.facebook.fbjni:fbjni:+"
    }
-diff --git a/node_modules/onnxruntime-react-native/expo-module.config.json b/node_modules/onnxruntime-react-native/expo-module.config.json
-new file mode 100644
-index 0000000..fb40f9f
---- /dev/null
-+++ b/node_modules/onnxruntime-react-native/expo-module.config.json
-@@ -0,0 +1,3 @@
-+{
-+  "platforms": ["android", "ios"]
-+}
-\ No newline at end of file

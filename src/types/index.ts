@@ -1,5 +1,8 @@
 export type UserRole = 'client' | 'driver';
 
+/** Permission to drive, separate from the active mode (`role`). */
+export type DriverStatus = 'pendiente' | 'aprobado' | 'rechazado' | 'suspendido';
+
 export type TripStatus =
   | 'pending'
   | 'accepted'
@@ -39,10 +42,13 @@ export type FaceVerificationStatus =
 export type FaceVerificationTrigger =
   | 'register'       // primera captura durante el registro
   | 'trip_request'   // pasajero solicita un viaje
-  | 'driver_activate'; // conductor se pone disponible
+  | 'driver_activate'  // conductor acepta un pasajero (compara con la licencia)
+  | 'driver_identity'; // conductor confirma que es la persona de su licencia
 
 /** Resultado devuelto por el backend tras la verificación completa */
 export type FaceVerificationResult = {
+  /** verified: same person · not_verified: different person · error: could not decide */
+  status: 'verified' | 'not_verified' | 'error';
   verified: boolean;
   livenessPassed: boolean;
   faceMatched: boolean;
@@ -50,6 +56,8 @@ export type FaceVerificationResult = {
   sessionId?: string;
   faceReferenceId?: string;
   failureReason?: FaceVerificationFailureReason;
+  /** User-facing explanation from the verify-face function. */
+  message?: string;
 };
 
 /** Razones específicas de fallo */
@@ -57,6 +65,7 @@ export type FaceVerificationFailureReason =
   | 'camera_permission_denied'
   | 'no_face_detected'
   | 'multiple_faces_detected'
+  | 'not_a_document'
   | 'poor_image_quality'
   | 'face_not_centered'
   | 'poor_lighting'
@@ -65,7 +74,9 @@ export type FaceVerificationFailureReason =
   | 'face_mismatch'
   | 'embedding_unavailable'
   | 'too_many_attempts'
-  | 'storage_error';
+  | 'storage_error'
+  | 'model_unavailable'
+  | 'network_error';
 
 /** Payload para registrar la referencia facial durante el registro */
 export type FaceRegisterPayload = {
@@ -108,6 +119,8 @@ export type User = {
   faceVerified?: boolean;
   faceReferenceId?: string;
   faceVerifiedAt?: string;
+  /** null when the user never asked to drive. */
+  driverStatus?: DriverStatus | null;
 };
 
 export type Driver = User & {
@@ -129,6 +142,7 @@ export type Vehicle = {
   brand: string;
   model: string;
   plate: string;
+  seats?: number;
   color?: string;
   photoUrl?: string;
 };
@@ -165,10 +179,13 @@ export type ChatMessage = {
 
 export type ChatConversation = {
   id: string;
+  tripId?: string;
   participantId: string;
   participantName: string;
   participantRole: UserRole;
   participantAvatar?: string;
+  /** sender id -> display name, used to label realtime messages */
+  participantNames?: Record<string, string>;
   vehicleInfo?: string;
   plate?: string;
   lastMessage: string;

@@ -1,0 +1,235 @@
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { MapPickerModal } from '@/components/map/MapPickerModal';
+import { colors } from '@/constants/colors';
+import { radius } from '@/constants/radius';
+import { spacing } from '@/constants/spacing';
+import { typography } from '@/constants/typography';
+import { locationService } from '@/services/locationService';
+import { Location } from '@/types';
+import { errorMessage } from '@/utils/format';
+
+type PlaceSearchFieldProps = {
+  label?: string;
+  placeholder?: string;
+  value: Location | null;
+  onChange: (location: Location | null) => void;
+  /** Biases results toward this point (usually the user's position). */
+  near?: Location | null;
+  /** Shows a "use my current location" button. */
+  allowCurrentLocation?: boolean;
+  /** Title of the full-screen map picker. */
+  mapTitle?: string;
+};
+
+/** Wait this long after the last keystroke before searching as you type. */
+const TYPING_DELAY_MS = 700;
+
+export function PlaceSearchField({
+  label,
+  placeholder = 'Busca una dirección o lugar',
+  value,
+  onChange,
+  near,
+  allowCurrentLocation = false,
+  mapTitle,
+}: PlaceSearchFieldProps) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Location[] | null>(null);
+  const [busy, setBusy] = useState<'search' | 'gps' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showMap, setShowMap] = useState(false);
+  // Only the newest search may update the results.
+  const latestSearch = useRef(0);
+
+  const search = async (text: string, fromTyping = false) => {
+    if (text.trim().length < 3) {
+      if (!fromTyping) setError('Escribe al menos 3 letras.');
+      return;
+    }
+    const id = ++latestSearch.current;
+    setBusy('search');
+    setError(null);
+    try {
+      const found = await locationService.search(text, near ?? value);
+      if (id !== latestSearch.current) return;
+      setResults(found);
+      if (!found.length) setError('No encontramos ese lugar. Prueba con más detalle o elígelo en el mapa.');
+    } catch (searchError) {
+      if (id === latestSearch.current) setError(errorMessage(searchError, 'No se pudo buscar el lugar.'));
+    } finally {
+      if (id === latestSearch.current) setBusy(null);
+    }
+  };
+
+  // Search as you type, once the user pauses.
+  useEffect(() => {
+    if (query.trim().length < 3) return;
+    const timer = setTimeout(() => void search(query, true), TYPING_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new query should trigger a search
+  }, [query]);
+
+  const pickCurrentLocation = async () => {
+    setBusy('gps');
+    setError(null);
+    try {
+      const current = await locationService.getCurrentLocation();
+      onChange(current);
+      setResults(null);
+      setQuery('');
+    } catch (gpsError) {
+      setError(errorMessage(gpsError, 'No se pudo obtener tu ubicación.'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const select = (location: Location) => {
+    latestSearch.current += 1;
+    onChange(location);
+    setResults(null);
+    setQuery('');
+    setBusy(null);
+  };
+
+  return (
+    <View style={styles.container}>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
+
+      {value ? (
+        <View style={styles.selected}>
+          <Ionicons color={colors.primary} name="location" size={18} />
+          <View style={styles.selectedText}>
+            <Text numberOfLines={1} style={styles.selectedLabel}>{value.label}</Text>
+            <Text numberOfLines={2} style={styles.selectedAddress}>{value.address}</Text>
+          </View>
+          <Pressable accessibilityLabel="Cambiar lugar" hitSlop={8} onPress={() => onChange(null)}>
+            <Ionicons color={colors.textSecondary} name="close-circle" size={20} />
+          </Pressable>
+        </View>
+      ) : (
+        <View style={styles.inputRow}>
+          <TextInput
+            onChangeText={(text) => {
+              setQuery(text);
+              setResults(null);
+              if (error) setError(null);
+            }}
+            onSubmitEditing={() => void search(query)}
+            placeholder={placeholder}
+            placeholderTextColor={colors.textSecondary}
+            returnKeyType="search"
+            style={styles.input}
+            value={query}
+          />
+          <Pressable
+            accessibilityLabel="Buscar lugar"
+            disabled={busy !== null}
+            onPress={() => void search(query)}
+            style={styles.iconButton}
+          >
+            {busy === 'search' ? <ActivityIndicator color={colors.white} /> : <Ionicons color={colors.white} name="search" size={18} />}
+          </Pressable>
+        </View>
+      )}
+
+      <View style={styles.links}>
+        {allowCurrentLocation && !value ? (
+          <Pressable disabled={busy !== null} onPress={() => void pickCurrentLocation()} style={styles.gpsButton}>
+            {busy === 'gps' ? <ActivityIndicator color={colors.primary} size="small" /> : <Ionicons color={colors.primary} name="navigate" size={16} />}
+            <Text style={styles.gpsText}>Usar mi ubicación actual</Text>
+          </Pressable>
+        ) : null}
+        <Pressable onPress={() => setShowMap(true)} style={styles.gpsButton}>
+          <Ionicons color={colors.primary} name="map-outline" size={16} />
+          <Text style={styles.gpsText}>{value ? 'Ajustar en el mapa' : 'Elegir en el mapa'}</Text>
+        </Pressable>
+      </View>
+
+      <MapPickerModal
+        initial={value}
+        near={near}
+        onClose={() => setShowMap(false)}
+        onConfirm={(location) => {
+          setShowMap(false);
+          select(location);
+        }}
+        title={mapTitle ?? label ?? 'Elige el lugar'}
+        visible={showMap}
+      />
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      {results?.length ? (
+        <View style={styles.results}>
+          {results.map((result) => (
+            <Pressable key={result.id} onPress={() => select(result)} style={styles.resultItem}>
+              <Ionicons color={colors.primary} name="location-outline" size={18} />
+              <View style={styles.selectedText}>
+                <Text numberOfLines={1} style={styles.selectedLabel}>{result.label}</Text>
+                <Text numberOfLines={2} style={styles.selectedAddress}>{result.address}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { gap: spacing[8] },
+  label: { ...typography.label, color: colors.text },
+  inputRow: { flexDirection: 'row', gap: spacing[8] },
+  input: {
+    ...typography.body,
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderRadius: radius.radiusMedium,
+    borderWidth: 1,
+    color: colors.text,
+    flex: 1,
+    height: 48,
+    paddingHorizontal: spacing[12],
+  },
+  iconButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.radiusMedium,
+    height: 48,
+    justifyContent: 'center',
+    width: 48,
+  },
+  links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing[16] },
+  gpsButton: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: spacing[8], paddingVertical: spacing[4] },
+  gpsText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
+  selected: {
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.radiusMedium,
+    flexDirection: 'row',
+    gap: spacing[8],
+    padding: spacing[12],
+  },
+  selectedText: { flex: 1, gap: 2 },
+  selectedLabel: { ...typography.bodyMedium, color: colors.text, fontWeight: '600' },
+  selectedAddress: { ...typography.caption, color: colors.textSecondary },
+  results: {
+    backgroundColor: colors.white,
+    borderColor: colors.lightGray,
+    borderRadius: radius.radiusMedium,
+    borderWidth: 1,
+  },
+  resultItem: {
+    alignItems: 'center',
+    borderBottomColor: colors.lightGray,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: spacing[8],
+    padding: spacing[12],
+  },
+  error: { ...typography.caption, color: colors.error },
+});

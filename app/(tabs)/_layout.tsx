@@ -1,8 +1,30 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
+import { useEffect, useState } from 'react';
 
 import { BottomNavigation } from '@/components/navigation/BottomNavigation';
+import { authService } from '@/services/authService';
+import { useAppStore } from '@/store/appStore';
 
 export default function TabsLayout() {
+  const currentUser = useAppStore((state) => state.currentUser);
+  const setCurrentUser = useAppStore((state) => state.setCurrentUser);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void authService.getCurrentUser().then((user) => {
+      if (!active) return;
+      if (user) setCurrentUser(user);
+      setIsHydrated(true);
+    }).catch(() => {
+      if (active) setIsHydrated(true);
+    });
+    return () => { active = false; };
+  }, [setCurrentUser]);
+
+  if (!isHydrated) return null;
+  if (!currentUser) return <Redirect href="/(auth)/login" />;
+
   return (
     <Tabs
       screenOptions={{

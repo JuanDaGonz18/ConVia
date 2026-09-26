@@ -29,6 +29,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
+  const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -44,11 +45,16 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      const user = await authService.login(email.trim());
+      const user = await authService.login(email.trim(), password);
       setCurrentUser(user);
       router.replace('/(tabs)');
-    } catch {
-      setError('Error al iniciar sesión. Intenta nuevamente.');
+    } catch (loginError) {
+      const message = loginError instanceof Error ? loginError.message : '';
+      if (/invalid login credentials/i.test(message)) setError('Correo o contraseña incorrectos.');
+      else if (/email not confirmed/i.test(message)) setError('Confirma tu correo antes de iniciar sesión.');
+      else if (message.includes('SUPABASE_ENV_MISSING')) setError('La app no está configurada con Supabase.');
+      else if (message.includes('PERFIL_NO_ENCONTRADO')) setError('Tu cuenta existe pero no tiene perfil en WheelsApp. Contacta al administrador.');
+      else setError('Error al iniciar sesión. Revisa tu conexión e intenta nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -137,19 +143,21 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          <View style={styles.quickAccessSection}>
-            <Text style={styles.quickAccessTitle}>Acceso Rápido Demo</Text>
-            <View style={styles.quickButtons}>
-              <ButtonSecondary
-                onPress={() => handleQuickLogin('client')}
-                title="Entrar como Pasajero"
-              />
-              <ButtonSecondary
-                onPress={() => handleQuickLogin('driver')}
-                title="Entrar como Conductor"
-              />
+          {!useSupabase ? (
+            <View style={styles.quickAccessSection}>
+              <Text style={styles.quickAccessTitle}>Acceso Rápido Demo</Text>
+              <View style={styles.quickButtons}>
+                <ButtonSecondary
+                  onPress={() => handleQuickLogin('client')}
+                  title="Entrar como Pasajero"
+                />
+                <ButtonSecondary
+                  onPress={() => handleQuickLogin('driver')}
+                  title="Entrar como Conductor"
+                />
+              </View>
             </View>
-          </View>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

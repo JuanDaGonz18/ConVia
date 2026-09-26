@@ -43,7 +43,7 @@
         "expo-camera",
         {
           "cameraPermission": "WheelsApp necesita acceso a la camara para verificar tu identidad.",
-          "barcodeScannerEnabled": false
+          "barcodeScannerEnabled": true
         }
       ],
       "expo-dev-client",
@@ -62,6 +62,12 @@
       ],
       "expo-asset",
       [
+        "expo-notifications",
+        {
+          "color": "#006FFD"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {
@@ -69,6 +75,13 @@
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2d3f6e2e-77f7-45c5-893f-8c2ce46bbd53"
+      }
+    },
+    "owner": "juanda1809"
   }
 }
