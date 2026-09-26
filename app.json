@@ -15,11 +15,6 @@
     },
     "android": {
       "package": "com.juanda1809.wheelsapp",
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyCGbJmMaeTzeXCwH_YfBCE2ih707-OkJZk"
-        }
-      },
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
