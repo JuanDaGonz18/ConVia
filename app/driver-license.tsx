@@ -52,6 +52,35 @@ export default function DriverLicenseScreen() {
     if (user) setCurrentUser({ ...user, driverStatus: status });
   }, [setCurrentUser]);
 
+  // Approved: switch to driver mode right away so the user can publish trips.
+  const becomeDriver = async () => {
+    try {
+      await driverService.switchRole('driver');
+      const user = useAppStore.getState().currentUser;
+      if (user) setCurrentUser({ ...user, role: 'driver', driverStatus: 'aprobado' });
+      setMessage('Tu identidad coincide con la foto de tu licencia. Ya estás en modo conductor.');
+    } catch {
+      setMessage('Tu identidad coincide con la foto de tu licencia. Activa el modo conductor desde tu perfil.');
+    }
+  };
+
+  // Whoever leaves without passing the check stays (or goes back to being) a
+  // passenger, e.g. someone who signed up as a driver. Runs however the
+  // screen is closed: the back arrow, Android's back button or a gesture.
+  useEffect(() => () => {
+    const user = useAppStore.getState().currentUser;
+    if (!user || user.role !== 'driver' || user.driverStatus === 'aprobado') return;
+    setCurrentUser({ ...user, role: 'client' });
+    void driverService.switchRole('client').catch((switchError) => {
+      console.warn('[driver-license] Could not switch back to passenger mode', switchError);
+    });
+  }, [setCurrentUser]);
+
+  const leave = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/profile');
+  };
+
   const load = useCallback(async () => {
     if (!userId) return;
     try {
@@ -147,8 +176,8 @@ export default function DriverLicenseScreen() {
           onFailure={() => undefined}
           onSuccess={() => {
             setShowSelfie(false);
-            setMessage('Tu identidad coincide con la foto de tu licencia.');
             updateStatus('aprobado');
+            void becomeDriver();
             void load();
           }}
           trigger="driver_identity"
@@ -157,11 +186,17 @@ export default function DriverLicenseScreen() {
         />
       ) : null}
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable accessibilityLabel="Volver" onPress={() => router.back()} style={styles.back}>
+        <Pressable accessibilityLabel="Volver" onPress={leave} style={styles.back}>
           <Ionicons color={colors.text} name="arrow-back" size={24} />
         </Pressable>
         <Text style={styles.kicker}>CONDUCTOR</Text>
         <Text style={styles.title}>Licencia de conducción</Text>
+        {!verified ? (
+          <View style={styles.intro}>
+            <Ionicons color={colors.primary} name="lock-closed" size={20} />
+            <Text style={styles.introText}>Para ser conductor debes completar la siguiente verificación.</Text>
+          </View>
+        ) : null}
         <Text style={styles.subtitle}>
           Comparamos tu rostro con la foto de tu licencia para confirmar que eres tú quien conduce. Esto no valida que la licencia sea
           auténtica ni consulta el RUNT u otra fuente oficial.
@@ -258,6 +293,15 @@ const styles = StyleSheet.create({
   kicker: { ...typography.label, color: colors.primary },
   title: { ...typography.headingXL, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary },
+  intro: {
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.radiusLarge,
+    flexDirection: 'row',
+    gap: spacing[12],
+    padding: spacing[16],
+  },
+  introText: { ...typography.bodyMedium, color: colors.text, flex: 1, fontWeight: '600' },
   section: { ...typography.headingM, color: colors.text, marginTop: spacing[8] },
   statusCard: {
     alignItems: 'flex-start',

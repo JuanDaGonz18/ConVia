@@ -27,7 +27,7 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   return (
-    <Modal animationType="fade" transparent visible={visible}>
+    <Modal animationType="fade" onRequestClose={onCancel} transparent visible={visible}>
       <View style={styles.overlay}>
         <View style={styles.dialog}>
           <Text style={styles.title}>{title}</Text>

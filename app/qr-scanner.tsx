@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
+import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
@@ -23,9 +24,15 @@ export default function QrScannerScreen() {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Text style={styles.title}>Permiso de cámara requerido</Text>
-        <ButtonPrimary onPress={() => void requestPermission()} title="Permitir cámara" />
-        <ButtonPrimary onPress={() => router.back()} title="Volver" />
+        <Ionicons color={colors.primary} name="qr-code-outline" size={56} style={styles.centerIcon} />
+        <Text style={styles.title}>Necesitamos la cámara</Text>
+        <Text style={styles.body}>La usamos para leer el código QR que muestra cada pasajero al subir.</Text>
+        {permission.canAskAgain ? (
+          <ButtonPrimary onPress={() => void requestPermission()} title="Permitir cámara" />
+        ) : (
+          <ButtonPrimary onPress={() => void Linking.openSettings()} title="Abrir ajustes del teléfono" />
+        )}
+        <ButtonSecondary onPress={() => router.back()} title="Volver" />
       </SafeAreaView>
     );
   }
@@ -57,7 +64,8 @@ export default function QrScannerScreen() {
           <Ionicons color={colors.white} name="close" size={28} />
         </Pressable>
         <Text style={styles.instruction}>Escanea el QR del pasajero</Text>
-        {scanned && !message ? <Text style={styles.message}>Validando...</Text> : null}
+        <View pointerEvents="none" style={styles.frame} />
+        {scanned && !message ? <Text style={styles.message}>Validando…</Text> : null}
         {message ? <Text style={[styles.message, message.ok ? styles.messageOk : styles.messageError]}>{message.text}</Text> : null}
         {message ? <ButtonPrimary onPress={() => { setScanned(false); setMessage(null); }} title="Escanear otro" /> : null}
       </SafeAreaView>
@@ -75,4 +83,15 @@ const styles = StyleSheet.create({
   messageOk: { color: colors.success, fontWeight: '700' },
   messageError: { color: colors.error },
   title: { ...typography.headingM, color: colors.text, textAlign: 'center' },
+  body: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
+  centerIcon: { alignSelf: 'center' },
+  frame: {
+    alignSelf: 'center',
+    borderColor: colors.white,
+    borderRadius: 24,
+    borderWidth: 3,
+    height: 240,
+    marginVertical: spacing[16],
+    width: 240,
+  },
 });

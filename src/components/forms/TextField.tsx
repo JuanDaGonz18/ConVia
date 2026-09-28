@@ -52,6 +52,7 @@ const styles = StyleSheet.create({
   },
   input: {
     ...typography.body,
+    backgroundColor: colors.white,
     borderColor: colors.border,
     borderRadius: radius.radiusMedium,
     borderWidth: 1,

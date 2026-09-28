@@ -7,38 +7,39 @@ import { typography } from '@/constants/typography';
 
 const DEFAULT_QUICK_REPLIES = [
   'Ya estoy en el punto de encuentro',
-  'Llego en 3 minutos',
-  '¿Cuál es el color del carro?',
-  'Voy saliendo hacia allá',
-  '¡Muchas gracias!',
+  'Llego en 5 minutos',
+  'Voy saliendo',
+  '¿Dónde te espero?',
+  '¡Gracias!',
 ];
 
-type QuickRepliesProps = {
+type QuickRepliesProps = Readonly<{
   replies?: string[];
+  disabled?: boolean;
   onSelect: (reply: string) => void;
-};
+}>;
 
-export function QuickReplies({
-  replies = DEFAULT_QUICK_REPLIES,
-  onSelect,
-}: QuickRepliesProps) {
+/** One-tap messages, in a single horizontally scrolling row. */
+export function QuickReplies({ replies = DEFAULT_QUICK_REPLIES, disabled = false, onSelect }: QuickRepliesProps) {
   return (
     <ScrollView
-      contentContainerStyle={styles.container}
+      contentContainerStyle={styles.content}
       horizontal
       keyboardShouldPersistTaps="handled"
       showsHorizontalScrollIndicator={false}
+      // A horizontal ScrollView grows to fill a column unless told not to.
+      style={styles.row}
     >
-      {replies.map((reply, idx) => (
+      {replies.map((reply) => (
         <Pressable
-          key={idx}
+          accessibilityLabel={`Enviar: ${reply}`}
+          accessibilityRole="button"
+          disabled={disabled}
+          key={reply}
           onPress={() => onSelect(reply)}
-          style={({ pressed }) => [
-            styles.chip,
-            pressed ? styles.chipPressed : null,
-          ]}
+          style={({ pressed }) => [styles.chip, pressed ? styles.chipPressed : null, disabled ? styles.chipDisabled : null]}
         >
-          <Text style={styles.chipText}>{reply}</Text>
+          <Text numberOfLines={1} style={styles.chipText}>{reply}</Text>
         </Pressable>
       ))}
     </ScrollView>
@@ -46,26 +47,24 @@ export function QuickReplies({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
+  row: { flexGrow: 0 },
+  content: {
+    alignItems: 'center',
     gap: spacing[8],
-    paddingHorizontal: spacing[16],
-    paddingVertical: spacing[8],
+    paddingHorizontal: spacing[12],
   },
   chip: {
     backgroundColor: colors.primaryLight,
-    borderColor: colors.border,
     borderRadius: radius.radiusFull,
-    borderWidth: 1,
+    height: 32,
+    justifyContent: 'center',
     paddingHorizontal: spacing[12],
-    paddingVertical: spacing[8],
   },
-  chipPressed: {
-    backgroundColor: '#D1E4FF',
-  },
+  chipPressed: { backgroundColor: '#D1E4FF' },
+  chipDisabled: { opacity: 0.5 },
   chipText: {
     ...typography.caption,
     color: colors.primary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });

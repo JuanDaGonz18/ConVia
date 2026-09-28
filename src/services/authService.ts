@@ -110,7 +110,9 @@ export const authService = {
         options: {
           data: {
             nombre: name,
-            rol: role === 'driver' ? 'conductor' : 'usuario',
+            // Everyone starts as a passenger; driver mode unlocks after the
+            // license check (the sign-up screen sends drivers straight there).
+            rol: 'usuario',
             terms_accepted: true,
           },
           // Route groups are not part of the URL: app/(auth)/callback.tsx is /callback.

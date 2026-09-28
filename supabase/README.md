@@ -91,8 +91,10 @@ Otras reglas: un pasajero puede volver a pedir un viaje si su solicitud anterior
 
 ## Auth
 
-- Email + contraseña (proveedor por defecto, con confirmación de correo).
+- Email + contraseña (proveedor por defecto).
 - Site URL `wheelsapp://` · Redirect URLs `wheelsapp://**` y `exp://**` (Expo Go). Configura `"scheme": "wheelsapp"` en `app.json`.
+- Los enlaces de correo usan PKCE: vuelven como `wheelsapp://callback?code=…`. Si el enlace venció, Supabase manda el error en el fragmento (`#error_code=otp_expired`); `src/utils/authLink.ts` lo lee.
+
 
 ## Verificación facial (gratuita, en el dispositivo)
 

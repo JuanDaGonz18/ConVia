@@ -38,7 +38,7 @@ export function ChatMessageItem({ message }: ChatMessageItemProps) {
             {message.timestamp}
           </Text>
           {isMe ? (
-            <Ionicons color="rgba(255,255,255,0.8)" name="checkmark-done" size={14} />
+            <Ionicons accessibilityLabel="Enviado" color="rgba(255,255,255,0.8)" name="checkmark" size={14} />
           ) : null}
         </View>
       </View>

@@ -165,6 +165,115 @@ async function searchGeocoder(text: string, near?: Location | null): Promise<Loc
   return results;
 }
 
+// OSRM (router.project-osrm.org): free road routing on OpenStreetMap, no key.
+// Used only for route previews; callers fall back to a straight line.
+const OSRM_URL = 'https://router.project-osrm.org/route/v1/driving/';
+const ROUTE_TIMEOUT_MS = 8000;
+
+export type RoutePreview = {
+  coordinates: { latitude: number; longitude: number }[];
+  km: number;
+  minutes: number;
+};
+
+const routesCache = new Map<string, RoutePreview[]>();
+
+type Point = { latitude: number; longitude: number };
+
+/** Most points kept per route: enough for a smooth line, small enough to store with the trip. */
+const MAX_ROUTE_POINTS = 300;
+
+/** Douglas–Peucker line simplification (tolerance in degrees; ~0.0001 ≈ 11 m). */
+function simplify(points: Point[], tolerance: number): Point[] {
+  if (points.length < 3) return points;
+  const keep = new Uint8Array(points.length);
+  keep[0] = 1;
+  keep[points.length - 1] = 1;
+  const stack: [number, number][] = [[0, points.length - 1]];
+  while (stack.length) {
+    const [start, end] = stack.pop()!;
+    const a = points[start];
+    const b = points[end];
+    const dx = b.longitude - a.longitude;
+    const dy = b.latitude - a.latitude;
+    const length = Math.hypot(dx, dy) || 1e-12;
+    let farthest = -1;
+    let maxDistance = tolerance;
+    for (let i = start + 1; i < end; i += 1) {
+      const p = points[i];
+      const distance = Math.abs(dy * (p.longitude - a.longitude) - dx * (p.latitude - a.latitude)) / length;
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        farthest = i;
+      }
+    }
+    if (farthest !== -1) {
+      keep[farthest] = 1;
+      stack.push([start, farthest], [farthest, end]);
+    }
+  }
+  return points.filter((_, index) => keep[index]);
+}
+
+/** Simplifies until the route fits MAX_ROUTE_POINTS. */
+function compact(points: Point[]) {
+  let tolerance = 0.00005;
+  let result = simplify(points, tolerance);
+  while (result.length > MAX_ROUTE_POINTS) {
+    tolerance *= 2;
+    result = simplify(points, tolerance);
+  }
+  return result;
+}
+
+type OsrmResponse = {
+  code?: string;
+  routes?: { distance: number; duration: number; geometry: { coordinates: [number, number][] } }[];
+};
+
+/**
+ * Road routes from `from` to `to`, optionally through `via` stops. Without
+ * stops OSRM may offer alternatives (fastest first). Empty when routing fails.
+ */
+async function fetchRoutes(from: Location, to: Location, via: Point[] = []): Promise<RoutePreview[]> {
+  const stops = [from, ...via, to];
+  const key = stops.map((stop) => `${stop.latitude.toFixed(5)},${stop.longitude.toFixed(5)}`).join(';');
+  const cached = routesCache.get(key);
+  if (cached) return cached;
+  const path = stops.map((stop) => `${stop.longitude},${stop.latitude}`).join(';');
+  const url = `${OSRM_URL}${path}?overview=full&geometries=geojson&alternatives=${via.length ? 'false' : '3'}`;
+
+  // The public demo server sometimes drops a request; one retry covers it.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ROUTE_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) continue;
+      const body = (await response.json()) as OsrmResponse;
+      if (body.code !== 'Ok' || !body.routes?.length) return [];
+      const routes = body.routes
+        .filter((route) => route.geometry.coordinates.length >= 2)
+        .map((route) => ({
+          coordinates: compact(route.geometry.coordinates.map(([longitude, latitude]) => ({ latitude, longitude }))),
+          km: route.distance / 1000,
+          minutes: Math.round(route.duration / 60),
+        }));
+      routesCache.set(key, routes);
+      return routes;
+    } catch {
+      // Timeout or network error: try once more.
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return [];
+}
+
+async function fetchRoute(from: Location, to: Location): Promise<RoutePreview | null> {
+  return (await fetchRoutes(from, to))[0] ?? null;
+}
+
 /** Results within this distance of the user are shown before farther ones. */
 const NEARBY_KM = 80;
 
@@ -175,6 +284,12 @@ const NEARBY_KM = 80;
  */
 export const locationService = {
   distanceKm,
+
+  /** Road route between two points, or null when it can't be computed (offline, no road…). */
+  getRoute: fetchRoute,
+
+  /** Alternative routes (or the route through `via` stops) for the driver to choose from. */
+  getRoutes: fetchRoutes,
 
   async getCurrentLocation(): Promise<Location> {
     await ensurePermission();

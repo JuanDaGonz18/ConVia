@@ -13,6 +13,7 @@ const labels: Record<TripStatus, string> = {
   started: 'Iniciado',
   completed: 'Finalizado',
   cancelled: 'Cancelado',
+  not_started: 'No iniciado',
 };
 
 type StatusBadgeProps = {

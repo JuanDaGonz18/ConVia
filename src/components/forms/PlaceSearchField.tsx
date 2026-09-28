@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { MapPickerModal } from '@/components/map/MapPickerModal';
@@ -8,7 +8,7 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { locationService } from '@/services/locationService';
-import { Location } from '@/types';
+import { Location, SavedPlace, SavedPlaceKind } from '@/types';
 import { errorMessage } from '@/utils/format';
 
 type PlaceSearchFieldProps = {
@@ -22,6 +22,15 @@ type PlaceSearchFieldProps = {
   allowCurrentLocation?: boolean;
   /** Title of the full-screen map picker. */
   mapTitle?: string;
+  /** The user's saved places, offered as one-tap shortcuts while empty. */
+  quickPlaces?: SavedPlace[];
+};
+
+const QUICK_ICONS: Record<SavedPlaceKind, keyof typeof Ionicons.glyphMap> = {
+  home: 'home',
+  work: 'briefcase',
+  university: 'school',
+  other: 'bookmark',
 };
 
 /** Wait this long after the last keystroke before searching as you type. */
@@ -35,6 +44,7 @@ export function PlaceSearchField({
   near,
   allowCurrentLocation = false,
   mapTitle,
+  quickPlaces = [],
 }: PlaceSearchFieldProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Location[] | null>(null);
@@ -136,6 +146,28 @@ export function PlaceSearchField({
         </View>
       )}
 
+      {!value && quickPlaces.length ? (
+        <ScrollView
+          contentContainerStyle={styles.quickRow}
+          horizontal
+          keyboardShouldPersistTaps="handled"
+          showsHorizontalScrollIndicator={false}
+          style={styles.quickScroll}
+        >
+          {quickPlaces.map((place) => (
+            <Pressable
+              accessibilityLabel={`Usar ${place.label}`}
+              key={place.id}
+              onPress={() => select({ ...place, id: `${place.latitude.toFixed(6)},${place.longitude.toFixed(6)}` })}
+              style={({ pressed }) => [styles.quickChip, pressed ? styles.quickChipPressed : null]}
+            >
+              <Ionicons color={colors.primary} name={QUICK_ICONS[place.kind]} size={14} />
+              <Text numberOfLines={1} style={styles.quickText}>{place.label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
+
       <View style={styles.links}>
         {allowCurrentLocation && !value ? (
           <Pressable disabled={busy !== null} onPress={() => void pickCurrentLocation()} style={styles.gpsButton}>
@@ -204,6 +236,20 @@ const styles = StyleSheet.create({
     width: 48,
   },
   links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing[16] },
+  quickScroll: { flexGrow: 0 },
+  quickRow: { gap: spacing[8] },
+  quickChip: {
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.radiusFull,
+    flexDirection: 'row',
+    gap: 4,
+    height: 32,
+    maxWidth: 180,
+    paddingHorizontal: spacing[12],
+  },
+  quickChipPressed: { backgroundColor: '#D1E4FF' },
+  quickText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
   gpsButton: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: spacing[8], paddingVertical: spacing[4] },
   gpsText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
   selected: {

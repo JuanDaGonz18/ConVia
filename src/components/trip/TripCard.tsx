@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Avatar } from '@/components/ui/Avatar';
@@ -10,16 +10,36 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { Trip } from '@/types';
 import { formatDateTime, formatPrice } from '@/utils/format';
+import { describeNearPlace } from '@/utils/tripRanking';
 
 type TripCardProps = {
   trip: Trip;
   onChatPress?: () => void;
   onTripPress?: () => void;
+  /** Why this trip is suggested to the user, when it is. */
+  nearPlace?: { label: string; km: number } | null;
+  favoriteDriver?: boolean;
 };
 
-export function TripCard({ trip, onChatPress, onTripPress }: TripCardProps) {
+export function TripCard({ trip, onChatPress, onTripPress, nearPlace, favoriteDriver }: TripCardProps) {
   return (
-    <Pressable disabled={!onTripPress} onPress={onTripPress} style={styles.card}>
+    <Pressable disabled={!onTripPress} onPress={onTripPress} style={[styles.card, nearPlace || favoriteDriver ? styles.cardHighlighted : null]}>
+      {nearPlace || favoriteDriver ? (
+        <View style={styles.reasons}>
+          {nearPlace ? (
+            <View style={styles.reasonChip}>
+              <Ionicons color={colors.success} name="navigate-circle-outline" size={14} />
+              <Text style={[styles.reasonText, styles.reasonPlace]}>{describeNearPlace(nearPlace)}</Text>
+            </View>
+          ) : null}
+          {favoriteDriver ? (
+            <View style={styles.reasonChip}>
+              <Ionicons color={colors.warning} name="star" size={14} />
+              <Text style={[styles.reasonText, styles.reasonFavorite]}>Conductor favorito</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
       <View style={styles.header}>
         <View style={styles.driver}>
           <Avatar imageUrl={trip.driver.avatarUrl} name={trip.driver.name} size={44} />
@@ -50,6 +70,19 @@ export function TripCard({ trip, onChatPress, onTripPress }: TripCardProps) {
         <Text style={styles.routeText}>{trip.destination.address}</Text>
       </View>
 
+      {trip.vehicle ? (
+        <View style={styles.vehicleRow}>
+          {trip.vehicle.photoUrl ? (
+            <Image source={{ uri: trip.vehicle.photoUrl }} style={styles.vehicleThumb} />
+          ) : (
+            <Ionicons color={colors.textSecondary} name="car-outline" size={18} />
+          )}
+          <Text numberOfLines={1} style={styles.vehicleText}>
+            {trip.vehicle.brand}{trip.vehicle.color ? ` · ${trip.vehicle.color}` : ''} · {trip.vehicle.plate}
+          </Text>
+        </View>
+      ) : null}
+
       <View style={styles.footer}>
         <Text style={styles.meta}>{formatDateTime(trip.departureTime)} • {trip.seatsAvailable} cupos</Text>
         <Text style={styles.price}>{formatPrice(trip.price)}</Text>
@@ -71,6 +104,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 16,
   },
+  cardHighlighted: { borderColor: colors.primary },
+  reasons: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8], marginBottom: -spacing[8] },
+  reasonChip: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+  reasonText: { ...typography.caption, fontWeight: '600' },
+  reasonPlace: { color: colors.success },
+  reasonFavorite: { color: colors.text },
   header: {
     alignItems: 'flex-start',
     flexDirection: 'row',
@@ -109,6 +148,9 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.text,
   },
+  vehicleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
+  vehicleThumb: { backgroundColor: colors.lightGray, borderRadius: radius.radiusSmall, height: 32, width: 44 },
+  vehicleText: { ...typography.bodySmall, color: colors.textSecondary, flex: 1 },
   footer: {
     alignItems: 'center',
     flexDirection: 'row',

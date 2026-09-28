@@ -37,9 +37,10 @@ export default function RootLayout() {
   }, [setCurrentUser]);
 
   // Open the relevant screen when the user taps a push notification.
-  useEffect(() => notificationService.addTapListener(({ type }) => {
-    if (type === 'message') router.push('/(tabs)/chats');
-    else if (typeof type === 'string' && type.startsWith('request_')) router.push('/requests');
+  useEffect(() => notificationService.addTapListener(({ type, tripId }) => {
+    if (type === 'message' && typeof tripId === 'string') router.push({ pathname: '/chat/[tripId]', params: { tripId } });
+    else if (type === 'message') router.push('/(tabs)/chats');
+    else if (type === 'trip_updated' || (typeof type === 'string' && type.startsWith('request_'))) router.push('/requests');
   }), []);
 
   return (

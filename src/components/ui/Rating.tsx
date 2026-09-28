@@ -10,10 +10,12 @@ type RatingProps = {
 };
 
 export function Rating({ score }: RatingProps) {
+  // Nobody has rated this person yet; "0.0" would read as a bad rating.
+  const rated = score > 0;
   return (
-    <View style={styles.container}>
-      <Ionicons color={colors.warning} name="star" size={16} />
-      <Text style={styles.score}>{score.toFixed(1)}</Text>
+    <View accessibilityLabel={rated ? `Calificación ${score.toFixed(1)} de 5` : 'Sin calificaciones todavía'} style={styles.container}>
+      <Ionicons color={rated ? colors.warning : colors.textSecondary} name={rated ? 'star' : 'star-outline'} size={16} />
+      <Text style={styles.score}>{rated ? score.toFixed(1) : 'Nuevo'}</Text>
     </View>
   );
 }

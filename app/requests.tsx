@@ -6,15 +6,17 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
+import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { tripService, TripRequestRecord, TripRequestStatus } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
-import { errorMessage, formatDateTime } from '@/utils/format';
+import { errorMessage, formatDateTime, formatMessageTime } from '@/utils/format';
 
 const STATUS_LABELS: Record<TripRequestStatus, string> = {
   pendiente: 'Pendiente',
@@ -29,6 +31,8 @@ export default function RequestsScreen() {
   const userId = useAppStore((state) => state.currentUser?.id);
   // Request waiting for the driver's face check before it is accepted.
   const [pendingAccept, setPendingAccept] = useState<string | null>(null);
+  // Rejecting or cancelling waits for an explicit confirmation.
+  const [confirm, setConfirm] = useState<{ requestId: string; kind: 'reject' | 'cancel' } | null>(null);
   const [requests, setRequests] = useState<TripRequestRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -118,6 +122,17 @@ export default function RequestsScreen() {
               <Text style={styles.cardMeta}>Recogida: {request.direccion}</Text>
               {isDriver && request.tripLabel ? <Text style={styles.cardMeta}>Viaje: {request.tripLabel}</Text> : null}
               {request.tripDepartureAt ? <Text style={styles.cardMeta}>Salida: {formatDateTime(request.tripDepartureAt)}</Text> : null}
+              {!isDriver && request.lastUpdate ? (
+                <View style={styles.update}>
+                  <View style={styles.updateHeader}>
+                    <Ionicons color={colors.warning} name="alert-circle" size={16} />
+                    <Text style={styles.updateTitle}>El conductor cambió el viaje · {formatMessageTime(request.lastUpdate.at)}</Text>
+                  </View>
+                  {request.lastUpdate.changes.map((change) => (
+                    <Text key={change} style={styles.updateLine}>• {change}</Text>
+                  ))}
+                </View>
+              ) : null}
               {isDriver && request.estado === 'pendiente' ? (
                 <View style={styles.actions}>
                   <ButtonPrimary
@@ -128,7 +143,7 @@ export default function RequestsScreen() {
                   />
                   <ButtonSecondary
                     disabled={busy}
-                    onPress={() => void runAction(request.id, () => tripService.respondToRequest(request.id, false), 'No se pudo rechazar la solicitud.')}
+                    onPress={() => setConfirm({ requestId: request.id, kind: 'reject' })}
                     title="Rechazar"
                   />
                 </View>
@@ -139,7 +154,7 @@ export default function RequestsScreen() {
               {!isDriver && (request.estado === 'pendiente' || request.estado === 'aceptado') ? (
                 <ButtonSecondary
                   disabled={busy}
-                  onPress={() => void runAction(request.id, () => tripService.cancelRequest(request.id), 'No se pudo cancelar la solicitud.')}
+                  onPress={() => setConfirm({ requestId: request.id, kind: 'cancel' })}
                   title="Cancelar solicitud"
                 />
               ) : null}
@@ -147,6 +162,25 @@ export default function RequestsScreen() {
           );
         })}
       </ScrollView>
+
+      <ConfirmDialog
+        cancelLabel="Volver"
+        confirmLabel={confirm?.kind === 'reject' ? 'Sí, rechazar' : 'Sí, cancelar'}
+        message={confirm?.kind === 'reject'
+          ? 'Se le avisará al pasajero que no puede unirse a este viaje.'
+          : 'Liberarás tu cupo y el conductor recibirá un aviso.'}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          if (!confirm) return;
+          const { requestId, kind } = confirm;
+          setConfirm(null);
+          void (kind === 'reject'
+            ? runAction(requestId, () => tripService.respondToRequest(requestId, false), 'No se pudo rechazar la solicitud.')
+            : runAction(requestId, () => tripService.cancelRequest(requestId), 'No se pudo cancelar la solicitud.'));
+        }}
+        title={confirm?.kind === 'reject' ? '¿Rechazar esta solicitud?' : '¿Cancelar tu solicitud?'}
+        visible={confirm !== null}
+      />
     </SafeAreaView>
   );
 }
@@ -159,10 +193,14 @@ const styles = StyleSheet.create({
   title: { ...typography.headingXL, color: colors.text },
   muted: { ...typography.body, color: colors.textSecondary },
   error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
-  card: { backgroundColor: colors.white, borderColor: colors.lightGray, borderRadius: 16, borderWidth: 1, gap: spacing[8], padding: spacing[16] },
+  card: { backgroundColor: colors.white, borderColor: colors.lightGray, borderRadius: radius.radiusLarge, borderWidth: 1, gap: spacing[8], padding: spacing[16] },
   cardHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[8], justifyContent: 'space-between' },
   cardTitle: { ...typography.bodyMedium, color: colors.text, flex: 1, fontWeight: '700' },
-  badge: { ...typography.caption, backgroundColor: colors.primaryLight, borderRadius: 999, color: colors.primary, fontWeight: '600', overflow: 'hidden', paddingHorizontal: spacing[8], paddingVertical: spacing[4] },
+  badge: { ...typography.caption, backgroundColor: colors.primaryLight, borderRadius: radius.radiusFull, color: colors.primary, fontWeight: '600', overflow: 'hidden', paddingHorizontal: spacing[8], paddingVertical: spacing[4] },
   cardMeta: { ...typography.bodySmall, color: colors.textSecondary },
+  update: { backgroundColor: '#FFF7E0', borderRadius: radius.radiusMedium, gap: 4, padding: spacing[12] },
+  updateHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[4] },
+  updateTitle: { ...typography.caption, color: colors.text, flex: 1, fontWeight: '700' },
+  updateLine: { ...typography.caption, color: colors.text },
   actions: { gap: spacing[8] },
 });

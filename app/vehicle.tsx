@@ -1,75 +1,104 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { router } from 'expo-router';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { TextField } from '@/components/forms/TextField';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
+import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
+import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
-import { vehicleService } from '@/services/vehicleService';
-import { Vehicle } from '@/types';
+import { isValidPlate, MAX_SEATS, vehicleService } from '@/services/vehicleService';
+import { errorMessage, rawErrorMessage } from '@/utils/format';
 
+type Photo = { uri: string; mimeType: string };
+
+/** Add a vehicle, or edit the one in `?id=`. Every vehicle needs a photo. */
 export default function VehicleScreen() {
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const editing = !!id;
+  const [loaded, setLoaded] = useState(!editing);
   const [plate, setPlate] = useState('');
   const [brand, setBrand] = useState('');
   const [color, setColor] = useState('');
-  const [seats, setSeats] = useState('');
+  const [seats, setSeats] = useState('4');
+  const [savedPhotoUrl, setSavedPhotoUrl] = useState<string | undefined>();
+  const [photo, setPhoto] = useState<Photo | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [cameraBlocked, setCameraBlocked] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    void vehicleService.getMyVehicle().then((saved) => {
-      if (!saved) return;
-      setVehicle(saved);
+    if (!id) return;
+    void vehicleService.getVehicle(id).then((saved) => {
+      if (!saved) {
+        setError('No se encontró el vehículo.');
+        return;
+      }
       setPlate(saved.plate);
       setBrand(saved.brand);
       setColor(saved.color ?? '');
-      setSeats(String(saved.seats ?? 1));
-    }).catch(() => setError('No se pudo cargar el vehículo.'));
-  }, []);
+      setSeats(String(Math.min(saved.seats ?? 1, MAX_SEATS)));
+      setSavedPhotoUrl(saved.photoUrl);
+    }).catch((loadError) => setError(errorMessage(loadError, 'No se pudo cargar el vehículo.')))
+      .finally(() => setLoaded(true));
+  }, [id]);
 
-  const saveVehicle = async () => {
+  const pickPhoto = async (source: 'camera' | 'library') => {
+    setError(null);
+    setCameraBlocked(false);
+    try {
+      if (source === 'camera') {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          setCameraBlocked(!permission.canAskAgain);
+          setError('Necesitamos la cámara para fotografiar el vehículo. También puedes subir una foto.');
+          return;
+        }
+      }
+      const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 0.7 };
+      const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
+      const asset = result.canceled ? null : result.assets?.[0];
+      if (asset?.uri) setPhoto({ uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' });
+    } catch (pickError) {
+      setError(errorMessage(pickError, 'No se pudo abrir la cámara o la galería.'));
+    }
+  };
+
+  const save = async () => {
     const parsedSeats = Number(seats);
     if (!plate.trim() || !brand.trim() || !color.trim()) {
       setError('Completa la placa, marca y color.');
       return;
     }
-    if (!Number.isInteger(parsedSeats) || parsedSeats < 1 || parsedSeats > 8) {
-      setError('Los puestos deben ser un número entre 1 y 8.');
+    if (!isValidPlate(plate)) {
+      setError('La placa debe tener el formato ABC123 (carro) o ABC12D (moto).');
+      return;
+    }
+    if (!photo && !savedPhotoUrl) {
+      setError('Agrega una foto del vehículo. Los pasajeros la verán antes de pedir un cupo.');
       return;
     }
     setError(null);
-    setMessage(null);
-    setLoading(true);
+    setSaving(true);
     try {
-      const input: Vehicle = {
-        id: vehicle?.id ?? `vehicle-${Date.now()}`,
-        ownerId: vehicle?.ownerId ?? '',
-        brand: brand.trim(),
-        model: brand.trim(),
-        plate: plate.trim().toUpperCase(),
-        color: color.trim(),
-        seats: parsedSeats,
-      };
-      if (vehicle) {
-        setVehicle(await vehicleService.updateVehicle(input));
-        setMessage('Vehículo actualizado.');
-      } else {
-        setVehicle(await vehicleService.registerVehicle(input));
-        router.replace('/create-trip');
-      }
+      await vehicleService.saveVehicle({ plate, brand, color, seats: parsedSeats }, photo, id);
+      router.back();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'No se pudo guardar el vehículo.');
+      setError(/duplicate key|unique/i.test(rawErrorMessage(saveError))
+        ? 'Esa placa ya está registrada en WheelsApp.'
+        : errorMessage(saveError, 'No se pudo guardar el vehículo.'));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  const previewUri = photo?.uri ?? savedPhotoUrl;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -78,15 +107,59 @@ export default function VehicleScreen() {
           <Ionicons color={colors.text} name="arrow-back" size={24} />
         </Pressable>
         <Text style={styles.kicker}>CONDUCTOR</Text>
-        <Text style={styles.title}>Mi vehículo</Text>
-        <Text style={styles.subtitle}>Registra el vehículo que usarás para publicar viajes.</Text>
+        <Text style={styles.title}>{editing ? 'Editar vehículo' : 'Nuevo vehículo'}</Text>
+        <Text style={styles.subtitle}>Los pasajeros verán la foto, la placa y el color antes de pedir un cupo.</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        {message ? <Text style={styles.success}>{message}</Text> : null}
-        <TextField label="Placa" autoCapitalize="characters" onChangeText={setPlate} placeholder="ABC123" value={plate} />
-        <TextField label="Marca" onChangeText={setBrand} placeholder="Toyota" value={brand} />
-        <TextField label="Color" onChangeText={setColor} placeholder="Blanco" value={color} />
-        <TextField label="Puestos disponibles" keyboardType="number-pad" onChangeText={setSeats} placeholder="4" value={seats} />
-        <ButtonPrimary loading={loading} onPress={saveVehicle} title={vehicle ? 'Actualizar vehículo' : 'Guardar vehículo'} />
+        {cameraBlocked ? <ButtonSecondary onPress={() => void Linking.openSettings()} title="Abrir ajustes del teléfono" /> : null}
+
+        {!loaded ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : (
+          <>
+            <Text style={styles.label}>Foto del vehículo</Text>
+            {previewUri ? (
+              <Image accessibilityLabel="Foto del vehículo" source={{ uri: previewUri }} style={styles.photo} />
+            ) : (
+              <View style={[styles.photo, styles.photoEmpty]}>
+                <Ionicons color={colors.textSecondary} name="car-outline" size={48} />
+                <Text style={styles.photoHint}>Toma la foto de lado o de frente, con la placa visible y buena luz.</Text>
+              </View>
+            )}
+            <View style={styles.photoActions}>
+              <View style={styles.flex}>
+                <ButtonSecondary onPress={() => void pickPhoto('camera')} title={previewUri ? 'Tomar otra' : 'Tomar foto'} />
+              </View>
+              <View style={styles.flex}>
+                <ButtonSecondary onPress={() => void pickPhoto('library')} title="Subir foto" />
+              </View>
+            </View>
+
+            <TextField autoCapitalize="characters" label="Placa" maxLength={7} onChangeText={setPlate} placeholder="ABC123" value={plate} />
+            <TextField label="Marca y modelo" onChangeText={setBrand} placeholder="Ej. Mazda 3" value={brand} />
+            <TextField label="Color" onChangeText={setColor} placeholder="Ej. Blanco" value={color} />
+
+            <Text style={styles.label}>Puestos para pasajeros</Text>
+            <View accessibilityRole="radiogroup" style={styles.seatRow}>
+              {Array.from({ length: MAX_SEATS }, (_, index) => String(index + 1)).map((value) => {
+                const selected = seats === value;
+                return (
+                  <Pressable
+                    accessibilityLabel={`${value} puesto${value === '1' ? '' : 's'}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    key={value}
+                    onPress={() => setSeats(value)}
+                    style={[styles.seat, selected ? styles.seatSelected : null]}
+                  >
+                    <Text style={[styles.seatText, selected ? styles.seatTextSelected : null]}>{value}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <ButtonPrimary loading={saving} onPress={save} title={editing ? 'Guardar cambios' : 'Agregar vehículo'} />
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -99,6 +172,25 @@ const styles = StyleSheet.create({
   kicker: { ...typography.label, color: colors.primary },
   title: { ...typography.headingXL, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary },
+  label: { ...typography.label, color: colors.text, marginBottom: -spacing[8] },
+  flex: { flex: 1 },
+  photo: { aspectRatio: 4 / 3, backgroundColor: colors.lightGray, borderRadius: radius.radiusLarge, width: '100%' },
+  photoEmpty: { alignItems: 'center', gap: spacing[8], justifyContent: 'center', padding: spacing[24] },
+  photoHint: { ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center' },
+  photoActions: { flexDirection: 'row', gap: spacing[8] },
+  seatRow: { flexDirection: 'row', gap: spacing[8] },
+  seat: {
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderRadius: radius.radiusMedium,
+    borderWidth: 1,
+    flex: 1,
+    height: 48,
+    justifyContent: 'center',
+  },
+  seatSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  seatText: { ...typography.bodyMedium, color: colors.text, fontWeight: '600' },
+  seatTextSelected: { color: colors.white },
   error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
-  success: { ...typography.bodySmall, backgroundColor: colors.primaryLight, color: colors.primary, padding: spacing[12] },
 });

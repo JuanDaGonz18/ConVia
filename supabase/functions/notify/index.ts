@@ -8,7 +8,7 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
-type NotifyEvent = 'request_created' | 'request_responded' | 'request_cancelled' | 'message';
+type NotifyEvent = 'request_created' | 'request_responded' | 'request_cancelled' | 'message' | 'trip_updated';
 type Push = { recipients: string[]; title: string; body: string; data: Record<string, string> };
 
 function response(body: unknown, status = 200) {
@@ -35,8 +35,9 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
     if (!message || message.sender_id !== callerId) return null;
     const [{ data: trip }, { data: requests }] = await Promise.all([
       admin.from('trips').select('driver_id').eq('id', message.trip_id).single(),
+      // Only accepted passengers are part of the chat.
       admin.from('trip_requests').select('passenger_id')
-        .eq('trip_id', message.trip_id).in('estado', ['pendiente', 'aceptado', 'abordado']),
+        .eq('trip_id', message.trip_id).in('estado', ['aceptado', 'abordado']),
     ]);
     const participants = [trip?.driver_id, ...(requests ?? []).map((row) => row.passenger_id)];
     const sender = (message.sender as { nombre?: string } | null)?.nombre || 'Nuevo mensaje';
@@ -45,6 +46,57 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
       title: sender,
       body: message.body.slice(0, 180),
       data: { type: 'message', tripId: message.trip_id },
+    };
+  }
+
+  if (event === 'trip_updated') {
+    // `id` is a trip_updates row written by update_trip(); its changes are the notification text.
+    const { data: update } = await admin
+      .from('trip_updates')
+      .select('trip_id, changed_by, changes, kind, recipients, trip:trips!trip_updates_trip_id_fkey(driver_id, destino_nombre, salida_at, driver:profiles!trips_driver_id_fkey(nombre))')
+      .eq('id', id)
+      .single();
+    if (!update || update.changed_by !== callerId) return null;
+    const trip = update.trip as { driver_id: string; destino_nombre: string; salida_at: string; driver: { nombre: string } | null } | null;
+    if (!trip || trip.driver_id !== callerId) return null;
+    const driverName = trip.driver?.nombre || 'El conductor';
+    const data = { type: 'trip_updated', kind: update.kind as string, tripId: update.trip_id };
+
+    // Cancel/finish rows name who was affected; edits go to the currently accepted passengers.
+    let recipients = (update.recipients as string[] | null) ?? null;
+    if (!recipients) {
+      const { data: accepted } = await admin
+        .from('trip_requests')
+        .select('passenger_id')
+        .eq('trip_id', update.trip_id)
+        .eq('estado', 'aceptado');
+      recipients = (accepted ?? []).map((row) => row.passenger_id);
+    }
+
+    if (update.kind === 'cancelled') {
+      const when = new Date(trip.salida_at).toLocaleString('es-CO', {
+        timeZone: 'America/Bogota', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
+      });
+      return {
+        recipients,
+        title: 'Viaje cancelado',
+        body: `${driverName} canceló el viaje a ${trip.destino_nombre} (${when}). Tu cupo quedó liberado; busca otro viaje en WheelsApp.`,
+        data,
+      };
+    }
+    if (update.kind === 'finished') {
+      return {
+        recipients,
+        title: 'Viaje finalizado',
+        body: `Tu viaje a ${trip.destino_nombre} con ${driverName} terminó. ¡Gracias por viajar con WheelsApp!`,
+        data,
+      };
+    }
+    return {
+      recipients,
+      title: `${driverName} cambió tu viaje a ${trip.destino_nombre}`,
+      body: (update.changes as string[]).join('\n').slice(0, 900),
+      data,
     };
   }
 

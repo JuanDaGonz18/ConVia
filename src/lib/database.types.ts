@@ -186,6 +186,39 @@ export type Database = {
           },
         ]
       }
+      favorite_drivers: {
+        Row: {
+          created_at: string
+          driver_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          driver_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorite_drivers_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorite_drivers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institutions: {
         Row: {
           activo: boolean
@@ -433,6 +466,50 @@ export type Database = {
           },
         ]
       }
+      saved_places: {
+        Row: {
+          address: string
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          lat: number
+          lng: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string
+          created_at?: string
+          id?: string
+          kind: string
+          label: string
+          lat: number
+          lng: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          lat?: number
+          lng?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_places_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_locations: {
         Row: {
           eta_next_stop_seconds: number | null
@@ -485,6 +562,8 @@ export type Database = {
           id: string
           lat: number | null
           lng: number | null
+          pago: string | null
+          pago_marcado_at: string | null
           passenger_id: string
           qr_token: string
           responded_at: string | null
@@ -500,6 +579,8 @@ export type Database = {
           id?: string
           lat?: number | null
           lng?: number | null
+          pago?: string | null
+          pago_marcado_at?: string | null
           passenger_id: string
           qr_token?: string
           responded_at?: string | null
@@ -515,6 +596,8 @@ export type Database = {
           id?: string
           lat?: number | null
           lng?: number | null
+          pago?: string | null
+          pago_marcado_at?: string | null
           passenger_id?: string
           qr_token?: string
           responded_at?: string | null
@@ -545,6 +628,58 @@ export type Database = {
           },
         ]
       }
+      trip_updates: {
+        Row: {
+          changed_by: string
+          changes: string[]
+          created_at: string
+          id: string
+          kind: string
+          recipients: string[] | null
+          trip_id: string
+        }
+        Insert: {
+          changed_by: string
+          changes: string[]
+          created_at?: string
+          id?: string
+          kind?: string
+          recipients?: string[] | null
+          trip_id: string
+        }
+        Update: {
+          changed_by?: string
+          changes?: string[]
+          created_at?: string
+          id?: string
+          kind?: string
+          recipients?: string[] | null
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_updates_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_updates_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "available_trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_updates_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trips: {
         Row: {
           created_at: string
@@ -562,6 +697,7 @@ export type Database = {
           origen_lng: number | null
           origen_nombre: string
           precio: number
+          ruta: Json | null
           salida_at: string
           sector: string | null
           started_at: string | null
@@ -584,6 +720,7 @@ export type Database = {
           origen_lng?: number | null
           origen_nombre: string
           precio: number
+          ruta?: Json | null
           salida_at: string
           sector?: string | null
           started_at?: string | null
@@ -606,6 +743,7 @@ export type Database = {
           origen_lng?: number | null
           origen_nombre?: string
           precio?: number
+          ruta?: Json | null
           salida_at?: string
           sector?: string | null
           started_at?: string | null
@@ -706,6 +844,7 @@ export type Database = {
           origen_lng: number | null
           origen_nombre: string | null
           precio: number | null
+          ruta: Json | null
           salida_at: string | null
           sector: string | null
           started_at: string | null
@@ -753,6 +892,8 @@ export type Database = {
           id: string
           lat: number | null
           lng: number | null
+          pago: string | null
+          pago_marcado_at: string | null
           passenger_id: string
           qr_token: string
           responded_at: string | null
@@ -766,37 +907,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      cancel_trip: {
-        Args: { p_trip_id: string }
-        Returns: {
-          created_at: string
-          cupos_totales: number
-          descripcion: string | null
-          destino_lat: number | null
-          destino_lng: number | null
-          destino_nombre: string
-          driver_id: string
-          estado: Database["public"]["Enums"]["trip_status"]
-          finished_at: string | null
-          id: string
-          institution_id: string | null
-          origen_lat: number | null
-          origen_lng: number | null
-          origen_nombre: string
-          precio: number
-          salida_at: string
-          sector: string | null
-          started_at: string | null
-          updated_at: string
-          vehicle_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "trips"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      cancel_trip: { Args: { p_trip_id: string }; Returns: Json }
       cancel_trip_request: {
         Args: { p_request_id: string }
         Returns: {
@@ -808,6 +919,8 @@ export type Database = {
           id: string
           lat: number | null
           lng: number | null
+          pago: string | null
+          pago_marcado_at: string | null
           passenger_id: string
           qr_token: string
           responded_at: string | null
@@ -830,36 +943,10 @@ export type Database = {
           tipo: Database["public"]["Enums"]["community_type"]
         }[]
       }
-      finish_trip: {
-        Args: { p_trip_id: string }
-        Returns: {
-          created_at: string
-          cupos_totales: number
-          descripcion: string | null
-          destino_lat: number | null
-          destino_lng: number | null
-          destino_nombre: string
-          driver_id: string
-          estado: Database["public"]["Enums"]["trip_status"]
-          finished_at: string | null
-          id: string
-          institution_id: string | null
-          origen_lat: number | null
-          origen_lng: number | null
-          origen_nombre: string
-          precio: number
-          salida_at: string
-          sector: string | null
-          started_at: string | null
-          updated_at: string
-          vehicle_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "trips"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+      finish_trip: { Args: { p_trip_id: string }; Returns: Json }
+      rate_trip_passenger: {
+        Args: { p_comment?: string; p_request_id: string; p_score: number }
+        Returns: undefined
       }
       respond_trip_request: {
         Args: { p_accept: boolean; p_request_id: string }
@@ -872,6 +959,8 @@ export type Database = {
           id: string
           lat: number | null
           lng: number | null
+          pago: string | null
+          pago_marcado_at: string | null
           passenger_id: string
           qr_token: string
           responded_at: string | null
@@ -884,6 +973,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_passenger_payment: {
+        Args: { p_paid: boolean; p_request_id: string }
+        Returns: undefined
       }
       set_verification_result: {
         Args: {
@@ -912,6 +1005,7 @@ export type Database = {
           origen_lng: number | null
           origen_nombre: string
           precio: number
+          ruta: Json | null
           salida_at: string
           sector: string | null
           started_at: string | null
@@ -963,6 +1057,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      trip_members: { Args: { p_trip_id: string }; Returns: Json }
+      update_trip: {
+        Args: {
+          p_cupos_totales: number
+          p_descripcion: string
+          p_destino_lat: number
+          p_destino_lng: number
+          p_destino_nombre: string
+          p_origen_lat: number
+          p_origen_lng: number
+          p_origen_nombre: string
+          p_precio: number
+          p_ruta?: Json
+          p_salida_at: string
+          p_trip_id: string
+          p_vehicle_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       community_type: "universidad" | "empresa"
@@ -974,7 +1087,12 @@ export type Database = {
         | "negado"
         | "abordado"
         | "cancelado"
-      trip_status: "por_empezar" | "en_curso" | "finalizado" | "cancelado"
+      trip_status:
+        | "por_empezar"
+        | "en_curso"
+        | "finalizado"
+        | "cancelado"
+        | "no_iniciado"
       user_role: "usuario" | "conductor"
       verification_status: "pendiente" | "procesando" | "verificado" | "fallido"
     }
@@ -1114,7 +1232,13 @@ export const Constants = {
         "abordado",
         "cancelado",
       ],
-      trip_status: ["por_empezar", "en_curso", "finalizado", "cancelado"],
+      trip_status: [
+        "por_empezar",
+        "en_curso",
+        "finalizado",
+        "cancelado",
+        "no_iniciado",
+      ],
       user_role: ["usuario", "conductor"],
       verification_status: ["pendiente", "procesando", "verificado", "fallido"],
     },

@@ -26,11 +26,7 @@ import { tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
 import { errorMessage, formatDateTime } from '@/utils/format';
-
-/** Trips saved without coordinates map to 0,0; keep them off the map. */
-function hasCoordinates(location: Location) {
-  return location.latitude !== 0 || location.longitude !== 0;
-}
+import { hasCoordinates, rankTrips } from '@/utils/tripRanking';
 
 /** How far (km) a trip may end from the chosen destination to count as a match. */
 const DESTINATION_RADIUS_KM = 5;
@@ -46,6 +42,8 @@ export default function HomeScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
+  const savedPlaces = useAppStore((state) => state.savedPlaces);
+  const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
 
   const locate = useCallback(async () => {
     setOriginError(null);
@@ -73,15 +71,19 @@ export default function HomeScreen() {
     }, [role]),
   );
 
-  // With a destination: the soonest trip ending near it. Without one: the soonest trip.
-  const matchingTrips = destination
+  // With a searched destination: only trips ending near it. Without one: every
+  // trip, ordered by the user's saved places and favorite drivers.
+  const candidates = destination
     ? availableTrips.filter((trip) =>
         hasCoordinates(trip.destination)
           ? locationService.distanceKm(trip.destination, destination) <= DESTINATION_RADIUS_KM
           : trip.destination.label.toLowerCase().includes(destination.label.toLowerCase()),
       )
     : availableTrips;
-  const nextTrip = matchingTrips[0] ?? null;
+  const ranked = rankTrips(candidates, savedPlaces, favoriteDriverIds);
+  const next = ranked[0] ?? null;
+  const nextTrip = next?.trip ?? null;
+  const suggestedCount = destination ? 0 : ranked.filter((item) => item.relevant).length;
   const tripPins = availableTrips.map((trip) => trip.origin).filter(hasCoordinates);
 
   // Tapping the map (or a named place on it) sets the destination there.
@@ -119,9 +121,12 @@ export default function HomeScreen() {
                 <Text style={styles.originError}>{originError} Toca para reintentar.</Text>
               </Pressable>
             ) : (
-              <Text numberOfLines={1} style={styles.currentOrigin}>
-                📍 {origin ? origin.label : 'Obteniendo tu ubicación...'}
-              </Text>
+              <View style={styles.originRow}>
+                <Ionicons color={colors.textSecondary} name="location-outline" size={13} />
+                <Text numberOfLines={1} style={styles.currentOrigin}>
+                  {origin ? origin.label : 'Obteniendo tu ubicación…'}
+                </Text>
+              </View>
             )}
           </View>
           <View style={styles.roleBadge}>
@@ -142,6 +147,7 @@ export default function HomeScreen() {
             near={origin}
             onChange={setDestination}
             placeholder="¿A dónde vas?"
+            quickPlaces={savedPlaces}
             value={destination}
           />
         ) : null}
@@ -174,8 +180,10 @@ export default function HomeScreen() {
           <View style={styles.collapseHeaderRow}>
             <Text style={styles.collapseTitle}>
               {role === 'driver'
-                ? 'Panel de Conductor'
-                : destination ? `Destino: ${destination.label}` : 'Próximos viajes'}
+                ? 'Panel de conductor'
+                : destination
+                  ? `Destino: ${destination.label}`
+                  : suggestedCount ? `Para ti · ${suggestedCount} viaje${suggestedCount === 1 ? '' : 's'}` : 'Próximos viajes'}
             </Text>
             <Ionicons
               color={colors.textSecondary}
@@ -191,7 +199,7 @@ export default function HomeScreen() {
             <View style={styles.driverSection}>
               <View style={styles.driverStatusRow}>
                 <View style={styles.onlineIndicator} />
-                <Text style={styles.driverStatusText}>Modo Conductor Activo</Text>
+                <Text style={styles.driverStatusText}>Modo conductor activo</Text>
               </View>
               <Text style={styles.driverSubtext}>
                 Publica un viaje y gestiona las solicitudes de tus pasajeros.
@@ -200,7 +208,7 @@ export default function HomeScreen() {
                 {currentUser?.driverStatus === 'aprobado' ? (
                   <ButtonPrimary
                     onPress={() => router.push('/create-trip')}
-                    title="Publicar Cupos Disponibles"
+                    title="Publicar un viaje"
                   />
                 ) : (
                   <DriverApprovalNotice status={currentUser?.driverStatus} />
@@ -211,7 +219,7 @@ export default function HomeScreen() {
                 />
                 <ButtonSecondary
                   onPress={() => router.push('/(tabs)/chats')}
-                  title="Abrir Chats con Pasajeros"
+                  title="Chats con pasajeros"
                 />
               </View>
             </View>
@@ -230,13 +238,13 @@ export default function HomeScreen() {
                 </View>
               ) : null}
 
-              {nextTrip ? (
-                <TripCard trip={nextTrip} />
+              {next ? (
+                <TripCard favoriteDriver={next.favoriteDriver} nearPlace={next.nearPlace} trip={next.trip} />
               ) : (
                 <Text style={styles.noTripsText}>
                   {loadError ??
                     (!isSupabaseEnabled
-                      ? 'Activa Supabase para ver viajes reales.'
+                      ? 'Modo demostración: conecta el servidor para ver viajes reales.'
                       : destination
                         ? 'No hay viajes hacia ese destino por ahora.'
                         : 'No hay viajes disponibles por ahora.')}
@@ -303,10 +311,16 @@ const styles = StyleSheet.create({
     color: colors.error,
     marginTop: 2,
   },
+  originRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 2,
+  },
   currentOrigin: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginTop: 2,
+    flex: 1,
   },
   roleBadge: {
     alignItems: 'center',

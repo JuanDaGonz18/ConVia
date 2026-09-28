@@ -1,6 +1,7 @@
 import { ensureSupabaseConfigured, isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { notificationService } from '@/services/notificationService';
 import { ChatConversation, ChatMessage } from '@/types';
+import { formatMessageTime } from '@/utils/format';
 
 type MessageRow = {
   id: string;
@@ -22,17 +23,13 @@ const TRIP_COLUMNS =
   'id, origen_nombre, destino_nombre, driver_id, driver:profiles!trips_driver_id_fkey(nombre, avatar_url)';
 const MESSAGE_COLUMNS = 'id, trip_id, sender_id, body, created_at';
 
-function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
 function mapMessage(row: MessageRow, currentUserId: string, names: Record<string, string>): ChatMessage {
   return {
     id: row.id,
     senderId: row.sender_id,
     senderName: row.sender_id === currentUserId ? 'Yo' : names[row.sender_id] || 'Participante',
     text: row.body,
-    timestamp: formatTime(row.created_at),
+    timestamp: formatMessageTime(row.created_at),
     isMe: row.sender_id === currentUserId,
   };
 }
@@ -60,8 +57,8 @@ async function resolveNames(trips: ChatTrip[], messages: MessageRow[]) {
 
 export const chatService = {
   /**
-   * One conversation per trip the user drives or has an active request on,
-   * so a chat can be opened before anyone has written the first message.
+   * One conversation per active trip the user drives or was accepted on, so
+   * a chat can be opened before anyone has written the first message.
    */
   async getConversations(): Promise<ChatConversation[]> {
     if (!isSupabaseEnabled) return [];
@@ -77,7 +74,8 @@ export const chatService = {
         .from('trip_requests')
         .select(`trip:trips!trip_requests_trip_id_fkey(${TRIP_COLUMNS})`)
         .eq('passenger_id', userId)
-        .in('estado', ['pendiente', 'aceptado', 'abordado']),
+        // The chat opens only once the driver accepts the request (also enforced by RLS).
+        .in('estado', ['aceptado', 'abordado']),
     ]);
     if (driven.error) throw driven.error;
     if (requested.error) throw requested.error;
@@ -115,11 +113,17 @@ export const chatService = {
         participantNames: names,
         vehicleInfo: `${trip.origen_nombre} → ${trip.destino_nombre}`,
         lastMessage: last?.body ?? 'Sin mensajes todavía',
-        lastMessageTime: last ? formatTime(last.created_at) : '',
+        lastMessageTime: last ? formatMessageTime(last.created_at) : '',
         unreadCount: 0,
         messages: rows.map((row) => mapMessage(row, userId, names)),
       };
     });
+  },
+
+  /** One trip's conversation, or null when the user is no longer part of it. */
+  async getConversation(tripId: string): Promise<ChatConversation | null> {
+    const conversations = await chatService.getConversations();
+    return conversations.find((conversation) => conversation.tripId === tripId) ?? null;
   },
 
   async sendMessage(tripId: string, body: string): Promise<ChatMessage> {

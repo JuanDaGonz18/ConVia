@@ -25,17 +25,16 @@ import { typography } from '@/constants/typography';
 import { radius } from '@/constants/radius';
 import { useAppStore } from '@/store/appStore';
 import { authService } from '@/services/authService';
-import { FaceVerificationResult, UserRole } from '@/types';
-import { errorMessage } from '@/utils/format';
+import { UserRole } from '@/types';
+import { errorMessage, rawErrorMessage } from '@/utils/format';
 
 function registerErrorMessage(error: unknown) {
-  const message = errorMessage(error, '');
-  if (message.includes('DOMINIO_NO_PERMITIDO')) return 'Usa el correo de tu institución (por ejemplo @unisabana.edu.co).';
-  if (message.includes('CONFIRMACION_DE_CORREO_REQUERIDA')) return 'Te enviamos un correo de confirmación. Ábrelo desde este teléfono y luego inicia sesión.';
-  if (message.includes('SUPABASE_ENV_MISSING')) return 'La app no está configurada con Supabase.';
-  if (/already registered/i.test(message)) return 'Ya existe una cuenta con este correo. Inicia sesión.';
-  if (/password/i.test(message)) return 'La contraseña no cumple los requisitos de seguridad.';
-  return message || 'Ocurrió un error al registrar la cuenta.';
+  const raw = rawErrorMessage(error);
+  if (raw.includes('DOMINIO_NO_PERMITIDO')) return 'Usa el correo de tu institución (por ejemplo @unisabana.edu.co).';
+  if (raw.includes('CONFIRMACION_DE_CORREO_REQUERIDA')) return 'Te enviamos un correo de confirmación. Ábrelo desde este teléfono y luego inicia sesión.';
+  if (/already registered/i.test(raw)) return 'Ya existe una cuenta con este correo. Inicia sesión.';
+  if (/password/i.test(raw)) return 'La contraseña no cumple los requisitos de seguridad.';
+  return errorMessage(error, 'Ocurrió un error al registrar la cuenta.');
 }
 
 export default function RegisterScreen() {
@@ -50,7 +49,8 @@ export default function RegisterScreen() {
   const [showFaceVerification, setShowFaceVerification] = useState(false);
   const [registeredUserId, setRegisteredUserId] = useState<string | null>(null);
 
-  const { setCurrentUser, markUserFaceVerified } = useAppStore();
+  const setCurrentUser = useAppStore((state) => state.setCurrentUser);
+  const markFaceVerified = useAppStore((state) => state.markFaceVerified);
 
   const handleRegister = async () => {
     // The account already exists; only the identity check is pending.
@@ -105,19 +105,12 @@ export default function RegisterScreen() {
     }
   };
 
-  /** Éxito en verificación facial de registro */
-  const handleFaceSuccess = async (result: FaceVerificationResult) => {
+  /** The server stored the registration selfie; the account is ready to use. */
+  const handleFaceSuccess = () => {
     setShowFaceVerification(false);
-    if (!registeredUserId) {
-      setError('No se pudo completar la verificación de identidad.');
-      return;
-    }
-    if (!result.faceReferenceId) {
-      setError('La verificación no devolvió una referencia válida. Inténtalo de nuevo.');
-      return;
-    }
-    markUserFaceVerified(result.faceReferenceId);
-    router.replace('/(tabs)');
+    markFaceVerified();
+    // A new driver still has to verify their license before publishing trips.
+    router.replace(selectedRole === 'driver' ? '/driver-license' : '/(tabs)');
   };
 
   /** Keep the account out of the app until identity verification succeeds. */
@@ -148,9 +141,9 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={styles.stepTitle}>Registro</Text>
-            <Text style={styles.title}>Crea una cuenta</Text>
-            <ProgressBar progress={0.65} />
+            <Text style={styles.stepTitle}>{registeredUserId ? 'PASO 2 DE 2' : 'PASO 1 DE 2'}</Text>
+            <Text style={styles.title}>{registeredUserId ? 'Verifica tu identidad' : 'Crea tu cuenta'}</Text>
+            <ProgressBar progress={registeredUserId ? 1 : 0.5} />
           </View>
 
           <View style={styles.formCard}>
@@ -161,106 +154,88 @@ export default function RegisterScreen() {
               </View>
             ) : null}
 
-            <TextField
-              label="Nombre completo"
-              onChangeText={(text) => {
-                setName(text);
-                if (error) setError(null);
-              }}
-              placeholder="Ej. Juan Pérez"
-              value={name}
-            />
-
-            <TextField
-              autoCapitalize="none"
-              keyboardType="email-address"
-              label="Correo electrónico"
-              onChangeText={(text) => {
-                setEmail(text);
-                if (error) setError(null);
-              }}
-              placeholder="ejemplo@correo.com"
-              value={email}
-            />
-
-            <TextField
-              label="Contraseña"
-              onChangeText={(text) => {
-                setPassword(text);
-                if (error) setError(null);
-              }}
-              placeholder="Mínimo 6 caracteres"
-              secureTextEntry
-              value={password}
-            />
-
-            <View style={styles.roleSection}>
-              <Text style={styles.roleTitle}>Escoge tu rol:</Text>
-              <View style={styles.roleCardsRow}>
-                <Pressable
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: selectedRole === 'client' }}
-                  onPress={() => setSelectedRole('client')}
-                  style={[
-                    styles.roleCard,
-                    selectedRole === 'client' ? styles.roleCardActive : null,
-                  ]}
-                >
-                  <Ionicons
-                    color={
-                      selectedRole === 'client' ? colors.primary : colors.textSecondary
-                    }
-                    name="person"
-                    size={28}
-                  />
-                  <Text
-                    style={[
-                      styles.roleCardLabel,
-                      selectedRole === 'client' ? styles.roleCardLabelActive : null,
-                    ]}
-                  >
-                    Pasajero
-                  </Text>
-                  <Text style={styles.roleCardDesc}>Buscar viajes</Text>
-                </Pressable>
-
-                <Pressable
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: selectedRole === 'driver' }}
-                  onPress={() => setSelectedRole('driver')}
-                  style={[
-                    styles.roleCard,
-                    selectedRole === 'driver' ? styles.roleCardActive : null,
-                  ]}
-                >
-                  <Ionicons
-                    color={
-                      selectedRole === 'driver' ? colors.primary : colors.textSecondary
-                    }
-                    name="car-sport"
-                    size={28}
-                  />
-                  <Text
-                    style={[
-                      styles.roleCardLabel,
-                      selectedRole === 'driver' ? styles.roleCardLabelActive : null,
-                    ]}
-                  >
-                    Conductor
-                  </Text>
-                  <Text style={styles.roleCardDesc}>Ofrecer asientos</Text>
-                </Pressable>
+            {registeredUserId ? (
+              <View style={styles.stepTwo}>
+                <Ionicons color={colors.primary} name="scan-circle-outline" size={48} />
+                <Text style={styles.stepTwoText}>
+                  Tu cuenta está creada. Tómate una selfie para registrar tu rostro: la usaremos para confirmar que eres tú antes de
+                  cada viaje. La foto se analiza en tu teléfono y no se guarda.
+                </Text>
               </View>
-            </View>
+            ) : (
+              <>
+                <TextField
+                  label="Nombre completo"
+                  onChangeText={(text) => {
+                    setName(text);
+                    if (error) setError(null);
+                  }}
+                  placeholder="Ej. Juan Pérez"
+                  value={name}
+                />
 
-            <Checkbox
-              checked={acceptedTerms}
-              label="Acepto los términos y condiciones de servicio y privacidad de WheelsApp"
-              onChange={(checked) => {
-                setAcceptedTerms(checked);
-                if (error) setError(null);
-              }}
-            />
+                <TextField
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  label="Correo institucional"
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (error) setError(null);
+                  }}
+                  placeholder="nombre@unisabana.edu.co"
+                  value={email}
+                />
+
+                <TextField
+                  label="Contraseña"
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (error) setError(null);
+                  }}
+                  placeholder="Mínimo 6 caracteres"
+                  secureTextEntry
+                  value={password}
+                />
+
+                <View style={styles.roleSection}>
+                  <Text style={styles.roleTitle}>¿Cómo usarás WheelsApp?</Text>
+                  <Text style={styles.roleHint}>Puedes cambiar de modo cuando quieras desde tu perfil.</Text>
+                  <View style={styles.roleCardsRow}>
+                    {(['client', 'driver'] as const).map((role) => {
+                      const selected = selectedRole === role;
+                      return (
+                        <Pressable
+                          accessibilityRole="radio"
+                          accessibilityState={{ selected }}
+                          key={role}
+                          onPress={() => setSelectedRole(role)}
+                          style={[styles.roleCard, selected ? styles.roleCardActive : null]}
+                        >
+                          <Ionicons
+                            color={selected ? colors.primary : colors.textSecondary}
+                            name={role === 'driver' ? 'car-sport' : 'person'}
+                            size={28}
+                          />
+                          <Text style={[styles.roleCardLabel, selected ? styles.roleCardLabelActive : null]}>
+                            {role === 'driver' ? 'Conductor' : 'Pasajero'}
+                          </Text>
+                          <Text style={styles.roleCardDesc}>{role === 'driver' ? 'Ofrecer cupos' : 'Buscar viajes'}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <Checkbox
+                  checked={acceptedTerms}
+                  label="Acepto los términos y condiciones de servicio y privacidad de WheelsApp"
+                  onChange={(checked) => {
+                    setAcceptedTerms(checked);
+                    if (error) setError(null);
+                  }}
+                />
+              </>
+            )}
 
             <View style={styles.actions}>
               <ButtonPrimary
@@ -273,11 +248,12 @@ export default function RegisterScreen() {
                   onPress={() => router.replace('/(tabs)')}
                   title="Verificar más tarde"
                 />
-              ) : null}
-              <ButtonSecondary
-                onPress={() => router.back()}
-                title="Ya tengo cuenta (Iniciar sesión)"
-              />
+              ) : (
+                <ButtonSecondary
+                  onPress={() => router.back()}
+                  title="Ya tengo cuenta"
+                />
+              )}
             </View>
           </View>
         </ScrollView>
@@ -339,6 +315,10 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.text,
   },
+  roleHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
   roleCardsRow: {
     flexDirection: 'row',
     gap: spacing[12],
@@ -373,5 +353,15 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing[12],
     marginTop: spacing[8],
+  },
+  stepTwo: {
+    alignItems: 'center',
+    gap: spacing[12],
+    paddingVertical: spacing[8],
+  },
+  stepTwoText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +14,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { TextField } from '@/components/forms/TextField';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { SavedUsersPanel } from '@/dev/SavedUsersPanel';
+import { savedUsers } from '@/dev/savedUsers';
+import { credentialStore } from '@/services/credentialStore';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
 import { spacing } from '@/constants/spacing';
@@ -21,15 +25,29 @@ import { typography } from '@/constants/typography';
 import { radius } from '@/constants/radius';
 import { useAppStore } from '@/store/appStore';
 import { authService } from '@/services/authService';
+import { errorMessage } from '@/utils/format';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
+
+  // Fill the form with the account saved with "Recordarme".
+  useEffect(() => {
+    let active = true;
+    void credentialStore.getRemembered().then((saved) => {
+      if (!active || !saved) return;
+      setEmail((current) => current || saved.email);
+      setPassword((current) => current || saved.password);
+      setRememberMe(true);
+    });
+    return () => { active = false; };
+  }, []);
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -45,7 +63,12 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      const user = await authService.login(email.trim(), password);
+      const address = email.trim().toLowerCase();
+      const user = await authService.login(address, password);
+      // Only after a successful sign-in: never store credentials that don't work.
+      if (rememberMe) await credentialStore.remember(address, password);
+      else await credentialStore.forget(address);
+      await savedUsers.add({ email: address, name: user.name, role: user.role }); // TEMPORARY (src/dev)
       setCurrentUser(user);
       router.replace('/(tabs)');
     } catch (loginError) {
@@ -54,7 +77,7 @@ export default function LoginScreen() {
       else if (/email not confirmed/i.test(message)) setError('Confirma tu correo antes de iniciar sesión.');
       else if (message.includes('SUPABASE_ENV_MISSING')) setError('La app no está configurada con Supabase.');
       else if (message.includes('PERFIL_NO_ENCONTRADO')) setError('Tu cuenta existe pero no tiene perfil en WheelsApp. Contacta al administrador.');
-      else setError('Error al iniciar sesión. Revisa tu conexión e intenta nuevamente.');
+      else setError(errorMessage(loginError, 'No se pudo iniciar sesión. Revisa tu conexión e inténtalo de nuevo.'));
     } finally {
       setLoading(false);
     }
@@ -98,7 +121,7 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Iniciar Sesión</Text>
+            <Text style={styles.formTitle}>Iniciar sesión</Text>
 
             {error ? (
               <View style={styles.errorBox}>
@@ -110,12 +133,12 @@ export default function LoginScreen() {
             <TextField
               autoCapitalize="none"
               keyboardType="email-address"
-              label="Correo electrónico"
+              label="Correo institucional"
               onChangeText={(text) => {
                 setEmail(text);
                 if (error) setError(null);
               }}
-              placeholder="ejemplo@correo.com"
+              placeholder="nombre@unisabana.edu.co"
               value={email}
             />
 
@@ -130,11 +153,17 @@ export default function LoginScreen() {
               value={password}
             />
 
+            <Checkbox
+              checked={rememberMe}
+              label="Recordarme en este teléfono"
+              onChange={setRememberMe}
+            />
+
             <View style={styles.actions}>
               <ButtonPrimary
                 loading={loading}
                 onPress={handleLogin}
-                title="Iniciar Sesión"
+                title="Iniciar sesión"
               />
               <ButtonSecondary
                 onPress={() => router.push('/(auth)/register')}
@@ -143,9 +172,19 @@ export default function LoginScreen() {
             </View>
           </View>
 
+          {/* TEMPORARY: development-only account switcher (src/dev). */}
+          <SavedUsersPanel
+            onSelect={(savedEmail, savedPassword) => {
+              setEmail(savedEmail);
+              setPassword(savedPassword ?? '');
+              setRememberMe(savedPassword !== null);
+              setError(savedPassword ? null : 'Escribe la contraseña de esta cuenta (no se guardó con "Recordarme").');
+            }}
+          />
+
           {!useSupabase ? (
             <View style={styles.quickAccessSection}>
-              <Text style={styles.quickAccessTitle}>Acceso Rápido Demo</Text>
+              <Text style={styles.quickAccessTitle}>Acceso rápido (demo)</Text>
               <View style={styles.quickButtons}>
                 <ButtonSecondary
                   onPress={() => handleQuickLogin('client')}

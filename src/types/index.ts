@@ -9,7 +9,8 @@ export type TripStatus =
   | 'driver_arriving'
   | 'started'
   | 'completed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'not_started';
 
 // ─── Face Verification States ───────────────────────────────────────────────
 
@@ -30,14 +31,6 @@ export type FaceVerificationState =
   | 'RETRY'
   | 'BLOCKED';
 
-/** Alias legacy usado en appStore */
-export type FaceVerificationStatus =
-  | 'idle'
-  | 'processing'
-  | 'verified'
-  | 'failed'
-  | 'retry';
-
 /** Tipo de verificación que desencadena el flujo */
 export type FaceVerificationTrigger =
   | 'register'       // primera captura durante el registro
@@ -45,7 +38,7 @@ export type FaceVerificationTrigger =
   | 'driver_activate'  // conductor acepta un pasajero (compara con la licencia)
   | 'driver_identity'; // conductor confirma que es la persona de su licencia
 
-/** Resultado devuelto por el backend tras la verificación completa */
+/** Resultado de una verificación facial, decidido por el servidor. */
 export type FaceVerificationResult = {
   /** verified: same person · not_verified: different person · error: could not decide */
   status: 'verified' | 'not_verified' | 'error';
@@ -53,10 +46,8 @@ export type FaceVerificationResult = {
   livenessPassed: boolean;
   faceMatched: boolean;
   similarity: number;
-  sessionId?: string;
-  faceReferenceId?: string;
   failureReason?: FaceVerificationFailureReason;
-  /** User-facing explanation from the verify-face function. */
+  /** User-facing explanation in Spanish. */
   message?: string;
 };
 
@@ -78,22 +69,6 @@ export type FaceVerificationFailureReason =
   | 'model_unavailable'
   | 'network_error';
 
-/** Payload para registrar la referencia facial durante el registro */
-export type FaceRegisterPayload = {
-  userId: string;
-  imageBase64: string;
-};
-
-/** Payload para iniciar verificación previa a un viaje */
-export type FaceVerifyStartPayload = {
-  userId: string;
-  trigger: FaceVerificationTrigger;
-};
-
-export type FaceVerifyCompletePayload = FaceRegisterPayload & {
-  trigger: FaceVerificationTrigger;
-};
-
 // ─── Core Types ──────────────────────────────────────────────────────────────
 
 export type Location = {
@@ -102,6 +77,27 @@ export type Location = {
   address: string;
   latitude: number;
   longitude: number;
+};
+
+/** Road route the driver chose for a trip, optionally through intermediate stops. */
+export type TripRoute = {
+  coordinates: { latitude: number; longitude: number }[];
+  km: number;
+  minutes: number;
+  via: Location[];
+};
+
+/** Optional places the user saves to personalize trip suggestions. */
+export type SavedPlaceKind = 'home' | 'work' | 'university' | 'other';
+
+export type SavedPlace = Location & {
+  kind: SavedPlaceKind;
+};
+
+export type FavoriteDriver = {
+  id: string;
+  name: string;
+  avatarUrl?: string;
 };
 
 export type Rating = {
@@ -115,9 +111,8 @@ export type User = {
   email: string;
   role: UserRole;
   avatarUrl?: string;
-  // Face verification fields
+  /** A registration selfie is on file and matched. */
   faceVerified?: boolean;
-  faceReferenceId?: string;
   faceVerifiedAt?: string;
   /** null when the user never asked to drive. */
   driverStatus?: DriverStatus | null;
@@ -155,17 +150,13 @@ export type Trip = {
   price: number;
   seatsAvailable: number;
   driver: Driver;
+  /** The vehicle used for this trip, so passengers know what to look for. */
+  vehicle?: { brand: string; color: string; plate: string; photoUrl?: string };
+  /** The route the driver chose, when there is one. */
+  route?: TripRoute;
   passengers: Passenger[];
   status: TripStatus;
   description?: string;
-};
-
-export type Notification = {
-  id: string;
-  title: string;
-  body: string;
-  read: boolean;
-  createdAt: string;
 };
 
 export type ChatMessage = {

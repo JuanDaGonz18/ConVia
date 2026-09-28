@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 
-export type NotifyEvent = 'request_created' | 'request_responded' | 'request_cancelled' | 'message';
+export type NotifyEvent = 'request_created' | 'request_responded' | 'request_cancelled' | 'message' | 'trip_updated';
 
 type Notifications = typeof NotificationsModule;
 

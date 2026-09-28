@@ -36,7 +36,9 @@ export default function ProfileScreen() {
   const logoutStore = useAppStore((state) => state.logout);
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const [switchingRole, setSwitchingRole] = useState(false);
-  const markUserFaceVerified = useAppStore((state) => state.markUserFaceVerified);
+  const markFaceVerified = useAppStore((state) => state.markFaceVerified);
+  const savedPlacesCount = useAppStore((state) => state.savedPlaces.length);
+  const favoriteCount = useAppStore((state) => state.favoriteDriverIds.length);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -72,14 +74,17 @@ export default function ProfileScreen() {
 
   const switchMode = async (role: UserRole) => {
     if (!currentUser || currentUser.role === role || switchingRole) return;
+    // Driving is locked until the license check passes: go verify, staying a
+    // passenger. The license screen switches to driver mode once approved.
+    if (role === 'driver' && currentUser.driverStatus !== 'aprobado') {
+      router.push('/driver-license');
+      return;
+    }
     setSwitchingRole(true);
     setError(null);
     try {
       await driverService.switchRole(role);
-      // Switching to conductor creates a pending permission if there was none.
-      const driverStatus = role === 'driver' ? currentUser.driverStatus ?? 'pendiente' : currentUser.driverStatus;
-      setCurrentUser({ ...currentUser, role, driverStatus });
-      if (role === 'driver' && driverStatus !== 'aprobado') router.push('/driver-license');
+      setCurrentUser({ ...currentUser, role });
     } catch (switchError) {
       setError(errorMessage(switchError, 'No se pudo cambiar de modo.'));
     } finally {
@@ -104,8 +109,9 @@ export default function ProfileScreen() {
   };
 
   const userName = currentUser?.name || 'Usuario WheelsApp';
-  const userEmail = currentUser?.email || 'usuario@wheelsapp.com';
+  const userEmail = currentUser?.email ?? '';
   const isDriver = currentUser?.role === 'driver';
+  const driverApproved = currentUser?.driverStatus === 'aprobado';
   const isVerified = currentUser?.faceVerified === true;
 
   const handleConfirmLogout = async () => {
@@ -130,8 +136,11 @@ export default function ProfileScreen() {
           <View accessibilityRole="radiogroup" style={styles.modeToggle}>
             {(['client', 'driver'] as const).map((mode) => {
               const active = currentUser?.role === mode;
+              // Driving stays locked until the license identity check is passed.
+              const locked = mode === 'driver' && !driverApproved;
               return (
                 <Pressable
+                  accessibilityHint={locked ? 'Requiere verificar tu licencia de conducción' : undefined}
                   accessibilityLabel={mode === 'driver' ? 'Modo conductor' : 'Modo pasajero'}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: active, disabled: switchingRole }}
@@ -144,13 +153,23 @@ export default function ProfileScreen() {
                   <Text style={[styles.modeText, active ? styles.modeTextActive : null]}>
                     {mode === 'driver' ? 'Conductor' : 'Pasajero'}
                   </Text>
+                  {locked ? (
+                    <Ionicons accessibilityLabel="Bloqueado" color={active ? colors.white : colors.primary} name="lock-closed" size={14} />
+                  ) : null}
                 </Pressable>
               );
             })}
           </View>
-          <Text style={isVerified ? styles.verified : styles.unverified}>
-            {isVerified ? 'Identidad verificada' : 'Identidad sin verificar'}
-          </Text>
+          <View style={styles.verificationRow}>
+            <Ionicons
+              color={isVerified ? colors.success : colors.error}
+              name={isVerified ? 'shield-checkmark' : 'shield-outline'}
+              size={14}
+            />
+            <Text style={isVerified ? styles.verified : styles.unverified}>
+              {isVerified ? 'Identidad verificada' : 'Identidad sin verificar'}
+            </Text>
+          </View>
         </View>
 
         {/* Settings Menu */}
@@ -159,9 +178,23 @@ export default function ProfileScreen() {
             icon="person-outline"
             onPress={() => router.push('/profile-edit')}
             subtitle="Nombre, teléfono, foto y contraseña"
-            title="Información Personal"
+            title="Información personal"
           />
-          {isDriver || currentUser?.driverStatus ? (
+          <Divider />
+          <ListItem
+            icon="bookmark-outline"
+            onPress={() => router.push('/saved-places')}
+            subtitle={savedPlacesCount ? `${savedPlacesCount} guardado${savedPlacesCount === 1 ? '' : 's'}` : 'Casa, trabajo, universidad (opcional)'}
+            title="Mis lugares"
+          />
+          <Divider />
+          <ListItem
+            icon="star-outline"
+            onPress={() => router.push('/favorite-drivers')}
+            subtitle={favoriteCount ? `${favoriteCount} favorito${favoriteCount === 1 ? '' : 's'}` : 'Destaca los viajes de quienes prefieres'}
+            title="Conductores favoritos"
+          />
+          {isDriver ? (
             <>
               <Divider />
               <ListItem
@@ -177,9 +210,9 @@ export default function ProfileScreen() {
               <Divider />
               <ListItem
                 icon="car-outline"
-                onPress={() => router.push('/vehicle')}
-                subtitle="Placa, marca, color y puestos"
-                title="Mi Vehículo"
+                onPress={() => router.push('/vehicles')}
+                subtitle="Fotos, placas y puestos de tus vehículos"
+                title="Mis vehículos"
               />
             </>
           ) : null}
@@ -224,7 +257,7 @@ export default function ProfileScreen() {
         <View style={styles.logoutContainer}>
           <ButtonSecondary
             onPress={() => setShowLogoutModal(true)}
-            title="Cerrar Sesión"
+            title="Cerrar sesión"
           />
           {isSupabaseEnabled ? (
             <Pressable
@@ -243,9 +276,9 @@ export default function ProfileScreen() {
         <FaceVerificationModal
           onClose={() => setShowVerification(false)}
           onFailure={() => undefined}
-          onSuccess={(result) => {
+          onSuccess={() => {
             setShowVerification(false);
-            markUserFaceVerified(result.faceReferenceId ?? result.sessionId ?? 'server');
+            markFaceVerified();
           }}
           trigger="register"
           userId={currentUser.id}
@@ -305,15 +338,10 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textSecondary,
   },
-  badge: {
+  verificationRow: {
     alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.radiusFull,
     flexDirection: 'row',
-    gap: spacing[8],
-    marginTop: spacing[4],
-    paddingHorizontal: spacing[16],
-    paddingVertical: spacing[8],
+    gap: spacing[4],
   },
   verified: {
     ...typography.caption,
@@ -350,37 +378,6 @@ const styles = StyleSheet.create({
   },
   modeTextActive: {
     color: colors.white,
-  },
-  badgeText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  statsRow: {
-    backgroundColor: colors.white,
-    borderColor: colors.lightGray,
-    borderRadius: radius.radiusLarge,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: spacing[16],
-  },
-  statBox: {
-    alignItems: 'center',
-    flex: 1,
-    gap: spacing[4],
-  },
-  statValue: {
-    ...typography.headingM,
-    color: colors.primary,
-  },
-  statLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  statDivider: {
-    backgroundColor: colors.lightGray,
-    width: 1,
   },
   menuCard: {
     backgroundColor: colors.white,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
@@ -9,6 +9,7 @@ import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { tripService, TripRequestRecord } from '@/services/tripService';
 import { errorMessage } from '@/utils/format';
 
@@ -19,11 +20,19 @@ export default function BoardingQrScreen() {
 
   useEffect(() => {
     if (!requestId) return;
-    void tripService.getPassengerRequests().then((items) => {
+    const load = () => tripService.getPassengerRequests().then((items) => {
       const found = items.find((item) => item.id === requestId);
       if (!found) setError('No se encontró la solicitud.');
       else setRequest(found);
     }).catch((loadError) => setError(errorMessage(loadError, 'No se pudo cargar el QR.')));
+    void load();
+    if (!isSupabaseEnabled) return;
+    // Switch to "ya abordaste" as soon as the driver scans the code.
+    const channel = supabase
+      .channel(`boarding-${requestId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_requests', filter: `id=eq.${requestId}` }, () => void load())
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
   }, [requestId]);
 
   return (
@@ -37,7 +46,11 @@ export default function BoardingQrScreen() {
         <Text style={styles.subtitle}>Muéstrale este código al conductor al subir al vehículo.</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {!request && !error ? <Text style={styles.subtitle}>Cargando...</Text> : null}
-        {request?.estado === 'aceptado' ? <QRCode value={request.qr_token} size={240} backgroundColor={colors.white} color={colors.text} /> : null}
+        {request?.estado === 'aceptado' ? (
+          <View style={styles.qrCard}>
+            <QRCode value={request.qr_token} size={240} backgroundColor={colors.white} color={colors.text} />
+          </View>
+        ) : null}
         {request?.estado === 'abordado' ? <Text style={styles.success}>Ya abordaste este viaje.</Text> : null}
         {request && request.estado !== 'aceptado' && request.estado !== 'abordado' ? (
           <Text style={styles.error}>El QR solo está disponible cuando el conductor acepta tu solicitud.</Text>
@@ -59,4 +72,5 @@ const styles = StyleSheet.create({
   meta: { ...typography.body, color: colors.text },
   error: { ...typography.bodySmall, color: colors.error, textAlign: 'center' },
   success: { ...typography.headingM, color: colors.success, textAlign: 'center' },
+  qrCard: { backgroundColor: colors.white, borderRadius: 24, padding: spacing[24] },
 });

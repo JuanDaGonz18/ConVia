@@ -1,85 +1,60 @@
 import { create } from 'zustand';
 
-import {
-  FaceVerificationState,
-  Location,
-  Notification,
-  Trip,
-  User,
-  UserRole,
-  Vehicle,
-} from '@/types';
+import { FaceVerificationState, SavedPlace, Trip, User } from '@/types';
 
 type AuthState = 'anonymous' | 'authenticated';
 
 type AppStore = {
   authenticationState: AuthState;
   currentUser: User | null;
-  role: UserRole | null;
-  currentLocation: Location | null;
-  selectedDestination: Location | null;
+  /** Trip opened from a list, shown by the trip-details screen. */
   selectedTrip: Trip | null;
-  currentTrip: Trip | null;
-  vehicle: Vehicle | null;
-  notifications: Notification[];
-  // ── Face Verification ────────────────────────────────
-  /** Estado del flujo de verificación facial en curso */
+  /** Step of the face verification flow currently on screen. */
   faceVerificationState: FaceVerificationState;
-  /** sessionId de Liveness activo */
-  activeLivenessSessionId: string | null;
-  /** Setters */
+  /** Optional places used to prioritize trips (loaded after sign-in). */
+  savedPlaces: SavedPlace[];
+  favoriteDriverIds: string[];
   setCurrentUser: (user: User | null) => void;
-  setRole: (role: UserRole) => void;
+  setSavedPlaces: (places: SavedPlace[]) => void;
+  setFavoriteDriverIds: (ids: string[]) => void;
   setSelectedTrip: (trip: Trip | null) => void;
-  setCurrentTrip: (trip: Trip | null) => void;
-  setVehicle: (vehicle: Vehicle | null) => void;
   setFaceVerificationState: (state: FaceVerificationState) => void;
-  setActiveLivenessSessionId: (id: string | null) => void;
-  /** Marca al usuario actual como verificado facialmente */
-  markUserFaceVerified: (faceReferenceId: string) => void;
+  /** The server confirmed the user's face (registration or a later check). */
+  markFaceVerified: () => void;
   logout: () => void;
 };
 
 export const useAppStore = create<AppStore>((set) => ({
   authenticationState: 'anonymous',
   currentUser: null,
-  role: null,
-  currentLocation: null,
-  selectedDestination: null,
   selectedTrip: null,
-  currentTrip: null,
-  vehicle: null,
-  notifications: [],
   faceVerificationState: 'IDLE',
-  activeLivenessSessionId: null,
+  savedPlaces: [],
+  favoriteDriverIds: [],
+
+  setSavedPlaces: (savedPlaces) => set({ savedPlaces }),
+  setFavoriteDriverIds: (favoriteDriverIds) => set({ favoriteDriverIds }),
 
   setCurrentUser: (user) =>
-    set({
-      currentUser: user,
-      role: user?.role ?? null,
-      authenticationState: user ? 'authenticated' : 'anonymous',
+    set((state) => {
+      // Another account (or none) must not see the previous user's places.
+      const sameUser = !!user && state.currentUser?.id === user.id;
+      return {
+        currentUser: user,
+        authenticationState: user ? 'authenticated' : 'anonymous',
+        savedPlaces: sameUser ? state.savedPlaces : [],
+        favoriteDriverIds: sameUser ? state.favoriteDriverIds : [],
+      };
     }),
 
-  setRole: (role) => set({ role }),
   setSelectedTrip: (trip) => set({ selectedTrip: trip }),
-  setCurrentTrip: (trip) => set({ currentTrip: trip }),
-  setVehicle: (vehicle) => set({ vehicle }),
 
-  setFaceVerificationState: (faceVerificationState) =>
-    set({ faceVerificationState }),
+  setFaceVerificationState: (faceVerificationState) => set({ faceVerificationState }),
 
-  setActiveLivenessSessionId: (activeLivenessSessionId) =>
-    set({ activeLivenessSessionId }),
-
-  markUserFaceVerified: (faceReferenceId) =>
+  markFaceVerified: () =>
     set((state) => ({
       currentUser: state.currentUser
-        ? {
-            ...state.currentUser,
-            faceVerified: true,
-            faceReferenceId,
-            faceVerifiedAt: new Date().toISOString(),
-          }
+        ? { ...state.currentUser, faceVerified: true, faceVerifiedAt: new Date().toISOString() }
         : null,
     })),
 
@@ -87,13 +62,9 @@ export const useAppStore = create<AppStore>((set) => ({
     set({
       authenticationState: 'anonymous',
       currentUser: null,
-      role: null,
-      selectedDestination: null,
       selectedTrip: null,
-      currentTrip: null,
-      vehicle: null,
-      notifications: [],
       faceVerificationState: 'IDLE',
-      activeLivenessSessionId: null,
+      savedPlaces: [],
+      favoriteDriverIds: [],
     }),
 }));
