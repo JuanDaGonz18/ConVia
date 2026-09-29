@@ -1,4 +1,6 @@
 import 'react-native-url-polyfill/auto';
+// Must run before the Supabase client is created (PKCE needs Web Crypto).
+import './cryptoPolyfill';
 import { AppState } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { createClient } from '@supabase/supabase-js';
