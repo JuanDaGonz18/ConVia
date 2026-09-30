@@ -98,6 +98,10 @@ export type DriverTripRecord = {
   id: string;
   originName: string;
   destinationName: string;
+  /** Null for old trips saved without coordinates. */
+  origin: Location | null;
+  destination: Location | null;
+  route?: TripRoute;
   departureAt: string;
   price: number;
   totalSeats: number;
@@ -320,7 +324,7 @@ export const tripService = {
     const userId = await requireUserId();
     const { data, error } = await supabase
       .from('trips')
-      .select('id, origen_nombre, destino_nombre, salida_at, precio, cupos_totales, estado')
+      .select('id, origen_nombre, origen_lat, origen_lng, destino_nombre, destino_lat, destino_lng, ruta, salida_at, precio, cupos_totales, estado')
       .eq('driver_id', userId)
       .order('salida_at', { ascending: false })
       .limit(50);
@@ -329,6 +333,13 @@ export const tripService = {
       id: row.id,
       originName: row.origen_nombre,
       destinationName: row.destino_nombre,
+      origin: row.origen_lat !== null && row.origen_lng !== null
+        ? place(`${row.id}-origin`, row.origen_nombre, row.origen_lat, row.origen_lng)
+        : null,
+      destination: row.destino_lat !== null && row.destino_lng !== null
+        ? place(`${row.id}-destination`, row.destino_nombre, row.destino_lat, row.destino_lng)
+        : null,
+      route: parseRoute(row.ruta),
       departureAt: row.salida_at,
       price: Number(row.precio),
       totalSeats: row.cupos_totales,

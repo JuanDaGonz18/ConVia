@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Notice } from '@/components/ui/Notice';
 import { TripRoutePreview } from '@/components/map/TripRoutePreview';
 import { Avatar } from '@/components/ui/Avatar';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
@@ -79,7 +80,7 @@ export default function TripSummaryScreen() {
         <Text style={styles.kicker}>{finished ? 'RESUMEN DEL VIAJE' : 'HISTORIAL DEL VIAJE'}</Text>
 
         {loading ? <ActivityIndicator color={colors.primary} /> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Notice tone="error">{error}</Notice> : null}
 
         {trip && status ? (
           <>
@@ -281,7 +282,7 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
           <Text style={styles.addCommentText}>Dejar un comentario</Text>
         </Pressable>
       )}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
     </View>
   );
 }

@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Notice } from '@/components/ui/Notice';
+import { toast } from '@/components/ui/Toast';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { RowSkeleton } from '@/components/ui/Skeleton';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
@@ -17,6 +22,23 @@ import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { tripService, TripRequestRecord, TripRequestStatus } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, formatDateTime, formatMessageTime } from '@/utils/format';
+
+const STATUS_COLORS: Record<TripRequestStatus, { background: string; color: string }> = {
+  pendiente: { background: '#FFFAEB', color: '#B54708' },
+  aceptado: { background: '#ECFDF3', color: '#067647' },
+  negado: { background: '#FEF3F2', color: '#B42318' },
+  abordado: { background: colors.primaryLight, color: colors.primary },
+  cancelado: { background: colors.lightGray, color: colors.textSecondary },
+};
+
+function MetaRow({ icon, text }: Readonly<{ icon: keyof typeof Ionicons.glyphMap; text: string }>) {
+  return (
+    <View style={styles.metaRow}>
+      <Ionicons color={colors.textSecondary} name={icon} size={16} />
+      <Text style={styles.cardMeta}>{text}</Text>
+    </View>
+  );
+}
 
 const STATUS_LABELS: Record<TripRequestStatus, string> = {
   pendiente: 'Pendiente',
@@ -87,7 +109,10 @@ export default function RequestsScreen() {
             const requestId = pendingAccept;
             setPendingAccept(null);
             if (requestId) {
-              void runAction(requestId, () => tripService.respondToRequest(requestId, true), 'No se pudo aceptar la solicitud.');
+              void runAction(requestId, async () => {
+                await tripService.respondToRequest(requestId, true);
+                toast.success('Solicitud aceptada. Ya puede ver su código de abordaje');
+              }, 'No se pudo aceptar la solicitud.');
             }
           }}
           trigger="driver_activate"
@@ -96,18 +121,23 @@ export default function RequestsScreen() {
         />
       ) : null}
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable accessibilityLabel="Volver" onPress={() => router.back()} style={styles.back}>
-          <Ionicons color={colors.text} name="arrow-back" size={24} />
-        </Pressable>
-        <Text style={styles.kicker}>{isDriver ? 'CONDUCTOR' : 'PASAJERO'}</Text>
-        <Text style={styles.title}>Solicitudes</Text>
-        {isDriver ? <ButtonSecondary onPress={() => router.push('/qr-scanner')} title="Escanear QR de abordaje" /> : null}
-        {loading ? <Text style={styles.muted}>Cargando solicitudes...</Text> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {!loading && !requests.length ? (
-          <Text style={styles.muted}>
-            {isDriver ? 'Tus viajes activos no tienen solicitudes todavía.' : 'Aún no has solicitado ningún viaje.'}
-          </Text>
+        <ScreenHeader
+          kicker={isDriver ? 'CONDUCTOR' : 'PASAJERO'}
+          subtitle={isDriver ? 'Acepta o rechaza a quienes quieren unirse a tus viajes.' : 'El estado de tus cupos y tus códigos de abordaje.'}
+          title="Solicitudes"
+        />
+        {isDriver ? <ButtonSecondary icon="qr-code-outline" onPress={() => router.push('/qr-scanner')} title="Escanear QR de abordaje" /> : null}
+        {loading ? <RowSkeleton count={3} /> : null}
+        {error ? <Notice action={{ label: 'Reintentar', onPress: () => void load() }} tone="error">{error}</Notice> : null}
+        {!loading && !error && !requests.length ? (
+          <EmptyState
+            action={isDriver ? undefined : { label: 'Buscar un viaje', icon: 'search-outline', onPress: () => router.push('/(tabs)') }}
+            icon={isDriver ? 'people-outline' : 'paper-plane-outline'}
+            message={isDriver
+              ? 'Cuando alguien pida un cupo en tus viajes próximos, aparecerá aquí y te enviaremos una notificación.'
+              : 'Cuando pidas un cupo en un viaje verás aquí si el conductor te aceptó y tu código de abordaje.'}
+            title={isDriver ? 'Aún no hay solicitudes' : 'Todavía no has pedido cupos'}
+          />
         ) : null}
         {requests.map((request) => {
           const busy = busyId === request.id;
@@ -117,11 +147,13 @@ export default function RequestsScreen() {
                 <Text style={styles.cardTitle}>
                   {isDriver ? request.passengerName || 'Pasajero' : request.tripLabel ?? 'Viaje'}
                 </Text>
-                <Text style={styles.badge}>{STATUS_LABELS[request.estado]}</Text>
+                <Text style={[styles.badge, { backgroundColor: STATUS_COLORS[request.estado].background, color: STATUS_COLORS[request.estado].color }]}>
+                  {STATUS_LABELS[request.estado]}
+                </Text>
               </View>
-              <Text style={styles.cardMeta}>Recogida: {request.direccion}</Text>
-              {isDriver && request.tripLabel ? <Text style={styles.cardMeta}>Viaje: {request.tripLabel}</Text> : null}
-              {request.tripDepartureAt ? <Text style={styles.cardMeta}>Salida: {formatDateTime(request.tripDepartureAt)}</Text> : null}
+              <MetaRow icon="location-outline" text={`Recogida: ${request.direccion}`} />
+              {isDriver && request.tripLabel ? <MetaRow icon="navigate-outline" text={request.tripLabel} /> : null}
+              {request.tripDepartureAt ? <MetaRow icon="time-outline" text={formatDateTime(request.tripDepartureAt)} /> : null}
               {!isDriver && request.lastUpdate ? (
                 <View style={styles.update}>
                   <View style={styles.updateHeader}>
@@ -134,22 +166,39 @@ export default function RequestsScreen() {
                 </View>
               ) : null}
               {isDriver && request.estado === 'pendiente' ? (
-                <View style={styles.actions}>
-                  <ButtonPrimary
-                    disabled={busy}
-                    loading={busy}
-                    onPress={() => setPendingAccept(request.id)}
-                    title="Aceptar"
-                  />
-                  <ButtonSecondary
-                    disabled={busy}
-                    onPress={() => setConfirm({ requestId: request.id, kind: 'reject' })}
-                    title="Rechazar"
-                  />
+                <View style={styles.actionRow}>
+                  <View style={styles.flex}>
+                    <ButtonSecondary
+                      disabled={busy}
+                      onPress={() => setConfirm({ requestId: request.id, kind: 'reject' })}
+                      title="Rechazar"
+                      tone="danger"
+                    />
+                  </View>
+                  <View style={styles.flex}>
+                    <ButtonPrimary
+                      disabled={busy}
+                      icon="checkmark"
+                      loading={busy}
+                      onPress={() => setPendingAccept(request.id)}
+                      title="Aceptar"
+                    />
+                  </View>
                 </View>
               ) : null}
               {!isDriver && request.estado === 'aceptado' ? (
-                <ButtonPrimary onPress={() => router.push({ pathname: '/boarding-qr', params: { requestId: request.id } })} title="Mostrar QR de abordaje" />
+                <>
+                  <ButtonPrimary
+                    icon="qr-code-outline"
+                    onPress={() => router.push({ pathname: '/boarding-qr', params: { requestId: request.id } })}
+                    title="Mostrar mi código de abordaje"
+                  />
+                  <ButtonSecondary
+                    icon="chatbubbles-outline"
+                    onPress={() => router.push({ pathname: '/chat/[tripId]', params: { tripId: request.trip_id } })}
+                    title="Escribirle al conductor"
+                  />
+                </>
               ) : null}
               {!isDriver && (request.estado === 'pendiente' || request.estado === 'aceptado') ? (
                 <ButtonSecondary
@@ -166,6 +215,7 @@ export default function RequestsScreen() {
       <ConfirmDialog
         cancelLabel="Volver"
         confirmLabel={confirm?.kind === 'reject' ? 'Sí, rechazar' : 'Sí, cancelar'}
+        tone="danger"
         message={confirm?.kind === 'reject'
           ? 'Se le avisará al pasajero que no puede unirse a este viaje.'
           : 'Liberarás tu cupo y el conductor recibirá un aviso.'}
@@ -175,8 +225,14 @@ export default function RequestsScreen() {
           const { requestId, kind } = confirm;
           setConfirm(null);
           void (kind === 'reject'
-            ? runAction(requestId, () => tripService.respondToRequest(requestId, false), 'No se pudo rechazar la solicitud.')
-            : runAction(requestId, () => tripService.cancelRequest(requestId), 'No se pudo cancelar la solicitud.'));
+            ? runAction(requestId, async () => {
+              await tripService.respondToRequest(requestId, false);
+              toast.info('Solicitud rechazada. Le avisamos al pasajero');
+            }, 'No se pudo rechazar la solicitud.')
+            : runAction(requestId, async () => {
+              await tripService.cancelRequest(requestId);
+              toast.info('Cancelaste tu solicitud y liberaste el cupo');
+            }, 'No se pudo cancelar la solicitud.'));
         }}
         title={confirm?.kind === 'reject' ? '¿Rechazar esta solicitud?' : '¿Cancelar tu solicitud?'}
         visible={confirm !== null}
@@ -197,7 +253,10 @@ const styles = StyleSheet.create({
   cardHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[8], justifyContent: 'space-between' },
   cardTitle: { ...typography.bodyMedium, color: colors.text, flex: 1, fontWeight: '700' },
   badge: { ...typography.caption, backgroundColor: colors.primaryLight, borderRadius: radius.radiusFull, color: colors.primary, fontWeight: '600', overflow: 'hidden', paddingHorizontal: spacing[8], paddingVertical: spacing[4] },
-  cardMeta: { ...typography.bodySmall, color: colors.textSecondary },
+  cardMeta: { ...typography.bodySmall, color: colors.textSecondary, flex: 1 },
+  metaRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing[8] },
+  actionRow: { flexDirection: 'row', gap: spacing[8] },
+  flex: { flex: 1 },
   update: { backgroundColor: '#FFF7E0', borderRadius: radius.radiusMedium, gap: 4, padding: spacing[12] },
   updateHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[4] },
   updateTitle: { ...typography.caption, color: colors.text, flex: 1, fontWeight: '700' },

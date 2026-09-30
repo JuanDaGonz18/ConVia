@@ -56,7 +56,7 @@ export default function TabsLayout() {
           <BottomNavigation
             activeKey={activeKey}
             items={[
-              { key: 'home', label: 'Inicio', icon: 'map-outline' },
+              { key: 'home', label: 'Inicio', icon: 'home-outline' },
               { key: 'trips', label: 'Viajes', icon: 'car-outline' },
               { key: 'chats', label: 'Chats', icon: 'chatbubbles-outline' },
               { key: 'profile', label: 'Perfil', icon: 'person-outline' },

@@ -1,36 +1,50 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
+import { PasswordChecklist, PasswordField } from '@/components/forms/PasswordField';
 import { TextField } from '@/components/forms/TextField';
 import { Avatar } from '@/components/ui/Avatar';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
+import { Notice } from '@/components/ui/Notice';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { toast } from '@/components/ui/Toast';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
+import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { profileService } from '@/services/profileService';
 import { useAppStore } from '@/store/appStore';
-import { errorMessage } from '@/utils/format';
+import { errorMessage, rawErrorMessage } from '@/utils/format';
+import { passwordProblems } from '@/utils/password';
 
 const PHONE_PATTERN = /^\+?[\d\s-]{7,20}$/;
+
+function passwordErrorMessage(error: unknown) {
+  const raw = rawErrorMessage(error);
+  if (/different from the old/i.test(raw)) return 'La nueva contraseña debe ser diferente a la actual.';
+  if (/reauthentication|recent/i.test(raw)) return 'Por seguridad, cierra sesión, vuelve a entrar y cambia la contraseña de inmediato.';
+  if (/weak|at least|characters/i.test(raw)) return 'La contraseña es muy débil. Revisa los requisitos.';
+  return errorMessage(error, 'No pudimos cambiar tu contraseña. Inténtalo de nuevo.');
+}
 
 export default function ProfileEditScreen() {
   const currentUser = useAppStore((state) => state.currentUser);
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const [name, setName] = useState(currentUser?.name ?? '');
   const [phone, setPhone] = useState('');
+  const [profileErrors, setProfileErrors] = useState<{ name?: string; phone?: string }>({});
   const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState('');
+  const [passwordIssues, setPasswordIssues] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(!isSupabaseEnabled);
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState<'profile' | 'password' | null>(null);
   const [uploading, setUploading] = useState(false);
   const userId = currentUser?.id;
 
@@ -44,116 +58,174 @@ export default function ProfileEditScreen() {
       setPhone(profile.phone);
       setProfileLoaded(true);
     }).catch((loadError) => {
-      if (active) setError(errorMessage(loadError, 'No se pudo cargar tu perfil.'));
+      if (active) setError(errorMessage(loadError, 'No pudimos cargar tu perfil.'));
     });
     return () => { active = false; };
   }, [userId]);
 
   const pickAvatar = async () => {
-    if (!currentUser || !isSupabaseEnabled) {
-      setError('Cambiar la foto requiere una sesión de Supabase.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
+    if (!currentUser || !isSupabaseEnabled) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
     if (result.canceled || !result.assets?.length) return;
     const asset = result.assets[0];
     setError(null);
-    setMessage(null);
     setUploading(true);
     try {
       const avatarUrl = await profileService.uploadAvatar(currentUser.id, asset.uri, asset.mimeType ?? 'image/jpeg');
       setCurrentUser({ ...currentUser, avatarUrl });
-      setMessage('Foto actualizada.');
+      toast.success('Foto de perfil actualizada');
     } catch (uploadError) {
-      setError(errorMessage(uploadError, 'No se pudo subir la foto.'));
+      setError(errorMessage(uploadError, 'No pudimos subir la foto. Inténtalo con otra imagen.'));
     } finally {
       setUploading(false);
     }
   };
 
-  const save = async () => {
-    if (!name.trim()) {
-      setError('El nombre no puede estar vacío.');
-      return;
-    }
-    if (phone.trim() && !PHONE_PATTERN.test(phone.trim())) {
-      setError('Ingresa un teléfono válido.');
-      return;
-    }
-    if (password && password.length < 6) {
-      setError('La nueva contraseña debe tener al menos 6 caracteres.');
-      return;
-    }
-    if (password !== passwordConfirm) {
-      setError('Las contraseñas no coinciden.');
-      return;
-    }
-    if (!isSupabaseEnabled || !currentUser) {
-      setError('Esta edición requiere una sesión de Supabase.');
-      return;
-    }
+  const saveProfile = async () => {
+    const errors: { name?: string; phone?: string } = {};
+    if (name.trim().length < 3) errors.name = 'Escribe tu nombre y apellido.';
+    if (phone.trim() && !PHONE_PATTERN.test(phone.trim())) errors.phone = 'Escribe un número válido, por ejemplo 300 123 4567.';
+    setProfileErrors(errors);
+    if (Object.keys(errors).length || !currentUser) return;
     setError(null);
-    setMessage(null);
-    setLoading(true);
+    setSaving('profile');
     try {
       await profileService.updateProfile(currentUser.id, { name: name.trim(), phone: phone.trim() });
-      if (password) await profileService.changePassword(password);
       setCurrentUser({ ...currentUser, name: name.trim() });
-      setPassword('');
-      setPasswordConfirm('');
-      setMessage(password ? 'Cambios y contraseña guardados.' : 'Cambios guardados.');
+      toast.success('Datos guardados');
     } catch (saveError) {
-      setError(errorMessage(saveError, 'No se pudieron guardar los cambios.'));
+      setError(errorMessage(saveError, 'No pudimos guardar tus datos.'));
     } finally {
-      setLoading(false);
+      setSaving(null);
+    }
+  };
+
+  const changePassword = async () => {
+    const issues = passwordProblems(password, confirm);
+    setPasswordIssues(issues);
+    if (issues.length) return;
+    setError(null);
+    setSaving('password');
+    try {
+      await profileService.changePassword(password);
+      setPassword('');
+      setConfirm('');
+      toast.success('Contraseña actualizada');
+    } catch (changeError) {
+      setError(passwordErrorMessage(changeError));
+    } finally {
+      setSaving(null);
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Pressable accessibilityLabel="Volver" onPress={() => router.back()} style={styles.back}>
-          <Ionicons color={colors.text} name="arrow-back" size={24} />
-        </Pressable>
-        <Text style={styles.kicker}>CUENTA</Text>
-        <Text style={styles.title}>Información personal</Text>
-        <Text style={styles.subtitle}>{currentUser?.email}</Text>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {message ? <Text style={styles.success}>{message}</Text> : null}
-        <View style={styles.avatarRow}>
-          <Avatar imageUrl={currentUser?.avatarUrl} name={name || 'Usuario'} size={72} />
-          <View style={styles.avatarButton}>
-            <ButtonSecondary disabled={uploading} onPress={() => void pickAvatar()} title={uploading ? 'Subiendo...' : 'Cambiar foto'} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <ScreenHeader kicker="TU CUENTA" subtitle={currentUser?.email} title="Información personal" />
+          {error ? <Notice onDismiss={() => setError(null)} tone="error">{error}</Notice> : null}
+
+          <View style={styles.card}>
+            <View style={styles.avatarRow}>
+              <Avatar imageUrl={currentUser?.avatarUrl} name={name || 'Usuario'} size={72} />
+              <View style={styles.flex}>
+                <ButtonSecondary icon="camera-outline" loading={uploading} onPress={() => void pickAvatar()} title="Cambiar foto" />
+              </View>
+            </View>
+            <TextField
+              autoCapitalize="words"
+              error={profileErrors.name}
+              label="Nombre completo"
+              onChangeText={(text) => {
+                setName(text);
+                if (profileErrors.name) setProfileErrors((current) => ({ ...current, name: undefined }));
+              }}
+              value={name}
+            />
+            <TextField
+              error={profileErrors.phone}
+              hint="Opcional. Solo lo ven los integrantes de tus viajes."
+              keyboardType="phone-pad"
+              label="Teléfono"
+              onChangeText={(text) => {
+                setPhone(text);
+                if (profileErrors.phone) setProfileErrors((current) => ({ ...current, phone: undefined }));
+              }}
+              placeholder="300 123 4567"
+              value={phone}
+            />
+            <ButtonPrimary
+              disabled={!profileLoaded}
+              loading={saving === 'profile'}
+              loadingTitle="Guardando…"
+              onPress={() => void saveProfile()}
+              title="Guardar datos"
+            />
           </View>
-        </View>
-        <TextField label="Nombre" onChangeText={setName} value={name} />
-        <TextField label="Teléfono" keyboardType="phone-pad" onChangeText={setPhone} placeholder="300 000 0000" value={phone} />
-        <Text style={styles.section}>Seguridad</Text>
-        <TextField autoCapitalize="none" label="Nueva contraseña (opcional)" onChangeText={setPassword} placeholder="Mínimo 6 caracteres" secureTextEntry value={password} />
-        {password ? (
-          <TextField autoCapitalize="none" label="Confirmar contraseña" onChangeText={setPasswordConfirm} secureTextEntry value={passwordConfirm} />
-        ) : null}
-        <ButtonPrimary disabled={!profileLoaded} loading={loading} onPress={save} title="Guardar cambios" />
-      </ScrollView>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Cambiar contraseña</Text>
+            <Text style={styles.sectionHint}>Escribe la nueva contraseña dos veces. La usarás la próxima vez que inicies sesión.</Text>
+            {passwordIssues.length ? (
+              <Notice title="Revisa tu nueva contraseña" tone="warning">
+                <View style={styles.issueList}>
+                  {passwordIssues.map((issue) => <Text key={issue} style={styles.issue}>• {issue}</Text>)}
+                </View>
+              </Notice>
+            ) : null}
+            <PasswordField
+              autoComplete="new-password"
+              label="Nueva contraseña"
+              onChangeText={(text) => {
+                setPassword(text);
+                if (passwordIssues.length) setPasswordIssues(passwordProblems(text, confirm));
+              }}
+              placeholder="Crea una contraseña"
+              textContentType="newPassword"
+              value={password}
+            />
+            <PasswordField
+              autoComplete="new-password"
+              label="Confirma la nueva contraseña"
+              onChangeText={(text) => {
+                setConfirm(text);
+                if (passwordIssues.length) setPasswordIssues(passwordProblems(password, text));
+              }}
+              placeholder="Escríbela de nuevo"
+              textContentType="newPassword"
+              value={confirm}
+            />
+            {password || confirm ? <PasswordChecklist confirm={confirm} password={password} /> : null}
+            <ButtonSecondary
+              icon="lock-closed-outline"
+              loading={saving === 'password'}
+              onPress={() => void changePassword()}
+              title="Actualizar contraseña"
+            />
+          </View>
+
+          <ButtonSecondary onPress={() => router.back()} title="Volver al perfil" />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: colors.background, flex: 1 },
+  safeArea: { backgroundColor: colors.surfaceMuted, flex: 1 },
+  flex: { flex: 1 },
   content: { gap: spacing[16], padding: dimensions.screenPadding, paddingBottom: spacing[40] },
-  back: { alignSelf: 'flex-start', padding: spacing[4] },
-  kicker: { ...typography.label, color: colors.primary },
-  title: { ...typography.headingXL, color: colors.text },
-  subtitle: { ...typography.body, color: colors.textSecondary },
-  section: { ...typography.headingM, color: colors.text, marginTop: spacing[8] },
+  card: {
+    backgroundColor: colors.white,
+    borderColor: colors.lightGray,
+    borderRadius: radius.radiusXL,
+    borderWidth: 1,
+    gap: spacing[16],
+    padding: spacing[20],
+  },
   avatarRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[16] },
-  avatarButton: { flex: 1 },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
-  success: { ...typography.bodySmall, backgroundColor: colors.primaryLight, color: colors.primary, padding: spacing[12] },
+  sectionTitle: { ...typography.headingM, color: colors.text },
+  sectionHint: { ...typography.bodySmall, color: colors.textSecondary, marginTop: -spacing[8] },
+  issueList: { gap: 2 },
+  issue: { ...typography.bodySmall, color: '#B54708' },
 });

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Notice } from '@/components/ui/Notice';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { toast } from '@/components/ui/Toast';
 import { TextField } from '@/components/forms/TextField';
 import { MapPickerModal } from '@/components/map/MapPickerModal';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
@@ -40,7 +42,6 @@ export default function SavedPlacesScreen() {
   const [toDelete, setToDelete] = useState<SavedPlace | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const others = places.filter((place) => place.kind === 'other');
   const full = places.length >= MAX_SAVED_PLACES;
@@ -52,11 +53,10 @@ export default function SavedPlacesScreen() {
     setNewOtherName(null);
     setBusy(true);
     setError(null);
-    setMessage(null);
     try {
       const saved = await personalizationService.savePlace({ id: place?.id, kind, label, location });
       setSavedPlaces(place ? places.map((item) => (item.id === saved.id ? saved : item)) : [...places, saved]);
-      setMessage(`${saved.label} guardado.`);
+      toast.success(`${saved.label} guardado`);
     } catch (saveError) {
       setError(errorMessage(saveError, 'No se pudo guardar el lugar.'));
     } finally {
@@ -68,11 +68,10 @@ export default function SavedPlacesScreen() {
     setToDelete(null);
     setBusy(true);
     setError(null);
-    setMessage(null);
     try {
       await personalizationService.deletePlace(place.id);
       setSavedPlaces(places.filter((item) => item.id !== place.id));
-      setMessage(`${place.label} eliminado.`);
+      toast.info(`${place.label} eliminado`);
     } catch (deleteError) {
       setError(errorMessage(deleteError, 'No se pudo eliminar el lugar.'));
     } finally {
@@ -121,17 +120,12 @@ export default function SavedPlacesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Pressable accessibilityLabel="Volver" onPress={() => router.back()} style={styles.back}>
-          <Ionicons color={colors.text} name="arrow-back" size={24} />
-        </Pressable>
-        <Text style={styles.kicker}>PERSONALIZACIÓN</Text>
-        <Text style={styles.title}>Mis lugares</Text>
+        <ScreenHeader kicker="PERSONALIZACIÓN" title="Mis lugares" />
         <Text style={styles.subtitle}>
           Opcional. Te mostraremos primero los viajes que llegan a {PLACE_MATCH_KM} km o menos de estos lugares. Solo tú puedes verlos.
         </Text>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {message ? <Text style={styles.success}>{message}</Text> : null}
+        {error ? <Notice tone="error">{error}</Notice> : null}
         {busy ? <ActivityIndicator color={colors.primary} /> : null}
 
         {FIXED_KINDS.map((kind) => renderPlace(kind, places.find((place) => place.kind === kind)))}
@@ -173,6 +167,8 @@ export default function SavedPlacesScreen() {
       <ConfirmDialog
         cancelLabel="Volver"
         confirmLabel="Sí, eliminar"
+        icon="trash-outline"
+        tone="danger"
         message="Dejaremos de usar este lugar para ordenar tus viajes."
         onCancel={() => setToDelete(null)}
         onConfirm={() => toDelete && void remove(toDelete)}
@@ -186,9 +182,6 @@ export default function SavedPlacesScreen() {
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   content: { gap: spacing[12], padding: dimensions.screenPadding, paddingBottom: spacing[40] },
-  back: { alignSelf: 'flex-start', padding: spacing[4] },
-  kicker: { ...typography.label, color: colors.primary },
-  title: { ...typography.headingXL, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary, marginBottom: spacing[4] },
   section: { ...typography.headingM, color: colors.text, marginTop: spacing[12] },
   card: {

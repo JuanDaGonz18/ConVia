@@ -10,7 +10,7 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { Trip } from '@/types';
 import { formatDateTime, formatPrice } from '@/utils/format';
-import { describeNearPlace } from '@/utils/tripRanking';
+import { describeNearPlace, describePickup, Pickup } from '@/utils/tripRanking';
 
 type TripCardProps = {
   trip: Trip;
@@ -18,14 +18,22 @@ type TripCardProps = {
   onTripPress?: () => void;
   /** Why this trip is suggested to the user, when it is. */
   nearPlace?: { label: string; km: number } | null;
+  pickup?: Pickup | null;
   favoriteDriver?: boolean;
 };
 
-export function TripCard({ trip, onChatPress, onTripPress, nearPlace, favoriteDriver }: TripCardProps) {
+export function TripCard({ trip, onChatPress, onTripPress, nearPlace, pickup, favoriteDriver }: TripCardProps) {
+  const highlighted = !!(nearPlace || pickup || favoriteDriver);
   return (
-    <Pressable disabled={!onTripPress} onPress={onTripPress} style={[styles.card, nearPlace || favoriteDriver ? styles.cardHighlighted : null]}>
-      {nearPlace || favoriteDriver ? (
+    <Pressable disabled={!onTripPress} onPress={onTripPress} style={[styles.card, highlighted ? styles.cardHighlighted : null]}>
+      {highlighted ? (
         <View style={styles.reasons}>
+          {pickup ? (
+            <View style={styles.reasonChip}>
+              <Ionicons color={colors.primary} name="walk-outline" size={14} />
+              <Text style={[styles.reasonText, styles.reasonPickup]}>{describePickup(pickup)}</Text>
+            </View>
+          ) : null}
           {nearPlace ? (
             <View style={styles.reasonChip}>
               <Ionicons color={colors.success} name="navigate-circle-outline" size={14} />
@@ -109,6 +117,7 @@ const styles = StyleSheet.create({
   reasonChip: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   reasonText: { ...typography.caption, fontWeight: '600' },
   reasonPlace: { color: colors.success },
+  reasonPickup: { color: colors.primary },
   reasonFavorite: { color: colors.text },
   header: {
     alignItems: 'flex-start',

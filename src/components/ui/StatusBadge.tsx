@@ -7,7 +7,7 @@ import { typography } from '@/constants/typography';
 import { TripStatus } from '@/types';
 
 const labels: Record<TripStatus, string> = {
-  pending: 'Pendiente',
+  pending: 'Programado',
   accepted: 'Aceptado',
   driver_arriving: 'En camino',
   started: 'Iniciado',

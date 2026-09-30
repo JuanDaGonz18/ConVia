@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Notice } from '@/components/ui/Notice';
+import { AppName, CompanyCredit } from '@/components/brand/Brand';
 import { Avatar } from '@/components/ui/Avatar';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
 import { Divider } from '@/components/ui/Divider';
 import { ListItem } from '@/components/ui/ListItem';
+import { ModeSwitch } from '@/components/profile/ModeSwitch';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
 import { spacing } from '@/constants/spacing';
@@ -17,11 +21,9 @@ import { typography } from '@/constants/typography';
 import { radius } from '@/constants/radius';
 import { useAppStore } from '@/store/appStore';
 import { authService } from '@/services/authService';
-import { driverService } from '@/services/driverService';
 import { notificationService } from '@/services/notificationService';
 import { profileService } from '@/services/profileService';
 import { isSupabaseEnabled } from '@/lib/supabase';
-import { UserRole } from '@/types';
 import { errorMessage } from '@/utils/format';
 
 const DRIVER_STATUS_LABELS = {
@@ -34,8 +36,6 @@ const DRIVER_STATUS_LABELS = {
 export default function ProfileScreen() {
   const currentUser = useAppStore((state) => state.currentUser);
   const logoutStore = useAppStore((state) => state.logout);
-  const setCurrentUser = useAppStore((state) => state.setCurrentUser);
-  const [switchingRole, setSwitchingRole] = useState(false);
   const markFaceVerified = useAppStore((state) => state.markFaceVerified);
   const savedPlacesCount = useAppStore((state) => state.savedPlaces.length);
   const favoriteCount = useAppStore((state) => state.favoriteDriverIds.length);
@@ -72,26 +72,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const switchMode = async (role: UserRole) => {
-    if (!currentUser || currentUser.role === role || switchingRole) return;
-    // Driving is locked until the license check passes: go verify, staying a
-    // passenger. The license screen switches to driver mode once approved.
-    if (role === 'driver' && currentUser.driverStatus !== 'aprobado') {
-      router.push('/driver-license');
-      return;
-    }
-    setSwitchingRole(true);
-    setError(null);
-    try {
-      await driverService.switchRole(role);
-      setCurrentUser({ ...currentUser, role });
-    } catch (switchError) {
-      setError(errorMessage(switchError, 'No se pudo cambiar de modo.'));
-    } finally {
-      setSwitchingRole(false);
-    }
-  };
-
   const handleConfirmDelete = async () => {
     setDeleting(true);
     setError(null);
@@ -111,7 +91,6 @@ export default function ProfileScreen() {
   const userName = currentUser?.name || 'Usuario WheelsApp';
   const userEmail = currentUser?.email ?? '';
   const isDriver = currentUser?.role === 'driver';
-  const driverApproved = currentUser?.driverStatus === 'aprobado';
   const isVerified = currentUser?.faceVerified === true;
 
   const handleConfirmLogout = async () => {
@@ -133,46 +112,26 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{userName}</Text>
           <Text style={styles.email}>{userEmail}</Text>
 
-          <View accessibilityRole="radiogroup" style={styles.modeToggle}>
-            {(['client', 'driver'] as const).map((mode) => {
-              const active = currentUser?.role === mode;
-              // Driving stays locked until the license identity check is passed.
-              const locked = mode === 'driver' && !driverApproved;
-              return (
-                <Pressable
-                  accessibilityHint={locked ? 'Requiere verificar tu licencia de conducción' : undefined}
-                  accessibilityLabel={mode === 'driver' ? 'Modo conductor' : 'Modo pasajero'}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: active, disabled: switchingRole }}
-                  disabled={switchingRole}
-                  key={mode}
-                  onPress={() => void switchMode(mode)}
-                  style={[styles.modeOption, active ? styles.modeOptionActive : null]}
-                >
-                  <Ionicons color={active ? colors.white : colors.primary} name={mode === 'driver' ? 'car-sport' : 'person'} size={16} />
-                  <Text style={[styles.modeText, active ? styles.modeTextActive : null]}>
-                    {mode === 'driver' ? 'Conductor' : 'Pasajero'}
-                  </Text>
-                  {locked ? (
-                    <Ionicons accessibilityLabel="Bloqueado" color={active ? colors.white : colors.primary} name="lock-closed" size={14} />
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-          <View style={styles.verificationRow}>
-            <Ionicons
-              color={isVerified ? colors.success : colors.error}
-              name={isVerified ? 'shield-checkmark' : 'shield-outline'}
-              size={14}
-            />
-            <Text style={isVerified ? styles.verified : styles.unverified}>
-              {isVerified ? 'Identidad verificada' : 'Identidad sin verificar'}
-            </Text>
-          </View>
+          {isVerified ? (
+            <View style={styles.verifiedBadge}>
+              <Ionicons color="#067647" name="shield-checkmark" size={14} />
+              <Text style={styles.verified}>Identidad verificada</Text>
+            </View>
+          ) : null}
+          <ModeSwitch />
         </View>
 
-        {/* Settings Menu */}
+        {!isVerified && currentUser ? (
+          <Notice
+            action={{ label: 'Verificar mi identidad ahora', onPress: () => setShowVerification(true) }}
+            title="Falta verificar tu identidad"
+            tone="warning"
+          >
+            Es una selfie de unos segundos. La necesitas para pedir o publicar viajes.
+          </Notice>
+        ) : null}
+
+        <Text style={styles.sectionLabel}>Tu cuenta</Text>
         <View style={styles.menuCard}>
           <ListItem
             icon="person-outline"
@@ -180,7 +139,10 @@ export default function ProfileScreen() {
             subtitle="Nombre, teléfono, foto y contraseña"
             title="Información personal"
           />
-          <Divider />
+        </View>
+
+        <Text style={styles.sectionLabel}>Tus viajes</Text>
+        <View style={styles.menuCard}>
           <ListItem
             icon="bookmark-outline"
             onPress={() => router.push('/saved-places')}
@@ -194,28 +156,6 @@ export default function ProfileScreen() {
             subtitle={favoriteCount ? `${favoriteCount} favorito${favoriteCount === 1 ? '' : 's'}` : 'Destaca los viajes de quienes prefieres'}
             title="Conductores favoritos"
           />
-          {isDriver ? (
-            <>
-              <Divider />
-              <ListItem
-                icon="id-card-outline"
-                onPress={() => router.push('/driver-license')}
-                subtitle={currentUser?.driverStatus ? DRIVER_STATUS_LABELS[currentUser.driverStatus] : 'Verifica tu identidad con tu licencia'}
-                title="Permiso de conductor"
-              />
-            </>
-          ) : null}
-          {isDriver ? (
-            <>
-              <Divider />
-              <ListItem
-                icon="car-outline"
-                onPress={() => router.push('/vehicles')}
-                subtitle="Fotos, placas y puestos de tus vehículos"
-                title="Mis vehículos"
-              />
-            </>
-          ) : null}
           <Divider />
           <ListItem
             icon="document-text-outline"
@@ -223,18 +163,28 @@ export default function ProfileScreen() {
             subtitle={isDriver ? 'Solicitudes de tus pasajeros' : 'Estado de tus solicitudes y QR'}
             title="Solicitudes"
           />
-          {!isVerified && currentUser ? (
-            <>
+        </View>
+
+        {isDriver ? (
+          <>
+            <Text style={styles.sectionLabel}>Conductor</Text>
+            <View style={styles.menuCard}>
+              <ListItem
+                icon="id-card-outline"
+                onPress={() => router.push('/driver-license')}
+                subtitle={currentUser?.driverStatus ? DRIVER_STATUS_LABELS[currentUser.driverStatus] : 'Verifica tu identidad con tu licencia'}
+                title="Permiso de conductor"
+              />
               <Divider />
               <ListItem
-                icon="shield-checkmark-outline"
-                onPress={() => setShowVerification(true)}
-                subtitle="Necesaria para publicar o solicitar viajes"
-                title="Verificar identidad"
+                icon="car-outline"
+                onPress={() => router.push('/vehicles')}
+                subtitle="Fotos, placas y puestos de tus vehículos"
+                title="Mis vehículos"
               />
-            </>
-          ) : null}
-        </View>
+            </View>
+          </>
+        ) : null}
 
         {notificationsEnabled !== null && notificationService.isAvailable() ? (
           <View style={[styles.menuCard, styles.switchRow]}>
@@ -251,14 +201,11 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Notice tone="error">{error}</Notice> : null}
 
         {/* Logout Action */}
         <View style={styles.logoutContainer}>
-          <ButtonSecondary
-            onPress={() => setShowLogoutModal(true)}
-            title="Cerrar sesión"
-          />
+          <ButtonSecondary icon="log-out-outline" onPress={() => setShowLogoutModal(true)} title="Cerrar sesión" />
           {isSupabaseEnabled ? (
             <Pressable
               accessibilityRole="button"
@@ -266,9 +213,15 @@ export default function ProfileScreen() {
               onPress={() => setShowDeleteModal(true)}
               style={styles.deleteButton}
             >
-              <Text style={styles.deleteText}>{deleting ? 'Eliminando cuenta...' : 'Eliminar cuenta'}</Text>
+              <Text style={styles.deleteText}>{deleting ? 'Eliminando cuenta…' : 'Eliminar mi cuenta'}</Text>
             </Pressable>
           ) : null}
+        </View>
+
+        <View style={styles.footer}>
+          <AppName size="sm" />
+          <CompanyCredit />
+          <Text style={styles.version}>Versión {Constants.expoConfig?.version ?? '1.0.0'}</Text>
         </View>
       </ScrollView>
 
@@ -288,7 +241,9 @@ export default function ProfileScreen() {
 
       <ConfirmDialog
         cancelLabel="Cancelar"
-        confirmLabel="Sí, eliminar"
+        confirmLabel="Sí, eliminar mi cuenta"
+        icon="trash-outline"
+        tone="danger"
         message="Se borrarán tu perfil, vehículo, viajes, solicitudes, mensajes y fotos. Esta acción no se puede deshacer."
         onCancel={() => setShowDeleteModal(false)}
         onConfirm={() => void handleConfirmDelete()}
@@ -300,6 +255,7 @@ export default function ProfileScreen() {
       <ConfirmDialog
         cancelLabel="Cancelar"
         confirmLabel="Sí, cerrar sesión"
+        icon="log-out-outline"
         message="Tendrás que volver a ingresar tus credenciales para acceder a tu cuenta."
         onCancel={() => setShowLogoutModal(false)}
         onConfirm={handleConfirmLogout}
@@ -343,6 +299,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing[4],
   },
+  verifiedBadge: {
+    alignItems: 'center',
+    backgroundColor: '#ECFDF3',
+    borderRadius: radius.radiusFull,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: spacing[12],
+    paddingVertical: 4,
+  },
+  sectionLabel: { ...typography.caption, color: colors.textSecondary, fontWeight: '700', letterSpacing: 0.8, marginBottom: -spacing[8], marginLeft: spacing[4], textTransform: 'uppercase' },
+  footer: { alignItems: 'center', gap: 2, marginTop: spacing[8] },
+  version: { ...typography.caption, color: colors.textSecondary, marginTop: 4 },
   verified: {
     ...typography.caption,
     color: colors.success,
@@ -352,32 +320,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.error,
     fontWeight: '600',
-  },
-  modeToggle: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.radiusFull,
-    flexDirection: 'row',
-    marginTop: spacing[4],
-    padding: 4,
-  },
-  modeOption: {
-    alignItems: 'center',
-    borderRadius: radius.radiusFull,
-    flexDirection: 'row',
-    gap: spacing[4],
-    paddingHorizontal: spacing[16],
-    paddingVertical: spacing[8],
-  },
-  modeOptionActive: {
-    backgroundColor: colors.primary,
-  },
-  modeText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  modeTextActive: {
-    color: colors.white,
   },
   menuCard: {
     backgroundColor: colors.white,

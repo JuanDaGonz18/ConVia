@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "WheelsApp necesita acceso a la cámara para verificar tu identidad."
+        "NSCameraUsageDescription": "WheelsApp necesita la cámara para verificar tu identidad y leer los códigos QR de abordaje."
       }
     },
     "android": {
@@ -42,7 +42,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "WheelsApp necesita acceso a la camara para verificar tu identidad.",
+          "cameraPermission": "WheelsApp necesita la cámara para verificar tu identidad y leer los códigos QR de abordaje.",
           "barcodeScannerEnabled": true
         }
       ],
@@ -51,13 +51,13 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "WheelsApp necesita acceso a tus fotos para registrar el vehiculo."
+          "photosPermission": "WheelsApp necesita tus fotos para la foto de perfil, tu licencia y tus vehículos."
         }
       ],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "WheelsApp usa tu ubicacion para mostrar viajes cercanos."
+          "locationAlwaysAndWhenInUsePermission": "WheelsApp usa tu ubicación para mostrarte los viajes que salen cerca de ti."
         }
       ],
       "expo-asset",

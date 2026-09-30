@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Notice } from '@/components/ui/Notice';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
@@ -186,11 +188,7 @@ export default function DriverLicenseScreen() {
         />
       ) : null}
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable accessibilityLabel="Volver" onPress={leave} style={styles.back}>
-          <Ionicons color={colors.text} name="arrow-back" size={24} />
-        </Pressable>
-        <Text style={styles.kicker}>CONDUCTOR</Text>
-        <Text style={styles.title}>Licencia de conducción</Text>
+        <ScreenHeader kicker="CONDUCTOR" onBack={leave} title="Licencia de conducción" />
         {!verified ? (
           <View style={styles.intro}>
             <Ionicons color={colors.primary} name="lock-closed" size={20} />
@@ -224,9 +222,9 @@ export default function DriverLicenseScreen() {
           </View>
         ) : null}
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Notice tone="error">{error}</Notice> : null}
         {cameraBlocked ? <ButtonSecondary onPress={() => void Linking.openSettings()} title="Abrir ajustes del teléfono" /> : null}
-        {message ? <Text style={styles.success}>{message}</Text> : null}
+        {message ? <Notice tone="success">{message}</Notice> : null}
 
         {loaded && status !== 'suspendido' ? (
           <>
@@ -289,9 +287,6 @@ function StepIcon({ state }: Readonly<{ state: StepState }>) {
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   content: { gap: spacing[16], padding: dimensions.screenPadding, paddingBottom: spacing[40] },
-  back: { alignSelf: 'flex-start', padding: spacing[4] },
-  kicker: { ...typography.label, color: colors.primary },
-  title: { ...typography.headingXL, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary },
   intro: {
     alignItems: 'center',

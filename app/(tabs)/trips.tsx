@@ -4,10 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 
+import { Notice } from '@/components/ui/Notice';
+import { toast } from '@/components/ui/Toast';
 import { TripCard } from '@/components/trip/TripCard';
 import { DriverApprovalNotice } from '@/components/profile/DriverApprovalNotice';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { TripListSkeleton } from '@/components/ui/Skeleton';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { colors } from '@/constants/colors';
@@ -138,8 +141,8 @@ export default function TripsScreen() {
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => void refresh()} refreshing={refreshing} />}
       >
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {loading ? <Text style={styles.muted}>Cargando viajes...</Text> : null}
+        {error ? <Notice tone="error">{error}</Notice> : null}
+        {loading ? <TripListSkeleton count={3} /> : null}
 
         {isDriver ? (
           <View accessibilityRole="tablist" style={styles.tabs}>
@@ -164,10 +167,22 @@ export default function TripsScreen() {
         ) : null}
 
         {!loading && isDriver && visibleDriverTrips.length === 0 ? (
-          <EmptyState title={activeTab.emptyTitle} message={activeTab.emptyMessage} />
+          <EmptyState
+            action={tab === 'upcoming' && driverStatus === 'aprobado'
+              ? { label: 'Publicar un viaje', icon: 'add-circle-outline', onPress: () => router.push('/create-trip') }
+              : undefined}
+            icon={tab === 'upcoming' ? 'calendar-outline' : tab === 'completed' ? 'flag-outline' : 'close-circle-outline'}
+            message={activeTab.emptyMessage}
+            title={activeTab.emptyTitle}
+          />
         ) : null}
         {!loading && !isDriver && trips.length === 0 && !error ? (
-          <EmptyState title="No hay viajes disponibles" message="Desliza hacia abajo para actualizar más tarde." />
+          <EmptyState
+            action={{ label: 'Guardar mis lugares', icon: 'bookmark-outline', onPress: () => router.push('/saved-places') }}
+            icon="car-outline"
+            message="Los conductores publican sus viajes durante el día. Guarda tus lugares y te mostraremos primero los que te sirven."
+            title="Aún no hay viajes publicados"
+          />
         ) : null}
 
         {isDriver
@@ -203,7 +218,10 @@ export default function TripsScreen() {
                       <ButtonPrimary
                         disabled={busy}
                         loading={busy}
-                        onPress={() => void runTripAction(trip.id, () => tripService.startTrip(trip.id), 'No se pudo iniciar el viaje.')}
+                        onPress={() => void runTripAction(trip.id, async () => {
+                          await tripService.startTrip(trip.id);
+                          toast.success('¡Viaje iniciado! Escanea el QR de cada pasajero al subir');
+                        }, 'No se pudo iniciar el viaje.')}
                         title="Iniciar viaje"
                       />
                       <ButtonSecondary
@@ -282,6 +300,8 @@ export default function TripsScreen() {
       <ConfirmDialog
         cancelLabel="Volver"
         confirmLabel={confirm?.kind === 'cancel' ? 'Sí, cancelar viaje' : 'Sí, finalizar'}
+        icon={confirm?.kind === 'cancel' ? undefined : 'flag-outline'}
+        tone={confirm?.kind === 'cancel' ? 'danger' : 'default'}
         message={confirm?.kind === 'cancel'
           ? 'Avisaremos a todos los pasajeros, incluso a los que ya tienen cupo reservado, y sus solicitudes quedarán canceladas. No se puede deshacer.'
           : 'Confirma que el viaje ya se realizó. Avisaremos a tus pasajeros y podrás marcar pagos y calificarlos.'}
@@ -291,7 +311,10 @@ export default function TripsScreen() {
           const { tripId, kind } = confirm;
           setConfirm(null);
           if (kind === 'cancel') {
-            void runTripAction(tripId, () => tripService.cancelTrip(tripId), 'No se pudo cancelar el viaje.');
+            void runTripAction(tripId, async () => {
+              await tripService.cancelTrip(tripId);
+              toast.info('Viaje cancelado. Avisamos a los pasajeros');
+            }, 'No se pudo cancelar el viaje.');
             return;
           }
           // Straight to the closing review once the trip is marked completed.

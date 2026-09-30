@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Notice } from '@/components/ui/Notice';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
 import { PlaceSearchField } from '@/components/forms/PlaceSearchField';
 import { TripRoutePreview } from '@/components/map/TripRoutePreview';
@@ -132,11 +134,7 @@ export default function TripDetailsScreen() {
         />
       ) : null}
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable accessibilityLabel="Volver" onPress={() => router.back()} style={styles.back}>
-          <Ionicons color={colors.text} name="arrow-back" size={24} />
-        </Pressable>
-        <Text style={styles.kicker}>DETALLE DEL VIAJE</Text>
-        <Text style={styles.title}>{trip.origin.label} a {trip.destination.label}</Text>
+        <ScreenHeader kicker="DETALLE DEL VIAJE" title={`${trip.origin.label} a ${trip.destination.label}`} />
         <Text style={styles.subtitle}>{formatDateTime(trip.departureTime)}</Text>
         <Text style={styles.info}>{formatPrice(trip.price)} · {trip.seatsAvailable} cupos disponibles</Text>
         {match.nearPlace ? (
@@ -185,11 +183,13 @@ export default function TripDetailsScreen() {
         {trip.description ? <Text style={styles.description}>{trip.description}</Text> : null}
         {requested ? (
           <>
-            <Text style={styles.success}>Solicitud enviada. El conductor debe aceptar tu punto de recogida.</Text>
+            <Notice title="¡Solicitud enviada!" tone="success">
+              Le avisamos al conductor. Cuando acepte tu punto de recogida recibirás una notificación y se habilitará el chat del viaje.
+            </Notice>
             <ButtonSecondary onPress={() => router.replace('/requests')} title="Ver mis solicitudes" />
           </>
         ) : trip.seatsAvailable <= 0 ? (
-          <Text style={styles.error}>Este viaje ya no tiene cupos disponibles.</Text>
+          <Notice tone="warning">Este viaje ya llenó sus cupos. Busca otro en la lista de viajes.</Notice>
         ) : (
           <>
             <PlaceSearchField
@@ -200,7 +200,7 @@ export default function TripDetailsScreen() {
               placeholder="Calle 123 # 7-45, barrio"
               value={pickup}
             />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Notice tone="error">{error}</Notice> : null}
             {isVerified ? (
               <ButtonPrimary loading={loading} onPress={request} title="Solicitar este viaje" />
             ) : (
@@ -221,14 +221,9 @@ export default function TripDetailsScreen() {
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   content: { gap: spacing[16], padding: dimensions.screenPadding, paddingBottom: spacing[40] },
-  back: { alignSelf: 'flex-start', padding: spacing[4] },
-  kicker: { ...typography.label, color: colors.primary },
-  title: { ...typography.headingXL, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary },
   info: { ...typography.headingM, color: colors.primary },
   description: { ...typography.body, color: colors.text },
-  success: { ...typography.body, backgroundColor: colors.primaryLight, color: colors.primary, padding: spacing[16] },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
   notice: { backgroundColor: colors.primaryLight, borderRadius: radius.radiusLarge, gap: spacing[12], padding: spacing[16] },
   noticeText: { ...typography.bodySmall, color: colors.text },
   empty: { ...typography.body, color: colors.textSecondary, padding: dimensions.screenPadding },

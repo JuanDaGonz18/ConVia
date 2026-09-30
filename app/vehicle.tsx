@@ -5,6 +5,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Notice } from '@/components/ui/Notice';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { toast } from '@/components/ui/Toast';
 import { TextField } from '@/components/forms/TextField';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
@@ -88,6 +91,7 @@ export default function VehicleScreen() {
     setSaving(true);
     try {
       await vehicleService.saveVehicle({ plate, brand, color, seats: parsedSeats }, photo, id);
+      toast.success(editing ? 'Vehículo actualizado' : '¡Vehículo agregado!');
       router.back();
     } catch (saveError) {
       setError(/duplicate key|unique/i.test(rawErrorMessage(saveError))
@@ -103,13 +107,9 @@ export default function VehicleScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Pressable accessibilityLabel="Volver" onPress={() => router.back()} style={styles.back}>
-          <Ionicons color={colors.text} name="arrow-back" size={24} />
-        </Pressable>
-        <Text style={styles.kicker}>CONDUCTOR</Text>
-        <Text style={styles.title}>{editing ? 'Editar vehículo' : 'Nuevo vehículo'}</Text>
+        <ScreenHeader kicker="CONDUCTOR" title={editing ? 'Editar vehículo' : 'Nuevo vehículo'} />
         <Text style={styles.subtitle}>Los pasajeros verán la foto, la placa y el color antes de pedir un cupo.</Text>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Notice tone="error">{error}</Notice> : null}
         {cameraBlocked ? <ButtonSecondary onPress={() => void Linking.openSettings()} title="Abrir ajustes del teléfono" /> : null}
 
         {!loaded ? (
@@ -168,9 +168,6 @@ export default function VehicleScreen() {
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   content: { gap: spacing[16], padding: dimensions.screenPadding, paddingBottom: spacing[40] },
-  back: { alignSelf: 'flex-start', padding: spacing[4] },
-  kicker: { ...typography.label, color: colors.primary },
-  title: { ...typography.headingXL, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary },
   label: { ...typography.label, color: colors.text, marginBottom: -spacing[8] },
   flex: { flex: 1 },

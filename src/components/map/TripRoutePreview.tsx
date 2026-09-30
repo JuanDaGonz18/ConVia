@@ -18,7 +18,8 @@ type TripRoutePreviewProps = Readonly<{
   chosenRoute?: TripRoute;
 }>;
 
-const EDGE_PADDING = { top: 48, right: 48, bottom: 48, left: 48 };
+// Extra room on top: pins are drawn above their coordinate.
+const EDGE_PADDING = { top: 72, right: 48, bottom: 40, left: 48 };
 
 /**
  * Small, non-interactive map with the departure, the destination and the road

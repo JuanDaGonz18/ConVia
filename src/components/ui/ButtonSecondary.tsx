@@ -1,5 +1,7 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
+import { PressableScale } from '@/components/ui/PressableScale';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
@@ -9,6 +11,10 @@ type ButtonSecondaryProps = {
   title: string;
   onPress: () => void;
   disabled?: boolean;
+  loading?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
+  /** 'danger' for destructive actions (red text). */
+  tone?: 'default' | 'danger';
   accessibilityLabel?: string;
 };
 
@@ -16,22 +22,32 @@ export function ButtonSecondary({
   title,
   onPress,
   disabled = false,
+  loading = false,
+  icon,
+  tone = 'default',
   accessibilityLabel,
-}: ButtonSecondaryProps) {
+}: Readonly<ButtonSecondaryProps>) {
+  const isDisabled = disabled || loading;
+  const color = tone === 'danger' ? colors.error : colors.text;
+
   return (
-    <Pressable
+    <PressableScale
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityRole="button"
-      disabled={disabled}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      disabled={isDisabled}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        pressed && !disabled ? styles.pressed : null,
-        disabled ? styles.disabled : null,
-      ]}
+      style={[styles.button, isDisabled && !loading ? styles.disabled : null]}
     >
-      <Text style={styles.title}>{title}</Text>
-    </Pressable>
+      <View style={styles.content}>
+        {loading ? (
+          <ActivityIndicator color={color} size="small" />
+        ) : icon ? (
+          <Ionicons color={tone === 'danger' ? colors.error : colors.primary} name={icon} size={19} />
+        ) : null}
+        <Text numberOfLines={1} style={[styles.title, { color }]}>{title}</Text>
+      </View>
+    </PressableScale>
   );
 }
 
@@ -42,18 +58,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.radiusMedium,
     borderWidth: 1,
-    height: dimensions.controlHeight,
+    height: dimensions.controlHeight + 4,
     justifyContent: 'center',
     width: '100%',
   },
-  pressed: {
-    backgroundColor: colors.primaryLight,
-  },
-  disabled: {
-    opacity: 0.48,
-  },
-  title: {
-    ...typography.button,
-    color: colors.text,
-  },
+  disabled: { opacity: 0.45 },
+  content: { alignItems: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 16 },
+  title: { ...typography.button },
 });

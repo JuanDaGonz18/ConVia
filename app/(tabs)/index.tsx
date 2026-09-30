@@ -1,456 +1,511 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Notice } from '@/components/ui/Notice';
 import { PlaceSearchField } from '@/components/forms/PlaceSearchField';
-import { MapContainer } from '@/components/map/MapContainer';
 import { DriverApprovalNotice } from '@/components/profile/DriverApprovalNotice';
+import { ModeSwitch } from '@/components/profile/ModeSwitch';
 import { TripCard } from '@/components/trip/TripCard';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { TripListSkeleton } from '@/components/ui/Skeleton';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
-import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { colors } from '@/constants/colors';
-import { isSupabaseEnabled } from '@/lib/supabase';
 import { dimensions } from '@/constants/dimensions';
+import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
-import { radius } from '@/constants/radius';
+import { isSupabaseEnabled } from '@/lib/supabase';
 import { locationService } from '@/services/locationService';
-import { tripService } from '@/services/tripService';
+import { DriverTripRecord, DriverTripStatus, tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
-import { errorMessage, formatDateTime } from '@/utils/format';
-import { hasCoordinates, rankTrips } from '@/utils/tripRanking';
+import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
+import { PLACE_MATCH_KM, rankTrips, tripsForDestination } from '@/utils/tripRanking';
 
-/** How far (km) a trip may end from the chosen destination to count as a match. */
-const DESTINATION_RADIUS_KM = 5;
+/** Trips suggested on the passenger home before choosing a destination. */
+const SUGGESTED_COUNT = 3;
+/** Past trips shown on the driver home. */
+const RECENT_COUNT = 3;
+
+const STATUS_LABELS: Record<DriverTripStatus, string> = {
+  por_empezar: 'Por empezar',
+  en_curso: 'En curso',
+  finalizado: 'Finalizado',
+  cancelado: 'Cancelado',
+  no_iniciado: 'No iniciado',
+};
 
 export default function HomeScreen() {
   const currentUser = useAppStore((state) => state.currentUser);
-  const role = currentUser?.role ?? 'client';
-
-  const [origin, setOrigin] = useState<Location | null>(null);
-  const [originError, setOriginError] = useState<string | null>(null);
-  const [destination, setDestination] = useState<Location | null>(null);
-  const [isCardCollapsed, setIsCardCollapsed] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
-  const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
-  const savedPlaces = useAppStore((state) => state.savedPlaces);
-  const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
-
-  const locate = useCallback(async () => {
-    setOriginError(null);
-    try {
-      setOrigin(await locationService.getCurrentLocation());
-    } catch (error) {
-      setOriginError(errorMessage(error, 'No se pudo obtener tu ubicación.'));
-    }
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => void locate(), 0);
-    return () => clearTimeout(timer);
-  }, [locate]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (role !== 'client') return;
-      void tripService.getAvailableTrips().then((trips) => {
-        setAvailableTrips(trips);
-        setLoadError(null);
-      }).catch((error) => {
-        setLoadError(errorMessage(error, 'No se pudieron cargar los viajes.'));
-      });
-    }, [role]),
-  );
-
-  // With a searched destination: only trips ending near it. Without one: every
-  // trip, ordered by the user's saved places and favorite drivers.
-  const candidates = destination
-    ? availableTrips.filter((trip) =>
-        hasCoordinates(trip.destination)
-          ? locationService.distanceKm(trip.destination, destination) <= DESTINATION_RADIUS_KM
-          : trip.destination.label.toLowerCase().includes(destination.label.toLowerCase()),
-      )
-    : availableTrips;
-  const ranked = rankTrips(candidates, savedPlaces, favoriteDriverIds);
-  const next = ranked[0] ?? null;
-  const nextTrip = next?.trip ?? null;
-  const suggestedCount = destination ? 0 : ranked.filter((item) => item.relevant).length;
-  const tripPins = availableTrips.map((trip) => trip.origin).filter(hasCoordinates);
-
-  // Tapping the map (or a named place on it) sets the destination there.
-  const pickDestinationOnMap = async (point: { latitude: number; longitude: number; name?: string }) => {
-    setDestination({
-      id: `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`,
-      label: point.name ?? 'Punto en el mapa',
-      address: 'Buscando la dirección…',
-      latitude: point.latitude,
-      longitude: point.longitude,
-    });
-    const resolved = await locationService.fromCoordinate(point.latitude, point.longitude, point.name);
-    // Keep it only if the user has not picked something else meanwhile.
-    setDestination((current) => (current && current.id === resolved.id ? resolved : current));
-  };
-
-  const selectTripFromPin = (pin: Location) => {
-    const trip = availableTrips.find((item) => item.origin.id === pin.id);
-    if (!trip) return;
-    setSelectedTrip(trip);
-    router.push('/trip-details');
-  };
+  const isDriver = currentUser?.role === 'driver';
+  const firstName = (currentUser?.name || 'Usuario').split(' ')[0];
 
   return (
-    <SafeAreaView edges={['top']} style={styles.container}>
-      {/* Top Header & Search Bar */}
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.header}>
-        <View style={styles.userInfo}>
-          <View style={styles.userText}>
-            <Text style={styles.greeting}>
-              Hola, {currentUser?.name || 'Usuario'}
-            </Text>
-            {originError ? (
-              <Pressable onPress={() => void locate()}>
-                <Text style={styles.originError}>{originError} Toca para reintentar.</Text>
-              </Pressable>
-            ) : (
-              <View style={styles.originRow}>
-                <Ionicons color={colors.textSecondary} name="location-outline" size={13} />
-                <Text numberOfLines={1} style={styles.currentOrigin}>
-                  {origin ? origin.label : 'Obteniendo tu ubicación…'}
-                </Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.roleBadge}>
-            <Ionicons
-              color={colors.primary}
-              name={role === 'driver' ? 'car-sport' : 'person'}
-              size={14}
-            />
-            <Text style={styles.roleBadgeText}>
-              {role === 'driver' ? 'Conductor' : 'Pasajero'}
-            </Text>
-          </View>
+        <View style={styles.headerText}>
+          <Text style={styles.greeting}>Hola, {firstName}</Text>
+          <Text style={styles.headerSubtitle}>{isDriver ? '¿Vas a llevar pasajeros hoy?' : '¿A dónde vas hoy?'}</Text>
         </View>
-
-        {role === 'client' ? (
-          <PlaceSearchField
-            mapTitle="¿A dónde vas?"
-            near={origin}
-            onChange={setDestination}
-            placeholder="¿A dónde vas?"
-            quickPlaces={savedPlaces}
-            value={destination}
-          />
-        ) : null}
+        <ModeSwitch compact />
       </View>
-
-      {/* Map with the user's real position, destination and trip departure points */}
-      <View style={styles.mapWrapper}>
-        <MapContainer
-          destination={destination}
-          locations={role === 'client' ? tripPins : []}
-          onMapPress={role === 'client' ? (point) => void pickDestinationOnMap(point) : undefined}
-          onSelectLocation={selectTripFromPin}
-          origin={origin}
-        />
-      </View>
-
-      {/* Bottom Floating Info Card */}
-      <View
-        style={[
-          styles.bottomCard,
-          isCardCollapsed ? styles.bottomCardCollapsed : null,
-        ]}
-      >
-        {/* Toggle Collapse Bar */}
-        <Pressable
-          onPress={() => setIsCardCollapsed(!isCardCollapsed)}
-          style={styles.collapseBar}
-        >
-          <View style={styles.dragHandle} />
-          <View style={styles.collapseHeaderRow}>
-            <Text style={styles.collapseTitle}>
-              {role === 'driver'
-                ? 'Panel de conductor'
-                : destination
-                  ? `Destino: ${destination.label}`
-                  : suggestedCount ? `Para ti · ${suggestedCount} viaje${suggestedCount === 1 ? '' : 's'}` : 'Próximos viajes'}
-            </Text>
-            <Ionicons
-              color={colors.textSecondary}
-              name={isCardCollapsed ? 'chevron-up' : 'chevron-down'}
-              size={20}
-            />
-          </View>
-        </Pressable>
-
-        {/* Card Body if expanded */}
-        {!isCardCollapsed ? (
-          role === 'driver' ? (
-            <View style={styles.driverSection}>
-              <View style={styles.driverStatusRow}>
-                <View style={styles.onlineIndicator} />
-                <Text style={styles.driverStatusText}>Modo conductor activo</Text>
-              </View>
-              <Text style={styles.driverSubtext}>
-                Publica un viaje y gestiona las solicitudes de tus pasajeros.
-              </Text>
-              <View style={styles.buttonRow}>
-                {currentUser?.driverStatus === 'aprobado' ? (
-                  <ButtonPrimary
-                    onPress={() => router.push('/create-trip')}
-                    title="Publicar un viaje"
-                  />
-                ) : (
-                  <DriverApprovalNotice status={currentUser?.driverStatus} />
-                )}
-                <ButtonSecondary
-                  onPress={() => router.push('/requests')}
-                  title="Ver solicitudes"
-                />
-                <ButtonSecondary
-                  onPress={() => router.push('/(tabs)/chats')}
-                  title="Chats con pasajeros"
-                />
-              </View>
-            </View>
-          ) : (
-            <View style={styles.clientSection}>
-              {nextTrip ? (
-                <View style={styles.routeQuickInfo}>
-                  <View style={styles.infoBadge}>
-                    <Ionicons color={colors.primary} name="time-outline" size={14} />
-                    <Text style={styles.infoBadgeText}>{formatDateTime(nextTrip.departureTime)}</Text>
-                  </View>
-                  <View style={styles.infoBadge}>
-                    <Ionicons color={colors.primary} name="people-outline" size={14} />
-                    <Text style={styles.infoBadgeText}>{nextTrip.seatsAvailable} cupos libres</Text>
-                  </View>
-                </View>
-              ) : null}
-
-              {next ? (
-                <TripCard favoriteDriver={next.favoriteDriver} nearPlace={next.nearPlace} trip={next.trip} />
-              ) : (
-                <Text style={styles.noTripsText}>
-                  {loadError ??
-                    (!isSupabaseEnabled
-                      ? 'Modo demostración: conecta el servidor para ver viajes reales.'
-                      : destination
-                        ? 'No hay viajes hacia ese destino por ahora.'
-                        : 'No hay viajes disponibles por ahora.')}
-                </Text>
-              )}
-
-              {nextTrip ? (
-                <View style={styles.actionButtonsRow}>
-                  <View style={styles.reserveBtnWrapper}>
-                    <ButtonPrimary
-                      onPress={() => {
-                        setSelectedTrip(nextTrip);
-                        router.push('/trip-details');
-                      }}
-                      title="Ver y reservar"
-                    />
-                  </View>
-                  <Pressable
-                    accessibilityLabel="Ver todos los viajes"
-                    onPress={() => router.push('/(tabs)/trips')}
-                    style={styles.chatIconButton}
-                  >
-                    <Ionicons color={colors.primary} name="list" size={22} />
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
-          )
-        ) : null}
-      </View>
+      {isDriver ? <DriverHome /> : <PassengerHome />}
     </SafeAreaView>
   );
 }
 
+/** Opens the full-screen map, only when the user asks for it. */
+function MapCard({ subtitle }: Readonly<{ subtitle: string }>) {
+  return (
+    <Pressable
+      accessibilityLabel="Ver mapa"
+      accessibilityRole="button"
+      onPress={() => router.push('/map')}
+      style={({ pressed }) => [styles.mapCard, pressed ? styles.pressed : null]}
+    >
+      <View style={styles.mapIcon}>
+        <Ionicons color={colors.primary} name="map" size={22} />
+      </View>
+      <View style={styles.flex}>
+        <Text style={styles.cardTitle}>Ver mapa</Text>
+        <Text style={styles.cardSubtitle}>{subtitle}</Text>
+      </View>
+      <Ionicons color={colors.textSecondary} name="chevron-forward" size={20} />
+    </Pressable>
+  );
+}
+
+// ─── Passenger ───────────────────────────────────────────────────────────────
+
+function PassengerHome() {
+  const savedPlaces = useAppStore((state) => state.savedPlaces);
+  const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
+  const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
+  const [origin, setOrigin] = useState<Location | null>(null);
+  const [destination, setDestination] = useState<Location | null>(null);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setTrips(await tripService.getAvailableTrips());
+      setError(null);
+    } catch (loadError) {
+      setError(errorMessage(loadError, 'No se pudieron cargar los viajes.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  // Only to bias the destination search toward where the user is.
+  useEffect(() => {
+    const timer = setTimeout(() => void locationService.getCurrentLocation().then(setOrigin).catch(() => undefined), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
+  const openTrip = (trip: Trip) => {
+    setSelectedTrip(trip);
+    router.push('/trip-details');
+  };
+
+  // With a destination: trips arriving within PLACE_MATCH_KM of it, then those
+  // whose route passes close by (by coordinates, never by text).
+  // Without one: only trips that suit the user (catchable near them, going to
+  // their places, or with a favorite driver) — irrelevant ones stay in "Ver todos".
+  const forDestination = destination ? tripsForDestination(trips, destination) : null;
+  const ranked = forDestination
+    ? [
+        ...rankTrips(forDestination.arriving, savedPlaces, favoriteDriverIds, origin),
+        ...rankTrips(forDestination.passing, savedPlaces, favoriteDriverIds, origin),
+      ]
+    : rankTrips(trips, savedPlaces, favoriteDriverIds, origin).filter((item) => item.relevant);
+  const passingIds = new Set(forDestination?.passing.map((trip) => trip.id) ?? []);
+  const shown = destination ? ranked : ranked.slice(0, SUGGESTED_COUNT);
+
+  return (
+    <ScrollView
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => void refresh()} refreshing={refreshing} />}
+    >
+      <View style={styles.searchCard}>
+        <PlaceSearchField
+          label="¿A dónde vas?"
+          mapLink="afterSelection"
+          mapTitle="Ajusta tu destino"
+          near={origin}
+          onChange={setDestination}
+          placeholder="Busca un lugar o dirección"
+          quickPlaces={savedPlaces}
+          value={destination}
+        />
+        {savedPlaces.length === 0 ? (
+          <Pressable onPress={() => router.push('/saved-places')} style={styles.inlineLink}>
+            <Ionicons color={colors.primary} name="bookmark-outline" size={14} />
+            <Text style={styles.inlineLinkText}>Guarda tu casa, trabajo o universidad para elegirlos con un toque</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      <MapCard subtitle="Explora los viajes cerca de ti" />
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          {destination ? `Viajes hacia ${destination.label}` : 'Viajes para ti'}
+        </Text>
+        {!loading ? (
+          <Text style={styles.sectionMeta}>
+            {`${ranked.length} encontrado${ranked.length === 1 ? '' : 's'}`}
+          </Text>
+        ) : null}
+      </View>
+
+      {loading ? <TripListSkeleton count={2} /> : null}
+      {error ? <Notice action={{ label: 'Reintentar', onPress: () => void refresh() }} tone="error">{error}</Notice> : null}
+
+      {!loading && !error && shown.length === 0 ? (
+        <EmptyState
+          action={destination
+            ? { label: 'Buscar otro destino', icon: 'search-outline', onPress: () => setDestination(null) }
+            : trips.length ? { label: `Ver todos los viajes (${trips.length})`, icon: 'list-outline', onPress: () => router.push('/(tabs)/trips') } : undefined}
+          icon={destination ? 'navigate-outline' : 'car-outline'}
+          message={!isSupabaseEnabled
+            ? 'Conecta la app al servidor para ver viajes reales.'
+            : destination
+              ? `Buscamos viajes que lleguen a ${PLACE_MATCH_KM} km o menos de ese lugar o que pasen cerca en su ruta. Vuelve a mirar más tarde: los conductores publican durante el día.`
+              : trips.length
+                ? 'Ningún viaje sale ni pasa cerca de ti ni va a tus lugares guardados. Busca tu destino arriba o mira todos los viajes.'
+                : 'Todavía no hay viajes publicados. Desliza hacia abajo para actualizar.'}
+          title={!isSupabaseEnabled
+            ? 'Modo demostración'
+            : destination ? 'Nadie va hacia allá por ahora' : 'Nada cerca de ti por ahora'}
+        />
+      ) : null}
+
+      {shown.map((item) => (
+        <View key={item.trip.id} style={styles.resultItem}>
+          {passingIds.has(item.trip.id) ? (
+            <View style={styles.passingTag}>
+              <Ionicons color={colors.primary} name="git-branch-outline" size={14} />
+              <Text style={styles.passingText}>Pasa cerca de tu destino en su ruta</Text>
+            </View>
+          ) : null}
+          <TripCard
+            favoriteDriver={item.favoriteDriver}
+            nearPlace={destination ? null : item.nearPlace}
+            onTripPress={() => openTrip(item.trip)}
+            pickup={item.pickup}
+            trip={item.trip}
+          />
+        </View>
+      ))}
+
+      {!destination && trips.length > shown.length ? (
+        <Pressable onPress={() => router.push('/(tabs)/trips')} style={styles.seeAll}>
+          <Text style={styles.seeAllText}>Ver todos los viajes ({trips.length})</Text>
+          <Ionicons color={colors.primary} name="arrow-forward" size={16} />
+        </Pressable>
+      ) : null}
+    </ScrollView>
+  );
+}
+
+// ─── Driver ──────────────────────────────────────────────────────────────────
+
+function DriverHome() {
+  const driverStatus = useAppStore((state) => state.currentUser?.driverStatus);
+  const savedPlaces = useAppStore((state) => state.savedPlaces);
+  const approved = driverStatus === 'aprobado';
+  const [plannedDestination, setPlannedDestination] = useState<Location | null>(null);
+  const [trips, setTrips] = useState<DriverTripRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setTrips(await tripService.getDriverTrips());
+      setError(null);
+    } catch (loadError) {
+      setError(errorMessage(loadError, 'No se pudieron cargar tus viajes.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
+  const upcoming = trips
+    .filter((trip) => trip.status === 'por_empezar' || trip.status === 'en_curso')
+    .sort((a, b) => new Date(a.departureAt).getTime() - new Date(b.departureAt).getTime());
+  const next = upcoming[0] ?? null;
+  // getDriverTrips is newest first.
+  const recent = trips.filter((trip) => trip.status !== 'por_empezar' && trip.status !== 'en_curso').slice(0, RECENT_COUNT);
+
+  return (
+    <ScrollView
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => void refresh()} refreshing={refreshing} />}
+    >
+      {approved ? (
+        <View style={styles.searchCard}>
+          <PlaceSearchField
+            label="¿A dónde vas a llevar pasajeros?"
+            mapLink="afterSelection"
+            mapTitle="Ajusta el destino"
+            onChange={setPlannedDestination}
+            placeholder="Busca un lugar o dirección"
+            quickPlaces={savedPlaces}
+            value={plannedDestination}
+          />
+          {plannedDestination ? (
+            <ButtonPrimary
+              onPress={() => router.push({
+                pathname: '/create-trip',
+                params: {
+                  destLat: String(plannedDestination.latitude),
+                  destLng: String(plannedDestination.longitude),
+                  destLabel: plannedDestination.label,
+                },
+              })}
+              title="Planear un viaje hacia aquí"
+            />
+          ) : (
+            <Pressable onPress={() => router.push('/create-trip')} style={styles.inlineLink}>
+              <Ionicons color={colors.primary} name="add-circle-outline" size={14} />
+              <Text style={styles.inlineLinkText}>O publica un viaje desde cero</Text>
+            </Pressable>
+          )}
+        </View>
+      ) : (
+        <DriverApprovalNotice status={driverStatus} />
+      )}
+
+      <View style={styles.quickGrid}>
+        <QuickAction icon="document-text-outline" label="Solicitudes" onPress={() => router.push('/requests')} />
+        <QuickAction icon="car-outline" label="Vehículos" onPress={() => router.push('/vehicles')} />
+        <QuickAction icon="chatbubbles-outline" label="Chats" onPress={() => router.push('/(tabs)/chats')} />
+        <QuickAction icon="qr-code-outline" label="Escanear QR" onPress={() => router.push('/qr-scanner')} />
+      </View>
+
+      <MapCard subtitle="Tu ubicación y tus viajes próximos" />
+
+      {error ? <Notice action={{ label: 'Reintentar', onPress: () => void refresh() }} tone="error">{error}</Notice> : null}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Tu próximo viaje</Text>
+        {upcoming.length > 1 ? <Text style={styles.sectionMeta}>{upcoming.length} programados</Text> : null}
+      </View>
+      {loading ? <TripListSkeleton count={1} /> : null}
+      {!loading && !next ? (
+        <View style={styles.emptySmall}>
+          <Ionicons color={colors.primary} name="calendar-outline" size={20} />
+          <Text style={styles.emptyText}>No tienes viajes programados. Publica uno o repite un viaje reciente con un toque.</Text>
+        </View>
+      ) : null}
+      {next ? (
+        <View style={[styles.tripCard, styles.nextCard]}>
+          <View style={styles.tripHeader}>
+            <Text numberOfLines={2} style={styles.tripRoute}>{next.originName} → {next.destinationName}</Text>
+            <Text style={[styles.badge, next.status === 'en_curso' ? styles.badgeLive : null]}>{STATUS_LABELS[next.status]}</Text>
+          </View>
+          <View style={styles.tripMetaRow}>
+            <Ionicons color={colors.textSecondary} name="time-outline" size={14} />
+            <Text style={styles.tripMeta}>{formatDateTime(next.departureAt)}</Text>
+          </View>
+          <View style={styles.tripMetaRow}>
+            <Ionicons color={colors.textSecondary} name="people-outline" size={14} />
+            <Text style={styles.tripMeta}>{next.totalSeats} cupos · {formatPrice(next.price)}</Text>
+          </View>
+          <View style={styles.tripActions}>
+            <SmallAction icon="document-text-outline" label="Solicitudes" onPress={() => router.push('/requests')} />
+            {next.status === 'por_empezar' ? (
+              <SmallAction icon="create-outline" label="Editar" onPress={() => router.push({ pathname: '/create-trip', params: { edit: next.id } })} />
+            ) : (
+              <SmallAction icon="qr-code-outline" label="Escanear QR" onPress={() => router.push('/qr-scanner')} />
+            )}
+            <SmallAction icon="list-outline" label="Mis viajes" onPress={() => router.push('/(tabs)/trips')} />
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Viajes recientes</Text>
+        {recent.length ? (
+          <Pressable hitSlop={8} onPress={() => router.push('/(tabs)/trips')}>
+            <Text style={styles.seeAllText}>Ver todos</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {!loading && recent.length === 0 ? (
+        <View style={styles.emptySmall}>
+          <Ionicons color={colors.primary} name="repeat-outline" size={20} />
+          <Text style={styles.emptyText}>Tus viajes terminados aparecerán aquí para repetirlos con un toque.</Text>
+        </View>
+      ) : null}
+      {recent.map((trip) => (
+        <View key={trip.id} style={styles.tripCard}>
+          <View style={styles.tripHeader}>
+            <Text numberOfLines={2} style={styles.tripRoute}>{trip.originName} → {trip.destinationName}</Text>
+            <Text style={[styles.badge, trip.status === 'finalizado' ? styles.badgeDone : styles.badgeMuted]}>{STATUS_LABELS[trip.status]}</Text>
+          </View>
+          <Text style={styles.tripMeta}>{formatDateTime(trip.departureAt)} · {trip.totalSeats} cupos · {formatPrice(trip.price)}</Text>
+          <View style={styles.tripActions}>
+            {approved ? (
+              <SmallAction
+                icon="repeat"
+                label="Repetir viaje"
+                onPress={() => router.push({ pathname: '/create-trip', params: { repeatFrom: trip.id } })}
+                primary
+              />
+            ) : null}
+            <SmallAction
+              icon={trip.status === 'finalizado' ? 'people-outline' : 'time-outline'}
+              label={trip.status === 'finalizado' ? 'Pasajeros y pagos' : 'Ver historial'}
+              onPress={() => router.push({ pathname: '/trip-summary', params: { tripId: trip.id } })}
+            />
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
+function QuickAction({ icon, label, onPress }: Readonly<{ icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }>) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.quickAction, pressed ? styles.pressed : null]}>
+      <Ionicons color={colors.primary} name={icon} size={22} />
+      <Text numberOfLines={1} style={styles.quickLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function SmallAction({ icon, label, onPress, primary = false }: Readonly<{
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  primary?: boolean;
+}>) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.smallAction, primary ? styles.smallActionPrimary : null, pressed ? styles.pressed : null]}
+    >
+      <Ionicons color={primary ? colors.white : colors.primary} name={icon} size={16} />
+      <Text style={[styles.smallActionText, primary ? styles.smallActionTextPrimary : null]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const cardBase = {
+  backgroundColor: colors.white,
+  borderColor: colors.lightGray,
+  borderRadius: radius.radiusLarge,
+  borderWidth: 1,
+} as const;
+
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.background,
-    flex: 1,
-  },
+  safeArea: { backgroundColor: colors.background, flex: 1 },
+  flex: { flex: 1 },
+  pressed: { opacity: 0.7 },
   header: {
+    alignItems: 'center',
     backgroundColor: colors.white,
     borderBottomColor: colors.lightGray,
     borderBottomWidth: 1,
+    flexDirection: 'row',
     gap: spacing[12],
     paddingHorizontal: dimensions.screenPadding,
     paddingVertical: spacing[12],
-    zIndex: 10,
   },
-  userInfo: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  headerText: { flex: 1 },
+  greeting: { ...typography.headingM, color: colors.text },
+  headerSubtitle: { ...typography.caption, color: colors.textSecondary },
+  content: {
+    gap: spacing[16],
+    paddingBottom: dimensions.bottomNavigationHeight + spacing[32],
+    paddingHorizontal: dimensions.screenPadding,
+    paddingTop: spacing[16],
   },
-  greeting: {
-    ...typography.headingM,
-    color: colors.text,
-  },
-  userText: {
-    flex: 1,
-    marginRight: spacing[8],
-  },
-  originError: {
-    ...typography.caption,
-    color: colors.error,
-    marginTop: 2,
-  },
-  originRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 4,
-    marginTop: 2,
-  },
-  currentOrigin: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  roleBadge: {
+  searchCard: { ...cardBase, gap: spacing[8], padding: spacing[16] },
+  resultItem: { gap: spacing[4] },
+  passingTag: { alignItems: 'center', flexDirection: 'row', gap: 4, paddingHorizontal: spacing[4] },
+  passingText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
+  inlineLink: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+  inlineLinkText: { ...typography.caption, color: colors.primary, flex: 1 },
+  mapCard: { ...cardBase, alignItems: 'center', flexDirection: 'row', gap: spacing[12], padding: spacing[16] },
+  mapIcon: {
     alignItems: 'center',
     backgroundColor: colors.primaryLight,
-    borderRadius: radius.radiusFull,
-    flexDirection: 'row',
-    gap: spacing[4],
-    paddingHorizontal: spacing[12],
-    paddingVertical: spacing[4],
-  },
-  roleBadgeText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  noTripsText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    paddingVertical: spacing[16],
-    textAlign: 'center',
-  },
-  mapWrapper: {
-    flex: 1,
-  },
-  bottomCard: {
-    backgroundColor: colors.white,
-    borderTopColor: colors.lightGray,
-    borderTopLeftRadius: radius.radiusXL,
-    borderTopRightRadius: radius.radiusXL,
-    borderTopWidth: 1,
-    bottom: dimensions.bottomNavigationHeight,
-    elevation: 8,
-    left: 0,
-    paddingHorizontal: spacing[16],
-    paddingTop: spacing[8],
-    paddingBottom: spacing[16],
-    position: 'absolute',
-    right: 0,
-    shadowColor: colors.shadow,
-    shadowOffset: { height: -4, width: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-  },
-  bottomCardCollapsed: {
-    paddingBottom: spacing[8],
-  },
-  collapseBar: {
-    alignItems: 'center',
-    gap: spacing[4],
-    paddingBottom: spacing[8],
-  },
-  dragHandle: {
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    height: 4,
-    width: 36,
-  },
-  collapseHeaderRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  collapseTitle: {
-    ...typography.label,
-    color: colors.text,
-  },
-  routeQuickInfo: {
-    flexDirection: 'row',
-    gap: spacing[8],
-    marginBottom: spacing[8],
-  },
-  infoBadge: {
-    alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.radiusFull,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: spacing[12],
-    paddingVertical: 4,
-  },
-  infoBadgeText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  clientSection: {
-    gap: spacing[8],
-  },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    gap: spacing[12],
-    marginTop: spacing[4],
-  },
-  reserveBtnWrapper: {
-    flex: 1,
-  },
-  chatIconButton: {
-    alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
     borderRadius: radius.radiusMedium,
-    borderWidth: 1,
-    height: dimensions.controlHeight,
+    height: 44,
     justifyContent: 'center',
-    width: dimensions.controlHeight,
+    width: 44,
   },
-  driverSection: {
-    gap: spacing[12],
-  },
-  driverStatusRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing[8],
-  },
-  onlineIndicator: {
-    backgroundColor: '#22C55E',
+  cardTitle: { ...typography.bodyMedium, color: colors.text, fontWeight: '700' },
+  cardSubtitle: { ...typography.caption, color: colors.textSecondary },
+  sectionHeader: { alignItems: 'baseline', flexDirection: 'row', gap: spacing[8], justifyContent: 'space-between', marginTop: spacing[4] },
+  sectionTitle: { ...typography.headingM, color: colors.text, flex: 1 },
+  sectionMeta: { ...typography.caption, color: colors.textSecondary },
+  emptyText: { ...typography.bodySmall, color: colors.textSecondary, flex: 1 },
+  emptySmall: { ...cardBase, alignItems: 'center', borderStyle: 'dashed', flexDirection: 'row', gap: spacing[12], padding: spacing[16] },
+  seeAll: { alignItems: 'center', alignSelf: 'center', flexDirection: 'row', gap: spacing[4], padding: spacing[8] },
+  seeAllText: { ...typography.bodySmall, color: colors.primary, fontWeight: '700' },
+  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  quickGrid: { flexDirection: 'row', gap: spacing[8] },
+  quickAction: { ...cardBase, alignItems: 'center', flex: 1, gap: spacing[4], paddingVertical: spacing[12] },
+  quickLabel: { ...typography.caption, color: colors.text, fontWeight: '600' },
+  tripCard: { ...cardBase, gap: spacing[8], padding: spacing[16] },
+  nextCard: { borderColor: colors.primary, borderWidth: 1.5 },
+  tripHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing[8] },
+  tripRoute: { ...typography.bodyMedium, color: colors.text, flex: 1, fontWeight: '700' },
+  tripMetaRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[4] },
+  tripMeta: { ...typography.bodySmall, color: colors.textSecondary },
+  badge: {
+    ...typography.caption,
+    backgroundColor: colors.primaryLight,
     borderRadius: radius.radiusFull,
-    height: 10,
-    width: 10,
+    color: colors.primary,
+    fontWeight: '700',
+    overflow: 'hidden',
+    paddingHorizontal: spacing[8],
+    paddingVertical: 2,
   },
-  driverStatusText: {
-    ...typography.label,
-    color: colors.text,
+  badgeLive: { backgroundColor: '#E8F7EF', color: colors.success },
+  badgeDone: { backgroundColor: '#E8F7EF', color: colors.success },
+  badgeMuted: { backgroundColor: colors.lightGray, color: colors.textSecondary },
+  tripActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8], marginTop: spacing[4] },
+  smallAction: {
+    alignItems: 'center',
+    borderColor: colors.primary,
+    borderRadius: radius.radiusFull,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: spacing[12],
+    paddingVertical: 6,
   },
-  driverSubtext: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-  },
-  buttonRow: {
-    gap: spacing[8],
-  },
+  smallActionPrimary: { backgroundColor: colors.primary },
+  smallActionText: { ...typography.caption, color: colors.primary, fontWeight: '700' },
+  smallActionTextPrimary: { color: colors.white },
 });

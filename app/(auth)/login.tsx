@@ -1,38 +1,47 @@
-import { useEffect, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
+import { BrandLockup } from '@/components/brand/Brand';
+import { PasswordField } from '@/components/forms/PasswordField';
+import { TextField } from '@/components/forms/TextField';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
-import { TextField } from '@/components/forms/TextField';
 import { Checkbox } from '@/components/ui/Checkbox';
-import { SavedUsersPanel } from '@/dev/SavedUsersPanel';
-import { savedUsers } from '@/dev/savedUsers';
-import { credentialStore } from '@/services/credentialStore';
+import { Notice } from '@/components/ui/Notice';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
+import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
-import { radius } from '@/constants/radius';
-import { useAppStore } from '@/store/appStore';
+import { SavedUsersPanel } from '@/dev/SavedUsersPanel';
+import { savedUsers } from '@/dev/savedUsers';
 import { authService } from '@/services/authService';
-import { errorMessage } from '@/utils/format';
+import { credentialStore } from '@/services/credentialStore';
+import { useAppStore } from '@/store/appStore';
+import { errorMessage, rawErrorMessage } from '@/utils/format';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type FieldErrors = { email?: string; password?: string };
+
+function loginErrorMessage(error: unknown) {
+  const raw = rawErrorMessage(error);
+  if (/invalid login credentials/i.test(raw)) return 'El correo o la contraseña no coinciden. Revísalos e inténtalo de nuevo.';
+  if (/email not confirmed/i.test(raw)) return 'Aún no has confirmado tu correo. Abre el enlace que te enviamos al registrarte.';
+  if (raw.includes('PERFIL_NO_ENCONTRADO')) return 'Tu cuenta existe pero no tiene perfil en WheelsApp. Escríbele al administrador de tu institución.';
+  return errorMessage(error, 'No pudimos iniciar sesión. Revisa tu conexión e inténtalo de nuevo.');
+}
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
@@ -50,18 +59,16 @@ export default function LoginScreen() {
   }, []);
 
   const handleLogin = async () => {
-    if (!email.trim()) {
-      setError('Por favor ingresa tu correo electrónico');
-      return;
-    }
-    if (!password.trim()) {
-      setError('Por favor ingresa tu contraseña');
-      return;
-    }
-
+    // Every missing field at once, not one per attempt.
+    const errors: FieldErrors = {};
+    if (!email.trim()) errors.email = 'Escribe tu correo institucional.';
+    else if (!EMAIL_PATTERN.test(email.trim())) errors.email = 'Ese correo no parece válido.';
+    if (!password) errors.password = 'Escribe tu contraseña.';
+    setFieldErrors(errors);
     setError(null);
-    setLoading(true);
+    if (errors.email || errors.password) return;
 
+    setLoading(true);
     try {
       const address = email.trim().toLowerCase();
       const user = await authService.login(address, password);
@@ -72,105 +79,76 @@ export default function LoginScreen() {
       setCurrentUser(user);
       router.replace('/(tabs)');
     } catch (loginError) {
-      const message = loginError instanceof Error ? loginError.message : '';
-      if (/invalid login credentials/i.test(message)) setError('Correo o contraseña incorrectos.');
-      else if (/email not confirmed/i.test(message)) setError('Confirma tu correo antes de iniciar sesión.');
-      else if (message.includes('SUPABASE_ENV_MISSING')) setError('La app no está configurada con Supabase.');
-      else if (message.includes('PERFIL_NO_ENCONTRADO')) setError('Tu cuenta existe pero no tiene perfil en WheelsApp. Contacta al administrador.');
-      else setError(errorMessage(loginError, 'No se pudo iniciar sesión. Revisa tu conexión e inténtalo de nuevo.'));
+      setError(loginErrorMessage(loginError));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickLogin = async (role: 'client' | 'driver') => {
-    setError(null);
-    setLoading(true);
-    try {
-      const demoUser = {
-        id: role === 'driver' ? 'mock-driver-rita-c' : 'mock-user-current',
-        name: role === 'driver' ? 'Rita Conductora' : 'Merchito Pasajero',
-        email: role === 'driver' ? 'rita@wheelsapp.com' : 'merchito@wheelsapp.com',
-        role,
-      };
-      setCurrentUser(demoUser);
-      router.replace('/(tabs)');
-    } finally {
-      setLoading(false);
-    }
+  const handleQuickLogin = (role: 'client' | 'driver') => {
+    setCurrentUser({
+      id: role === 'driver' ? 'mock-driver-rita-c' : 'mock-user-current',
+      name: role === 'driver' ? 'Rita Conductora' : 'Merchito Pasajero',
+      email: role === 'driver' ? 'rita@wheelsapp.com' : 'merchito@wheelsapp.com',
+      role,
+    });
+    router.replace('/(tabs)');
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.header}>
-            <View style={styles.iconContainer}>
-              <Ionicons color={colors.primary} name="car-sport" size={40} />
-            </View>
-            <Text style={styles.brandTitle}>WheelsApp</Text>
-            <Text style={styles.subtitle}>
-              Viajes compartidos seguros, económicos y confiables
-            </Text>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.hero}>
+            <BrandLockup />
+            <Text style={styles.tagline}>Comparte el camino con tu comunidad universitaria.</Text>
           </View>
 
-          <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Iniciar sesión</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Inicia sesión</Text>
 
-            {error ? (
-              <View style={styles.errorBox}>
-                <Ionicons color={colors.error} name="alert-circle-outline" size={20} />
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
+            {error ? <Notice onDismiss={() => setError(null)} tone="error">{error}</Notice> : null}
 
             <TextField
               autoCapitalize="none"
+              autoComplete="email"
+              error={fieldErrors.email}
               keyboardType="email-address"
               label="Correo institucional"
               onChangeText={(text) => {
                 setEmail(text);
-                if (error) setError(null);
+                if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: undefined }));
               }}
+              onSubmitEditing={() => passwordRef.current?.focus()}
               placeholder="nombre@unisabana.edu.co"
+              returnKeyType="next"
               value={email}
             />
-
-            <TextField
+            <PasswordField
+              autoComplete="current-password"
+              error={fieldErrors.password}
               label="Contraseña"
               onChangeText={(text) => {
                 setPassword(text);
-                if (error) setError(null);
+                if (fieldErrors.password) setFieldErrors((current) => ({ ...current, password: undefined }));
               }}
-              placeholder="••••••••"
-              secureTextEntry
+              onSubmitEditing={() => void handleLogin()}
+              placeholder="Tu contraseña"
+              ref={passwordRef}
+              returnKeyType="go"
               value={password}
             />
+            <Checkbox checked={rememberMe} label="Recordarme en este teléfono" onChange={setRememberMe} />
 
-            <Checkbox
-              checked={rememberMe}
-              label="Recordarme en este teléfono"
-              onChange={setRememberMe}
-            />
-
-            <View style={styles.actions}>
-              <ButtonPrimary
-                loading={loading}
-                onPress={handleLogin}
-                title="Iniciar sesión"
-              />
-              <ButtonSecondary
-                onPress={() => router.push('/(auth)/register')}
-                title="Crear cuenta nueva"
-              />
-            </View>
+            <ButtonPrimary loading={loading} loadingTitle="Entrando…" onPress={() => void handleLogin()} title="Iniciar sesión" />
           </View>
+
+          <View style={styles.divider}>
+            <View style={styles.line} />
+            <Text style={styles.dividerText}>¿Primera vez en WheelsApp?</Text>
+            <View style={styles.line} />
+          </View>
+          <ButtonSecondary icon="person-add-outline" onPress={() => router.push('/(auth)/register')} title="Crear una cuenta" />
 
           {/* TEMPORARY: development-only account switcher (src/dev). */}
           <SavedUsersPanel
@@ -178,23 +156,15 @@ export default function LoginScreen() {
               setEmail(savedEmail);
               setPassword(savedPassword ?? '');
               setRememberMe(savedPassword !== null);
-              setError(savedPassword ? null : 'Escribe la contraseña de esta cuenta (no se guardó con "Recordarme").');
+              setFieldErrors(savedPassword ? {} : { password: 'Escribe la contraseña de esta cuenta (no se guardó con "Recordarme").' });
             }}
           />
 
           {!useSupabase ? (
-            <View style={styles.quickAccessSection}>
-              <Text style={styles.quickAccessTitle}>Acceso rápido (demo)</Text>
-              <View style={styles.quickButtons}>
-                <ButtonSecondary
-                  onPress={() => handleQuickLogin('client')}
-                  title="Entrar como Pasajero"
-                />
-                <ButtonSecondary
-                  onPress={() => handleQuickLogin('driver')}
-                  title="Entrar como Conductor"
-                />
-              </View>
+            <View style={styles.demo}>
+              <Text style={styles.demoTitle}>Modo demostración</Text>
+              <ButtonSecondary onPress={() => handleQuickLogin('client')} title="Entrar como pasajero" />
+              <ButtonSecondary onPress={() => handleQuickLogin('driver')} title="Entrar como conductor" />
             </View>
           ) : null}
         </ScrollView>
@@ -204,79 +174,26 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: colors.background,
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    gap: spacing[24],
-    paddingBottom: spacing[40],
-    paddingHorizontal: dimensions.screenPadding,
-    paddingTop: spacing[24],
-  },
-  header: {
-    alignItems: 'center',
-    gap: spacing[8],
-  },
-  iconContainer: {
-    alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.radiusFull,
-    height: 72,
-    justifyContent: 'center',
-    width: 72,
-  },
-  brandTitle: {
-    ...typography.headingXL,
-    color: colors.primary,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  formCard: {
+  safeArea: { backgroundColor: colors.surfaceMuted, flex: 1 },
+  flex: { flex: 1 },
+  content: { gap: spacing[20], paddingBottom: spacing[40], paddingHorizontal: dimensions.screenPadding, paddingTop: spacing[32] },
+  hero: { alignItems: 'center', gap: spacing[12] },
+  tagline: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
+  card: {
     backgroundColor: colors.white,
-    borderColor: colors.lightGray,
-    borderRadius: radius.radiusLarge,
-    borderWidth: 1,
+    borderRadius: radius.radiusXL,
+    elevation: 2,
     gap: spacing[16],
     padding: spacing[20],
+    shadowColor: '#000',
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
   },
-  formTitle: {
-    ...typography.headingM,
-    color: colors.text,
-  },
-  actions: {
-    gap: spacing[12],
-    marginTop: spacing[8],
-  },
-  errorBox: {
-    alignItems: 'center',
-    backgroundColor: '#FFEAEA',
-    borderRadius: radius.radiusMedium,
-    flexDirection: 'row',
-    gap: spacing[8],
-    padding: spacing[12],
-  },
-  errorText: {
-    ...typography.bodySmall,
-    color: colors.error,
-    flex: 1,
-  },
-  quickAccessSection: {
-    gap: spacing[12],
-  },
-  quickAccessTitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  quickButtons: {
-    gap: spacing[12],
-  },
+  cardTitle: { ...typography.headingM, color: colors.text },
+  divider: { alignItems: 'center', flexDirection: 'row', gap: spacing[12] },
+  line: { backgroundColor: colors.lightGray, flex: 1, height: 1 },
+  dividerText: { ...typography.caption, color: colors.textSecondary },
+  demo: { gap: spacing[8] },
+  demoTitle: { ...typography.caption, color: colors.textSecondary, textAlign: 'center', textTransform: 'uppercase' },
 });

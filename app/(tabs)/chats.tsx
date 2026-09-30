@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Avatar } from '@/components/ui/Avatar';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { RowSkeleton } from '@/components/ui/Skeleton';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
@@ -53,20 +55,26 @@ export default function ChatsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={colors.primary} style={styles.loader} />
+        <View style={styles.skeleton}><RowSkeleton count={4} /></View>
       ) : (
         <FlatList
           contentContainerStyle={[styles.list, conversations.length === 0 ? styles.listEmpty : null]}
           data={conversations}
           keyExtractor={(item) => item.id}
-          ListEmptyComponent={(
-            <View style={styles.empty}>
-              <Ionicons color={error ? colors.error : colors.primary} name={error ? 'cloud-offline-outline' : 'chatbubbles-outline'} size={44} />
-              <Text style={styles.emptyTitle}>{error ? 'No se pudieron cargar' : 'Aún no tienes chats'}</Text>
-              <Text style={styles.emptyText}>
-                {error ?? 'Cuando publiques un viaje o pidas un cupo, aquí podrás hablar con el conductor o los pasajeros.'}
-              </Text>
-            </View>
+          ListEmptyComponent={error ? (
+            <EmptyState
+              action={{ label: 'Reintentar', icon: 'refresh', onPress: () => void refresh() }}
+              icon="cloud-offline-outline"
+              message={error}
+              title="No pudimos cargar tus chats"
+            />
+          ) : (
+            <EmptyState
+              action={{ label: 'Buscar un viaje', icon: 'search-outline', onPress: () => router.push('/(tabs)') }}
+              icon="chatbubbles-outline"
+              message="El chat de cada viaje se abre cuando el conductor acepta tu cupo (o cuando publicas un viaje). Ahí coordinan el punto de encuentro."
+              title="Aún no tienes conversaciones"
+            />
           )}
           refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => void refresh()} refreshing={refreshing} />}
           renderItem={({ item }) => (
@@ -111,7 +119,7 @@ const styles = StyleSheet.create({
   kicker: { ...typography.label, color: colors.primary },
   title: { ...typography.headingXL, color: colors.text },
   subtitle: { ...typography.bodySmall, color: colors.textSecondary },
-  loader: { marginTop: spacing[40] },
+  skeleton: { padding: dimensions.screenPadding },
   list: {
     gap: spacing[12],
     paddingBottom: dimensions.bottomNavigationHeight + spacing[24],

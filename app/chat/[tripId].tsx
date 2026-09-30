@@ -18,7 +18,8 @@ import { ChatMessageItem } from '@/components/chat/ChatMessageItem';
 import { QuickReplies } from '@/components/chat/QuickReplies';
 import { TripMembersModal } from '@/components/chat/TripMembersModal';
 import { Avatar } from '@/components/ui/Avatar';
-import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
+import { Notice } from '@/components/ui/Notice';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
@@ -143,9 +144,12 @@ export default function ChatScreen() {
         </View>
       ) : !conversation ? (
         <View style={styles.centered}>
-          <Ionicons color={colors.textSecondary} name="chatbubbles-outline" size={40} />
-          <Text style={styles.emptyText}>{loadError}</Text>
-          <ButtonSecondary onPress={() => void load()} title="Reintentar" />
+          <EmptyState
+            action={{ icon: 'refresh', label: 'Reintentar', onPress: () => void load() }}
+            icon="chatbubbles-outline"
+            message={loadError ?? 'Revisa tu conexión e inténtalo de nuevo.'}
+            title="No pudimos abrir el chat"
+          />
         </View>
       ) : (
         // "padding" works on Android too now that the app draws edge to edge.
@@ -169,7 +173,7 @@ export default function ChatScreen() {
             style={styles.flex}
           />
 
-          {sendError ? <Text style={styles.sendError}>{sendError}</Text> : null}
+          {sendError ? <View style={styles.sendError}><Notice onDismiss={() => setSendError(null)} tone="error">{sendError}</Notice></View> : null}
 
           <View style={[styles.composerArea, { paddingBottom: Math.max(insets.bottom, spacing[8]) }]}>
             {text.length === 0 ? <QuickReplies disabled={sending} onSelect={(reply) => void send(reply, true)} /> : null}
@@ -237,13 +241,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', gap: spacing[8], paddingHorizontal: spacing[24] },
   emptyTitle: { ...typography.headingM, color: colors.text },
   emptyText: { ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center' },
-  sendError: {
-    ...typography.caption,
-    backgroundColor: '#FFEAEA',
-    color: colors.error,
-    paddingHorizontal: spacing[16],
-    paddingVertical: spacing[8],
-  },
+  sendError: { paddingHorizontal: spacing[12], paddingBottom: spacing[8] },
   composerArea: {
     backgroundColor: colors.white,
     borderTopColor: colors.lightGray,

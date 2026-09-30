@@ -5,6 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 
+import { Notice } from '@/components/ui/Notice';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { toast } from '@/components/ui/Toast';
 import { PlaceSearchField } from '@/components/forms/PlaceSearchField';
 import { RoutePicker } from '@/components/map/RoutePicker';
 import { DriverApprovalNotice } from '@/components/profile/DriverApprovalNotice';
@@ -54,7 +57,14 @@ function templatePlace(place: TripTemplate['origin']): Location | null {
 
 export default function CreateTripScreen() {
   // ?repeatFrom=<id> copies a previous trip; ?edit=<id> edits a published one.
-  const { repeatFrom, edit } = useLocalSearchParams<{ repeatFrom?: string; edit?: string }>();
+  const { repeatFrom, edit, destLat, destLng, destLabel } = useLocalSearchParams<{
+    repeatFrom?: string;
+    edit?: string;
+    // "Planear un viaje hacia aquí" from the map or the driver home.
+    destLat?: string;
+    destLng?: string;
+    destLabel?: string;
+  }>();
   const sourceId = edit ?? repeatFrom;
   const [acceptedCount, setAcceptedCount] = useState(0);
   const [editable, setEditable] = useState(true);
@@ -93,6 +103,22 @@ export default function CreateTripScreen() {
         .finally(() => setVehicleLoaded(true));
     }, []),
   );
+
+  // A destination chosen on the map or in the driver home search.
+  useEffect(() => {
+    const latitude = Number(destLat);
+    const longitude = Number(destLng);
+    if (sourceId || !destLat || !destLng || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+    const label = destLabel || 'Destino elegido en el mapa';
+    const timer = setTimeout(() => setDestination({
+      id: `${latitude.toFixed(6)},${longitude.toFixed(6)}`,
+      label,
+      address: label,
+      latitude,
+      longitude,
+    }), 0);
+    return () => clearTimeout(timer);
+  }, [destLabel, destLat, destLng, sourceId]);
 
   // Prefill from an existing trip. Repeating moves the date forward; editing keeps it.
   useEffect(() => {
@@ -206,6 +232,7 @@ export default function CreateTripScreen() {
         return;
       }
       await tripService.createTrip(input);
+      toast.success('¡Viaje publicado! Te avisaremos cuando alguien pida un cupo');
       router.replace('/(tabs)/trips');
     } catch (publishError) {
       setError(rawErrorMessage(publishError).includes('row-level security')
@@ -222,11 +249,7 @@ export default function CreateTripScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Pressable accessibilityLabel="Volver" onPress={() => router.back()} style={styles.back}>
-          <Ionicons color={colors.text} name="arrow-back" size={24} />
-        </Pressable>
-        <Text style={styles.kicker}>{edit ? 'VIAJE PUBLICADO' : repeatFrom ? 'REPETIR VIAJE' : 'NUEVO VIAJE'}</Text>
-        <Text style={styles.title}>{edit ? 'Editar viaje' : 'Publicar viaje'}</Text>
+        <ScreenHeader kicker={edit ? 'VIAJE PUBLICADO' : repeatFrom ? 'REPETIR VIAJE' : 'NUEVO VIAJE'} title={edit ? 'Editar viaje' : 'Publicar viaje'} />
         {repeated && !edit ? (
           <View style={styles.repeatBanner}>
             <Ionicons color={colors.primary} name="repeat" size={20} />
@@ -241,9 +264,9 @@ export default function CreateTripScreen() {
             </Text>
           </View>
         ) : null}
-        {notice ? <Text style={styles.success}>{notice}</Text> : null}
+        {notice ? <Notice tone="success">{notice}</Notice> : null}
         {driverStatus !== 'aprobado' ? <DriverApprovalNotice status={driverStatus} /> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Notice tone="error">{error}</Notice> : null}
 
         <Text style={styles.label}>Vehículo</Text>
         {!vehicleLoaded ? <Text style={styles.subtitle}>Cargando tus vehículos…</Text> : null}
@@ -408,9 +431,6 @@ export default function CreateTripScreen() {
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   content: { gap: spacing[16], padding: dimensions.screenPadding, paddingBottom: spacing[40] },
-  back: { alignSelf: 'flex-start', padding: spacing[4] },
-  kicker: { ...typography.label, color: colors.primary },
-  title: { ...typography.headingXL, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary },
   label: { ...typography.label, color: colors.text, marginBottom: -spacing[8] },
   dateRow: { flexDirection: 'row', gap: spacing[8] },

@@ -4,6 +4,7 @@ import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ToastHost } from '@/components/ui/Toast';
 import { colors } from '@/constants/colors';
 import { authService } from '@/services/authService';
 import { notificationService } from '@/services/notificationService';
@@ -50,8 +51,16 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
+          // Native slide between screens; fade for the auth entry points.
+          animation: 'slide_from_right',
         }}
-      />
+      >
+        <Stack.Screen name="index" options={{ animation: 'fade' }} />
+        <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+        <Stack.Screen name="map" options={{ animation: 'fade_from_bottom' }} />
+      </Stack>
+      <ToastHost />
     </SafeAreaProvider>
   );
 }

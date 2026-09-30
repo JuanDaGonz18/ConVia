@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -24,6 +24,16 @@ type PlaceSearchFieldProps = {
   mapTitle?: string;
   /** The user's saved places, offered as one-tap shortcuts while empty. */
   quickPlaces?: SavedPlace[];
+  /**
+   * When to offer the full-screen map picker: always ("Elegir en el mapa"),
+   * only to fine-tune a chosen place ("Ajustar en el mapa"), or never (the
+   * field already sits on a map).
+   */
+  mapLink?: 'always' | 'afterSelection' | 'never';
+  /** 'bar': a single rounded search bar (for overlays on a map). */
+  variant?: 'default' | 'bar';
+  /** Shown at the start of the bar, e.g. a back button. */
+  leading?: ReactNode;
 };
 
 const QUICK_ICONS: Record<SavedPlaceKind, keyof typeof Ionicons.glyphMap> = {
@@ -45,7 +55,11 @@ export function PlaceSearchField({
   allowCurrentLocation = false,
   mapTitle,
   quickPlaces = [],
+  mapLink = 'always',
+  variant = 'default',
+  leading,
 }: PlaceSearchFieldProps) {
+  const bar = variant === 'bar';
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Location[] | null>(null);
   const [busy, setBusy] = useState<'search' | 'gps' | null>(null);
@@ -110,14 +124,36 @@ export function PlaceSearchField({
       {label ? <Text style={styles.label}>{label}</Text> : null}
 
       {value ? (
-        <View style={styles.selected}>
+        <View style={[styles.selected, bar ? styles.barSelected : null]}>
+          {leading}
           <Ionicons color={colors.primary} name="location" size={18} />
           <View style={styles.selectedText}>
             <Text numberOfLines={1} style={styles.selectedLabel}>{value.label}</Text>
-            <Text numberOfLines={2} style={styles.selectedAddress}>{value.address}</Text>
+            <Text numberOfLines={bar ? 1 : 2} style={styles.selectedAddress}>{value.address}</Text>
           </View>
           <Pressable accessibilityLabel="Cambiar lugar" hitSlop={8} onPress={() => onChange(null)}>
             <Ionicons color={colors.textSecondary} name="close-circle" size={20} />
+          </Pressable>
+        </View>
+      ) : bar ? (
+        // One rounded bar: [leading] [text field] [search]
+        <View style={styles.bar}>
+          {leading}
+          <TextInput
+            onChangeText={(text) => {
+              setQuery(text);
+              setResults(null);
+              if (error) setError(null);
+            }}
+            onSubmitEditing={() => void search(query)}
+            placeholder={placeholder}
+            placeholderTextColor={colors.textSecondary}
+            returnKeyType="search"
+            style={styles.barInput}
+            value={query}
+          />
+          <Pressable accessibilityLabel="Buscar lugar" disabled={busy !== null} hitSlop={6} onPress={() => void search(query)} style={styles.barIcon}>
+            {busy === 'search' ? <ActivityIndicator color={colors.primary} size="small" /> : <Ionicons color={colors.primary} name="search" size={20} />}
           </Pressable>
         </View>
       ) : (
@@ -175,10 +211,12 @@ export function PlaceSearchField({
             <Text style={styles.gpsText}>Usar mi ubicación actual</Text>
           </Pressable>
         ) : null}
-        <Pressable onPress={() => setShowMap(true)} style={styles.gpsButton}>
-          <Ionicons color={colors.primary} name="map-outline" size={16} />
-          <Text style={styles.gpsText}>{value ? 'Ajustar en el mapa' : 'Elegir en el mapa'}</Text>
-        </Pressable>
+        {mapLink === 'always' || (mapLink === 'afterSelection' && value) ? (
+          <Pressable onPress={() => setShowMap(true)} style={styles.gpsButton}>
+            <Ionicons color={colors.primary} name="map-outline" size={16} />
+            <Text style={styles.gpsText}>{value ? 'Ajustar en el mapa' : 'Elegir en el mapa'}</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <MapPickerModal
@@ -236,6 +274,20 @@ const styles = StyleSheet.create({
     width: 48,
   },
   links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing[16] },
+  bar: {
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderRadius: radius.radiusFull,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing[4],
+    height: 50,
+    paddingHorizontal: spacing[4],
+  },
+  barInput: { ...typography.body, color: colors.text, flex: 1, height: 48, paddingHorizontal: spacing[4] },
+  barIcon: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
+  barSelected: { borderColor: colors.primary, borderRadius: radius.radiusFull, borderWidth: 1, paddingHorizontal: spacing[4], paddingVertical: 6 },
   quickScroll: { flexGrow: 0 },
   quickRow: { gap: spacing[8] },
   quickChip: {

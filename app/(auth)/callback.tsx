@@ -3,7 +3,9 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useLinkingURL } from 'expo-linking';
 
+import { BrandMark } from '@/components/brand/Brand';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
+import { Notice } from '@/components/ui/Notice';
 
 import { colors } from '@/constants/colors';
 import { authService } from '@/services/authService';
@@ -50,8 +52,9 @@ export default function AuthCallbackScreen() {
 
   return (
     <View style={styles.container}>
-      {shownError ? <Text style={styles.error}>{shownError}</Text> : <ActivityIndicator color={colors.primary} size="large" />}
-      <Text style={styles.message}>{shownError ? 'Regresa a iniciar sesión para continuar.' : 'Confirmando tu correo…'}</Text>
+      <BrandMark size="lg" />
+      {shownError ? <Notice title="No pudimos confirmar tu correo" tone="error">{shownError}</Notice> : <ActivityIndicator color={colors.primary} size="large" />}
+      <Text style={styles.message}>{shownError ? 'Inicia sesión para continuar; si tu cuenta ya estaba confirmada, entrarás sin problema.' : 'Confirmando tu correo…'}</Text>
       {shownError ? <ButtonPrimary onPress={() => router.replace('/(auth)/login')} title="Ir a iniciar sesión" /> : null}
     </View>
   );

@@ -4,8 +4,13 @@ import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Notice } from '@/components/ui/Notice';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { toast } from '@/components/ui/Toast';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { RowSkeleton } from '@/components/ui/Skeleton';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
@@ -47,6 +52,7 @@ export default function VehiclesScreen() {
     try {
       await vehicleService.deactivateVehicle(vehicle.id);
       setVehicles((items) => items.filter((item) => item.id !== vehicle.id));
+      toast.info(`Quitaste el vehículo ${vehicle.plate}`);
     } catch (removeError) {
       setError(errorMessage(removeError, 'No se pudo quitar el vehículo.'));
     } finally {
@@ -57,20 +63,18 @@ export default function VehiclesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable accessibilityLabel="Volver" onPress={() => router.back()} style={styles.back}>
-          <Ionicons color={colors.text} name="arrow-back" size={24} />
-        </Pressable>
-        <Text style={styles.kicker}>CONDUCTOR</Text>
-        <Text style={styles.title}>Mis vehículos</Text>
+        <ScreenHeader kicker="CONDUCTOR" title="Mis vehículos" />
         <Text style={styles.subtitle}>Al publicar un viaje eliges con cuál vas. Los pasajeros ven su foto antes de pedir un cupo.</Text>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {loading ? <ActivityIndicator color={colors.primary} /> : null}
+        {error ? <Notice tone="error">{error}</Notice> : null}
+        {loading ? <RowSkeleton count={2} /> : null}
         {!loading && vehicles.length === 0 && !error ? (
-          <View style={styles.empty}>
-            <Ionicons color={colors.primary} name="car-outline" size={44} />
-            <Text style={styles.emptyText}>Aún no has registrado vehículos.</Text>
-          </View>
+          <EmptyState
+            compact
+            icon="car-outline"
+            message="Registra tu carro o moto para poder publicar viajes."
+            title="Aún no tienes vehículos"
+          />
         ) : null}
 
         {vehicles.map((vehicle) => (
@@ -119,6 +123,8 @@ export default function VehiclesScreen() {
       <ConfirmDialog
         cancelLabel="Volver"
         confirmLabel="Sí, quitar"
+        icon="trash-outline"
+        tone="danger"
         message="Ya no podrás usarlo para publicar viajes. Tus viajes anteriores con este vehículo se conservan."
         onCancel={() => setToRemove(null)}
         onConfirm={() => toRemove && void remove(toRemove)}
@@ -132,12 +138,7 @@ export default function VehiclesScreen() {
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   content: { gap: spacing[16], padding: dimensions.screenPadding, paddingBottom: spacing[40] },
-  back: { alignSelf: 'flex-start', padding: spacing[4] },
-  kicker: { ...typography.label, color: colors.primary },
-  title: { ...typography.headingXL, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary },
-  empty: { alignItems: 'center', gap: spacing[8], paddingVertical: spacing[16] },
-  emptyText: { ...typography.body, color: colors.textSecondary },
   card: { backgroundColor: colors.white, borderColor: colors.lightGray, borderRadius: radius.radiusLarge, borderWidth: 1, overflow: 'hidden' },
   photo: { aspectRatio: 16 / 9, backgroundColor: colors.lightGray, width: '100%' },
   photoMissing: { alignItems: 'center', backgroundColor: '#FFEAEA', gap: spacing[8], justifyContent: 'center' },
