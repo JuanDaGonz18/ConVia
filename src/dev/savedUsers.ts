@@ -15,7 +15,7 @@ import { UserRole } from '@/types';
 
 export const SAVED_USERS_ENABLED = __DEV__;
 
-const LIST_KEY = 'wheelsapp.dev.savedUsers';
+const LIST_KEY = 'convia.dev.savedUsers';
 const MAX_USERS = 10;
 
 export type SavedUser = {
