@@ -1,4 +1,5 @@
 import * as ExpoLocation from 'expo-location';
+import { Platform } from 'react-native';
 
 import { Location } from '@/types';
 
@@ -45,7 +46,39 @@ function distanceKm(a: { latitude: number; longitude: number }, b: { latitude: n
   return 6371 * 2 * Math.asin(Math.sqrt(h));
 }
 
+/** Browsers have no reverse geocoder; Photon (OpenStreetMap) fills in on the web build. */
+async function reversePhoton(latitude: number, longitude: number): Promise<ExpoLocation.LocationGeocodedAddress | undefined> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try {
+    const response = await fetch(`https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}&limit=1`, { signal: controller.signal });
+    if (!response.ok) return undefined;
+    const body = (await response.json()) as { features?: PhotonFeature[] };
+    const p = body.features?.[0]?.properties;
+    if (!p) return undefined;
+    return {
+      name: p.name ?? null,
+      street: p.street ?? null,
+      streetNumber: p.housenumber ?? null,
+      district: p.district ?? p.locality ?? null,
+      city: p.city ?? p.county ?? null,
+      region: p.state ?? null,
+      country: p.country ?? null,
+      subregion: null,
+      postalCode: null,
+      isoCountryCode: null,
+      timezone: null,
+      formattedAddress: null,
+    };
+  } catch {
+    return undefined;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function reverse(latitude: number, longitude: number) {
+  if (Platform.OS === 'web') return reversePhoton(latitude, longitude);
   try {
     const [address] = await ExpoLocation.reverseGeocodeAsync({ latitude, longitude });
     return address;
