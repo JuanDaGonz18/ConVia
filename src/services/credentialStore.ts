@@ -6,11 +6,11 @@ import * as SecureStore from 'expo-secure-store';
  * Supabase and nothing is kept in plain text.
  */
 
-const LAST_KEY = 'wheelsapp.remember.last';
+const LAST_KEY = 'convia.remember.last';
 
 /** SecureStore keys may only contain letters, numbers, ".", "-" and "_". */
 function passwordKey(email: string) {
-  return `wheelsapp.remember.pw.${email.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '_')}`;
+  return `convia.remember.pw.${email.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '_')}`;
 }
 
 async function safely<T>(action: () => Promise<T>, fallback: T): Promise<T> {

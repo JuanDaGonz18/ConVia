@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — máximo 6 pasajeros por vehículo y por viaje
+-- ConVía — máximo 6 pasajeros por vehículo y por viaje
 --  Antes se permitían hasta 8. Un viaje sigue limitado a los puestos
 --  registrados de su vehículo (trips_before_insert).
 -- =====================================================================

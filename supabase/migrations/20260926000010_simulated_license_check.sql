@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — verificación de licencia SIMULADA (solo pruebas)
+-- ConVía — verificación de licencia SIMULADA (solo pruebas)
 -- No existe integración con el RUNT ni con ninguna fuente oficial. Para
 -- desarrollo, una licencia enviada con datos válidos se aprueba 10 segundos
 -- después, y queda anotado que fue una simulación.

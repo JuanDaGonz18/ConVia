@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — revisión: seguridad y rendimiento
+-- ConVía — revisión: seguridad y rendimiento
 --  1. Helpers de RLS fuera de la API (schema private)
 --  2. Políticas con (select auth.uid()) → se evalúa una vez por consulta
 --  3. Índices en llaves foráneas

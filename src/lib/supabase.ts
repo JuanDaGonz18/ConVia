@@ -42,7 +42,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
-      // Email links come back as wheelsapp://callback?code=… and are exchanged
+      // Email links come back as convia://callback?code=… and are exchanged
       // in app/(auth)/callback.tsx.
       flowType: 'pkce',
     },

@@ -1,4 +1,4 @@
--- WheelsApp: push notification token and preference per profile.
+-- ConVía: push notification token and preference per profile.
 -- The `notify` Edge Function reads these with the service role; the client
 -- can only write its own row (profiles_update_own policy).
 

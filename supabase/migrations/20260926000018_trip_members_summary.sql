@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — integrantes del viaje, cierre y resumen
+-- ConVía — integrantes del viaje, cierre y resumen
 --  * trip_members(): conductor, origen, destino y pasajeros aceptados de un
 --    viaje. Solo lo pueden consultar el conductor y los pasajeros aceptados.
 --  * Pago por pasajero (pagó / no pagó, sin monto) y calificación con

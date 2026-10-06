@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — estado "no_iniciado"
+-- ConVía — estado "no_iniciado"
 --  Un viaje que nunca se inició y cuya hora de salida pasó hace más de
 --  2 horas queda como no_iniciado (ver la migración siguiente).
 --  Va en su propio archivo: Postgres no permite usar un valor nuevo de un

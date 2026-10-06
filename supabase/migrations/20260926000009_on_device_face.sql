@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — verificación facial gratuita en el dispositivo
+-- ConVía — verificación facial gratuita en el dispositivo
 --  * El teléfono detecta el rostro (ML Kit) y calcula un embedding de 128
 --    valores con SFace (ONNX). No se suben fotos.
 --  * face_templates guarda solo el embedding de registro. Nadie lo puede leer

@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — identidad del conductor por foto de la licencia
+-- ConVía — identidad del conductor por foto de la licencia
 --  * El conductor toma o sube una foto de su licencia. El teléfono extrae el
 --    rostro del documento y calcula su embedding SFace (el mismo modelo de la
 --    verificación facial). Solo ese embedding llega aquí; la foto se borra.
