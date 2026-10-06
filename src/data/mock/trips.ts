@@ -25,7 +25,7 @@ export const mockTrips: Trip[] = [
     driver: {
       id: 'mock-driver-carlos',
       name: 'Carlos Mendoza',
-      email: 'carlos@wheelsapp.com',
+      email: 'carlos@convia.app',
       role: 'driver',
       rating: { score: 4.9, count: 85 },
       vehicleId: 'mock-vehicle-carlos',
@@ -44,7 +44,7 @@ export const mockTrips: Trip[] = [
     driver: {
       id: 'mock-driver-andrea',
       name: 'Andrea Gómez',
-      email: 'andrea@wheelsapp.com',
+      email: 'andrea@convia.app',
       role: 'driver',
       rating: { score: 5.0, count: 210 },
       vehicleId: 'mock-vehicle-andrea',
