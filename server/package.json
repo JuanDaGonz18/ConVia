@@ -1,7 +1,7 @@
 {
-  "name": "wheelsapp-face-backend",
+  "name": "convia-face-backend",
   "version": "1.0.0",
-  "description": "Backend mínimo de autenticación para WheelsApp",
+  "description": "Backend mínimo de autenticación para ConVía",
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
