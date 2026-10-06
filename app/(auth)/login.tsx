@@ -89,7 +89,7 @@ export default function LoginScreen() {
     setCurrentUser({
       id: role === 'driver' ? 'mock-driver-rita-c' : 'mock-user-current',
       name: role === 'driver' ? 'Rita Conductora' : 'Merchito Pasajero',
-      email: role === 'driver' ? 'rita@wheelsapp.com' : 'merchito@wheelsapp.com',
+      email: role === 'driver' ? 'rita@convia.app' : 'merchito@convia.app',
       role,
     });
     router.replace('/(tabs)');
@@ -138,7 +138,8 @@ export default function LoginScreen() {
               returnKeyType="go"
               value={password}
             />
-            <Checkbox checked={rememberMe} label="Recordarme en este teléfono" onChange={setRememberMe} />
+            {/* The web build never stores passwords (no secure keychain in browsers). */}
+            {Platform.OS !== 'web' ? <Checkbox checked={rememberMe} label="Recordarme en este teléfono" onChange={setRememberMe} /> : null}
 
             <ButtonPrimary loading={loading} loadingTitle="Entrando…" onPress={() => void handleLogin()} title="Iniciar sesión" />
           </View>
