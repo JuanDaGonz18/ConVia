@@ -46,3 +46,4 @@ google-services.json
 /android
 android/local.properties
 supabase/.temp/
+site/

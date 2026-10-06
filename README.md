@@ -19,6 +19,15 @@ Before committing:
 npm run typecheck && npm run lint && npx expo-doctor
 ```
 
+### Web version (iPhone) and download page
+
+The same app also runs in the browser, so iPhone users can use it from Safari and add it to the home screen.
+Web-only replacements live in `src/web/` and `*.web.ts(x)` files (Leaflet maps, MediaPipe + onnxruntime-web face check, localStorage instead of SecureStore); `metro.config.js` swaps them in for web builds only.
+
+- Every push to `main` publishes https://juandagonz18.github.io/ConVia/ (download page from `web-landing/`) and the web app at `/app/` via `.github/workflows/web.yml`.
+- To publish a new APK: Actions → **Publicar APK** → paste the APK link from the EAS build page.
+- Local check: `EXPO_PUBLIC_WEB_BASE_URL=/ConVia/app npx expo export -p web && node scripts/prepare-web.mjs dist site /ConVia/app`.
+
 ### Builds (EAS)
 
 | Profile       | Output | Use                               |
@@ -52,7 +61,7 @@ Screens never call Supabase directly; they go through `src/services`. User-facin
 
 - The app, and its logo, is **ConVía**: "Con" in the text color and "Vía" in `colors.primary` (#006FFD). There is no separate symbol; the wordmark is the logo.
 - In the UI use `<BrandLogo />` (standalone logo) or `<ConVia />` (inline in text) from `src/components/brand/Brand.tsx`; never type the colors by hand.
-- App icons in `assets/` are the same wordmark on white. Internal identifiers (`wheelsapp://` scheme, Android package, EAS slug, storage keys) keep the old name on purpose: changing them would break sign-in links, installs and saved sessions.
+- App icons in `assets/` are the same wordmark on white. Identifiers use the new name too: `convia://` scheme, Android package `com.juanda1809.convia`, storage keys `convia.*`. The only exception is the EAS project slug (`wheelsapp`), which expo.dev can't rename; it is never shown to users.
 
 ## UI building blocks
 

@@ -24,8 +24,25 @@ function createExpoConfig({ config }) {
       ? './google-services.json'
       : undefined);
 
+  // Web build for iPhone users (served from GitHub Pages under a sub-path).
+  const webBaseUrl = process.env.EXPO_PUBLIC_WEB_BASE_URL || '';
+
   return {
     ...config,
+    experiments: {
+      ...config.experiments,
+      ...(webBaseUrl ? { baseUrl: webBaseUrl } : {}),
+    },
+    web: {
+      ...config.web,
+      output: 'single',
+      name: 'ConVía',
+      shortName: 'ConVía',
+      lang: 'es',
+      themeColor: '#006FFD',
+      backgroundColor: '#FFFFFF',
+      description: 'Carpooling verificado para la comunidad universitaria de Chía y la Sabana.',
+    },
     android: {
       ...config.android,
       ...(googleServicesFile ? { googleServicesFile } : {}),
