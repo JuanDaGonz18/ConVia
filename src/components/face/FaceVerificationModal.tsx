@@ -105,7 +105,7 @@ export function FaceVerificationModal({ visible, trigger, userId, onSuccess, onF
           <View style={styles.centered}>
             <Text style={styles.title}>Necesitamos acceso a la cámara</Text>
             {permission && !permission.canAskAgain ? (
-              <Text style={styles.body}>Activa el permiso de cámara para WheelsApp desde los ajustes del teléfono.</Text>
+              <Text style={styles.body}>Activa el permiso de cámara para ConVía desde los ajustes del teléfono.</Text>
             ) : (
               <Pressable onPress={() => void requestPermission()} style={styles.primaryButton}><Text style={styles.primaryText}>Permitir cámara</Text></Pressable>
             )}

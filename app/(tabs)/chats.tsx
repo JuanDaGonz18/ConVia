@@ -49,7 +49,7 @@ export default function ChatsScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>WHEELSAPP</Text>
+        <Text style={styles.kicker}>CONVÍA</Text>
         <Text style={styles.title}>Mensajes</Text>
         <Text style={styles.subtitle}>Coordina el punto de encuentro y los detalles de tus viajes.</Text>
       </View>

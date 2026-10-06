@@ -125,7 +125,7 @@ export default function TripsScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>WHEELSAPP</Text>
+        <Text style={styles.kicker}>CONVÍA</Text>
         <Text style={styles.title}>{isDriver ? 'Mis viajes' : 'Viajes'}</Text>
         <Text style={styles.subtitle}>
           {isDriver ? 'Publica, inicia y finaliza tus viajes.' : 'Viajes disponibles en tu comunidad.'}

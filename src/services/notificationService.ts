@@ -42,7 +42,7 @@ async function getPushToken(): Promise<string | null> {
   if (!Notifications) return null;
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'WheelsApp',
+      name: 'ConVía',
       importance: Notifications.AndroidImportance.HIGH,
     });
   }

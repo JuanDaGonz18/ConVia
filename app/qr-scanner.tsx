@@ -59,7 +59,7 @@ export default function QrScannerScreen() {
           setScanned(true);
           const token = data.trim();
           if (!UUID_PATTERN.test(token)) {
-            setResult({ ok: false, title: 'Este no es un código de WheelsApp', text: 'Pídele al pasajero que abra "Mi código de abordaje" en su app.' });
+            setResult({ ok: false, title: 'Este no es un código de ConVía', text: 'Pídele al pasajero que abra "Mi código de abordaje" en su app.' });
             return;
           }
           try {

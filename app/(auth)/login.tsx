@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandLockup } from '@/components/brand/Brand';
+import { BrandLogo } from '@/components/brand/Brand';
 import { PasswordField } from '@/components/forms/PasswordField';
 import { TextField } from '@/components/forms/TextField';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
@@ -30,7 +30,7 @@ function loginErrorMessage(error: unknown) {
   const raw = rawErrorMessage(error);
   if (/invalid login credentials/i.test(raw)) return 'El correo o la contraseña no coinciden. Revísalos e inténtalo de nuevo.';
   if (/email not confirmed/i.test(raw)) return 'Aún no has confirmado tu correo. Abre el enlace que te enviamos al registrarte.';
-  if (raw.includes('PERFIL_NO_ENCONTRADO')) return 'Tu cuenta existe pero no tiene perfil en WheelsApp. Escríbele al administrador de tu institución.';
+  if (raw.includes('PERFIL_NO_ENCONTRADO')) return 'Tu cuenta existe pero no tiene perfil en ConVía. Escríbele al administrador de tu institución.';
   return errorMessage(error, 'No pudimos iniciar sesión. Revisa tu conexión e inténtalo de nuevo.');
 }
 
@@ -100,7 +100,7 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
-            <BrandLockup />
+            <BrandLogo size="lg" />
             <Text style={styles.tagline}>Comparte el camino con tu comunidad universitaria.</Text>
           </View>
 
@@ -145,7 +145,7 @@ export default function LoginScreen() {
 
           <View style={styles.divider}>
             <View style={styles.line} />
-            <Text style={styles.dividerText}>¿Primera vez en WheelsApp?</Text>
+            <Text style={styles.dividerText}>¿Primera vez en ConVía?</Text>
             <View style={styles.line} />
           </View>
           <ButtonSecondary icon="person-add-outline" onPress={() => router.push('/(auth)/register')} title="Crear una cuenta" />

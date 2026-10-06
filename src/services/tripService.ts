@@ -194,7 +194,7 @@ function mapAvailableTrip(row: {
     seatsAvailable: Number(row.cupos_disponibles ?? 0),
     driver: {
       id: row.driver_id,
-      name: row.driver_nombre ?? 'Conductor WheelsApp',
+      name: row.driver_nombre ?? 'Conductor ConVía',
       email: '',
       role: 'driver',
       avatarUrl: row.driver_avatar_url ?? undefined,

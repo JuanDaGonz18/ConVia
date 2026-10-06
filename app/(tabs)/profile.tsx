@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Notice } from '@/components/ui/Notice';
-import { AppName, CompanyCredit } from '@/components/brand/Brand';
+import { BrandLogo } from '@/components/brand/Brand';
 import { Avatar } from '@/components/ui/Avatar';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -64,7 +64,7 @@ export default function ProfileScreen() {
     try {
       const applied = await notificationService.setEnabled(userId, enabled);
       if (applied) setNotificationsEnabled(enabled);
-      else setError('Activa el permiso de notificaciones para WheelsApp en los ajustes del teléfono.');
+      else setError('Activa el permiso de notificaciones para ConVía en los ajustes del teléfono.');
     } catch (toggleError) {
       setError(errorMessage(toggleError, 'No se pudo actualizar la preferencia de notificaciones.'));
     } finally {
@@ -88,7 +88,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const userName = currentUser?.name || 'Usuario WheelsApp';
+  const userName = currentUser?.name || 'Usuario ConVía';
   const userEmail = currentUser?.email ?? '';
   const isDriver = currentUser?.role === 'driver';
   const isVerified = currentUser?.faceVerified === true;
@@ -138,6 +138,13 @@ export default function ProfileScreen() {
             onPress={() => router.push('/profile-edit')}
             subtitle="Nombre, teléfono, foto y contraseña"
             title="Información personal"
+          />
+          <Divider />
+          <ListItem
+            icon="shield-checkmark-outline"
+            onPress={() => router.push('/legal')}
+            subtitle="Términos y condiciones y tratamiento de datos"
+            title="Términos y privacidad"
           />
         </View>
 
@@ -219,8 +226,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.footer}>
-          <AppName size="sm" />
-          <CompanyCredit />
+          <BrandLogo size="sm" />
           <Text style={styles.version}>Versión {Constants.expoConfig?.version ?? '1.0.0'}</Text>
         </View>
       </ScrollView>

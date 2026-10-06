@@ -80,7 +80,7 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
       return {
         recipients,
         title: 'Viaje cancelado',
-        body: `${driverName} canceló el viaje a ${trip.destino_nombre} (${when}). Tu cupo quedó liberado; busca otro viaje en WheelsApp.`,
+        body: `${driverName} canceló el viaje a ${trip.destino_nombre} (${when}). Tu cupo quedó liberado; busca otro viaje en ConVía.`,
         data,
       };
     }
@@ -88,7 +88,7 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
       return {
         recipients,
         title: 'Viaje finalizado',
-        body: `Tu viaje a ${trip.destino_nombre} con ${driverName} terminó. ¡Gracias por viajar con WheelsApp!`,
+        body: `Tu viaje a ${trip.destino_nombre} con ${driverName} terminó. ¡Gracias por viajar con ConVía!`,
         data,
       };
     }

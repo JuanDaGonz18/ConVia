@@ -66,7 +66,7 @@ const MAX_GLARE = 0.05;
 
 const UNAVAILABLE = new FaceCheckError(
   'model_unavailable',
-  'El reconocimiento facial no está disponible en esta instalación. Instala la versión de desarrollo más reciente de WheelsApp.',
+  'El reconocimiento facial no está disponible en esta instalación. Instala la versión de desarrollo más reciente de ConVía.',
 );
 
 let natives: { images: NitroImages; detectors: Record<FaceSource, ImageFaceDetector>; ort: Ort } | null = null;

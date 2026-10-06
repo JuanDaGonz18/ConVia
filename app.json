@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "WheelsApp",
+    "name": "ConVía",
     "slug": "wheelsapp",
     "scheme": "wheelsapp",
     "version": "1.0.0",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "WheelsApp necesita la cámara para verificar tu identidad y leer los códigos QR de abordaje."
+        "NSCameraUsageDescription": "ConVía necesita la cámara para verificar tu identidad y leer los códigos QR de abordaje."
       }
     },
     "android": {
@@ -24,7 +24,7 @@
         "android.permission.ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -42,7 +42,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "WheelsApp necesita la cámara para verificar tu identidad y leer los códigos QR de abordaje.",
+          "cameraPermission": "ConVía necesita la cámara para verificar tu identidad y leer los códigos QR de abordaje.",
           "barcodeScannerEnabled": true
         }
       ],
@@ -51,13 +51,13 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "WheelsApp necesita tus fotos para la foto de perfil, tu licencia y tus vehículos."
+          "photosPermission": "ConVía necesita tus fotos para la foto de perfil, tu licencia y tus vehículos."
         }
       ],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "WheelsApp usa tu ubicación para mostrarte los viajes que salen cerca de ti."
+          "locationAlwaysAndWhenInUsePermission": "ConVía usa tu ubicación para mostrarte los viajes que salen cerca de ti."
         }
       ],
       "expo-asset",

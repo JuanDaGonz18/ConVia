@@ -1,6 +1,6 @@
 /**
  * One password policy for the whole app (sign-up, profile, any future reset).
- * Supabase requires at least 6 characters; WheelsApp asks for a bit more.
+ * Supabase requires at least 6 characters; ConVía asks for a bit more.
  */
 export const PASSWORD_RULES = [
   { id: 'length', label: 'Al menos 8 caracteres', test: (value: string) => value.length >= 8 },

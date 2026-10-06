@@ -4,7 +4,7 @@ import { Location } from '@/types';
 
 export class LocationPermissionError extends Error {
   constructor() {
-    super('Activa el permiso de ubicación para WheelsApp en los ajustes del teléfono.');
+    super('Activa el permiso de ubicación para ConVía en los ajustes del teléfono.');
   }
 }
 
@@ -105,7 +105,7 @@ async function searchPhoton(text: string, near?: Location | null): Promise<Locat
   const timer = setTimeout(() => controller.abort(), PHOTON_TIMEOUT_MS);
   try {
     const response = await fetch(`${PHOTON_URL}?${params.toString()}`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'WheelsApp/1.0 (carpooling universitario)' },
+      headers: { Accept: 'application/json', 'User-Agent': 'ConVia/1.0 (carpooling universitario)' },
       signal: controller.signal,
     });
     if (!response.ok) return [];

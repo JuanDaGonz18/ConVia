@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { CompanyCredit } from '@/components/brand/Brand';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
 import { PasswordChecklist, PasswordField } from '@/components/forms/PasswordField';
 import { TextField } from '@/components/forms/TextField';
@@ -229,7 +228,7 @@ export default function RegisterScreen() {
                 <PasswordChecklist confirm={confirm} password={password} />
 
                 <View style={styles.roleSection}>
-                  <Text style={styles.roleTitle}>¿Cómo usarás WheelsApp?</Text>
+                  <Text style={styles.roleTitle}>¿Cómo usarás ConVía?</Text>
                   <Text style={styles.roleHint}>Con la misma cuenta puedes ser pasajero y conductor; cambias de modo cuando quieras.</Text>
                   <View style={styles.roleRow}>
                     {(['client', 'driver'] as const).map((role) => {
@@ -262,12 +261,22 @@ export default function RegisterScreen() {
                 <View>
                   <Checkbox
                     checked={acceptedTerms}
-                    label="Acepto los términos y condiciones y la política de privacidad de WheelsApp."
+                    label="Acepto los Términos y Condiciones y autorizo el tratamiento de mis datos personales, incluidos los biométricos, según la Política de Privacidad de ConVía."
                     onChange={(checked) => {
                       setAcceptedTerms(checked);
                       refresh({ acceptedTerms: checked });
                     }}
                   />
+                  <Pressable
+                    accessibilityHint="Abre los Términos y Condiciones y la Política de Privacidad"
+                    accessibilityRole="link"
+                    hitSlop={6}
+                    onPress={() => router.push('/legal')}
+                    style={styles.readMore}
+                  >
+                    <Ionicons color={colors.primary} name="document-text-outline" size={16} />
+                    <Text style={styles.readMoreText}>Leer más: términos y política de privacidad</Text>
+                  </Pressable>
                   {errors.terms ? <Text style={styles.termsError}>{errors.terms}</Text> : null}
                 </View>
               </>
@@ -287,7 +296,6 @@ export default function RegisterScreen() {
             )}
           </View>
 
-          <CompanyCredit />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -330,6 +338,8 @@ const styles = StyleSheet.create({
   roleLabel: { ...typography.bodyMedium, color: colors.textSecondary, fontWeight: '700' },
   roleLabelActive: { color: colors.primary },
   roleDesc: { ...typography.caption, color: colors.textSecondary },
+  readMore: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 6, marginLeft: 30, paddingVertical: spacing[4] },
+  readMoreText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600', textDecorationLine: 'underline' },
   termsError: { ...typography.caption, color: colors.error, marginLeft: 30 },
   stepTwo: { alignItems: 'center', gap: spacing[12], paddingVertical: spacing[8] },
   stepTwoIcon: {

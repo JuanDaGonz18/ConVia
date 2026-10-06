@@ -95,7 +95,7 @@ export default function VehicleScreen() {
       router.back();
     } catch (saveError) {
       setError(/duplicate key|unique/i.test(rawErrorMessage(saveError))
-        ? 'Esa placa ya está registrada en WheelsApp.'
+        ? 'Esa placa ya está registrada en ConVía.'
         : errorMessage(saveError, 'No se pudo guardar el vehículo.'));
     } finally {
       setSaving(false);

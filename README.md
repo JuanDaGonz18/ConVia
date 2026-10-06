@@ -1,6 +1,6 @@
-# WheelsApp
+# ConVía
 
-Carpooling app for university communities, by **ConVía**. Built with Expo (SDK 57) + Expo Router and a Supabase backend.
+Carpooling app for university communities. Built with Expo (SDK 57) + Expo Router and a Supabase backend.
 
 ## Getting started
 
@@ -50,8 +50,9 @@ Screens never call Supabase directly; they go through `src/services`. User-facin
 
 ## Brand
 
-- **WheelsApp** is the product. Use `<AppName />`, `<BrandMark />` or `<BrandLockup />` from `src/components/brand/Brand.tsx`.
-- **ConVía** is the company. Always render it with `<ConVia />` or `<CompanyCredit />`: "Con" in the text color, "Vía" in `colors.primary`. Show it sparingly (login, registration, profile footer), never as the app name.
+- The app, and its logo, is **ConVía**: "Con" in the text color and "Vía" in `colors.primary` (#006FFD). There is no separate symbol; the wordmark is the logo.
+- In the UI use `<BrandLogo />` (standalone logo) or `<ConVia />` (inline in text) from `src/components/brand/Brand.tsx`; never type the colors by hand.
+- App icons in `assets/` are the same wordmark on white. Internal identifiers (`wheelsapp://` scheme, Android package, EAS slug, storage keys) keep the old name on purpose: changing them would break sign-in links, installs and saved sessions.
 
 ## UI building blocks
 

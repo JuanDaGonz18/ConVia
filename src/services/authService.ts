@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
 import { ensureSupabaseConfigured, supabase } from '@/lib/supabase';
+import { LEGAL_VERSION } from '@/content/legal';
 import { notificationService } from '@/services/notificationService';
 import { DriverStatus, User, UserRole } from '@/types';
 
@@ -114,6 +115,8 @@ export const authService = {
             // license check (the sign-up screen sends drivers straight there).
             rol: 'usuario',
             terms_accepted: true,
+            // Which text they accepted; kept in the auth user's metadata.
+            terms_version: LEGAL_VERSION,
           },
           // Route groups are not part of the URL: app/(auth)/callback.tsx is /callback.
           emailRedirectTo: 'wheelsapp://callback',

@@ -45,7 +45,7 @@ const FRIENDLY_ERRORS: [RegExp, string][] = [
   [/duplicate key|already exists|unique constraint/i, 'Ese registro ya existe.'],
   [/rate limit|too many requests/i, 'Demasiados intentos. Espera un momento e inténtalo de nuevo.'],
   [/supabase_env_missing|supabase_required/i, 'La app no está conectada al servidor. Contacta al administrador.'],
-  [/PERFIL_NO_ENCONTRADO/, 'Tu cuenta no tiene perfil en WheelsApp. Contacta al administrador.'],
+  [/PERFIL_NO_ENCONTRADO/, 'Tu cuenta no tiene perfil en ConVía. Contacta al administrador.'],
   [/DOMINIO_NO_PERMITIDO/, 'Usa el correo de tu institución (por ejemplo @unisabana.edu.co).'],
 ];
 
