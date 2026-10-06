@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — Storage (buckets + políticas) y datos semilla
+-- ConVía — Storage (buckets + políticas) y datos semilla
 -- Convención de rutas: <bucket>/<auth.uid()>/<archivo>
 -- =====================================================================
 

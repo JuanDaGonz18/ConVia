@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — doble rol (pasajero / conductor)
+-- ConVía — doble rol (pasajero / conductor)
 --  * profiles.rol pasa a ser el MODO ACTIVO (usuario = pasajero).
 --  * Conducir es un permiso aparte: driver_profiles con licencia y estado
 --    pendiente | aprobado | rechazado | suspendido. Solo "aprobado" publica.
