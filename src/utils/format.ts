@@ -1,3 +1,5 @@
+import { LIMIT_INFO, planLimitFromError } from '@/subscription/plans';
+
 function toDate(value: string | Date) {
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -63,6 +65,10 @@ export function rawErrorMessage(error: unknown) {
 export function errorMessage(error: unknown, fallback: string) {
   const message = rawErrorMessage(error).trim();
   if (!message) return fallback;
+
+  // A plan limit enforced by the database ('LIMITE_PLAN:<key>:<limit>').
+  const planLimit = planLimitFromError(message);
+  if (planLimit) return LIMIT_INFO[planLimit.key].reachedText(planLimit.limit);
 
   for (const [pattern, friendly] of FRIENDLY_ERRORS) {
     if (pattern.test(message)) return friendly;

@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { requirePlus } from '@/components/subscription/PlusGate';
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { toast } from '@/components/ui/Toast';
@@ -17,6 +18,8 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { isValidPlate, MAX_SEATS, vehicleService } from '@/services/vehicleService';
+import { planLimitFromError } from '@/subscription/plans';
+import { usePlan } from '@/subscription/usePlan';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
 
 type Photo = { uri: string; mimeType: string };
@@ -35,6 +38,9 @@ export default function VehicleScreen() {
   const [error, setError] = useState<string | null>(null);
   const [cameraBlocked, setCameraBlocked] = useState(false);
   const [saving, setSaving] = useState(false);
+  // The server rejected a new vehicle because the plan's limit was reached.
+  const [limitReached, setLimitReached] = useState(false);
+  const { isPlus } = usePlan();
 
   useEffect(() => {
     if (!id) return;
@@ -88,12 +94,14 @@ export default function VehicleScreen() {
       return;
     }
     setError(null);
+    setLimitReached(false);
     setSaving(true);
     try {
       await vehicleService.saveVehicle({ plate, brand, color, seats: parsedSeats }, photo, id);
       toast.success(editing ? 'Vehículo actualizado' : '¡Vehículo agregado!');
       router.back();
     } catch (saveError) {
+      setLimitReached(planLimitFromError(rawErrorMessage(saveError))?.key === 'vehicles');
       setError(/duplicate key|unique/i.test(rawErrorMessage(saveError))
         ? 'Esa placa ya está registrada en ConVía.'
         : errorMessage(saveError, 'No se pudo guardar el vehículo.'));
@@ -109,7 +117,14 @@ export default function VehicleScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <ScreenHeader kicker="CONDUCTOR" title={editing ? 'Editar vehículo' : 'Nuevo vehículo'} />
         <Text style={styles.subtitle}>Los pasajeros verán la foto, la placa y el color antes de pedir un cupo.</Text>
-        {error ? <Notice tone="error">{error}</Notice> : null}
+        {error ? (
+          <Notice
+            action={limitReached && !isPlus ? { label: 'Registra varios con ConVía+', onPress: () => requirePlus({ limit: 'vehicles' }) } : undefined}
+            tone={limitReached ? 'warning' : 'error'}
+          >
+            {error}
+          </Notice>
+        ) : null}
         {cameraBlocked ? <ButtonSecondary onPress={() => void Linking.openSettings()} title="Abrir ajustes del teléfono" /> : null}
 
         {!loaded ? (

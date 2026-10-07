@@ -292,6 +292,30 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          features: string[]
+          limits: Json
+          name: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          features?: string[]
+          limits?: Json
+          name: string
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          features?: string[]
+          limits?: Json
+          name?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -505,6 +529,57 @@ export type Database = {
             foreignKeyName: "saved_places_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          provider: string | null
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_tier_fkey"
+            columns: ["tier"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["tier"]
+          },
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -944,6 +1019,17 @@ export type Database = {
         }[]
       }
       finish_trip: { Args: { p_trip_id: string }; Returns: Json }
+      get_my_plan: {
+        Args: never
+        Returns: {
+          current_period_end: string
+          features: string[]
+          limits: Json
+          name: string
+          status: string
+          tier: string
+        }[]
+      }
       rate_trip_passenger: {
         Args: { p_comment?: string; p_request_id: string; p_score: number }
         Returns: undefined

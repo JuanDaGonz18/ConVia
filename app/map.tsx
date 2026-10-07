@@ -1,10 +1,11 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import MapView, { Marker, Polyline, Region } from 'react-native-maps';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { PlusBadge } from '@/components/subscription/PlusBadge';
+import { requirePlus } from '@/components/subscription/PlusGate';
 import { Notice } from '@/components/ui/Notice';
 import { PlaceSearchField } from '@/components/forms/PlaceSearchField';
 import { TripCard } from '@/components/trip/TripCard';
@@ -13,15 +14,18 @@ import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import { AppMap, MapHandle, MapLine, MapMarker, MapRegion, useMapCapabilities } from '@/maps';
 import { locationService } from '@/services/locationService';
 import { DriverTripRecord, tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
 import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
+import { usePlan } from '@/subscription/usePlan';
 import { hasCoordinates, RankedTrip, rankTrips, tripsForDestination } from '@/utils/tripRanking';
 
-const BOGOTA: Region = { latitude: 4.711, longitude: -74.0721, latitudeDelta: 0.25, longitudeDelta: 0.25 };
-const EDGE_PADDING = { top: 220, right: 50, bottom: 320, left: 50 };
+const BOGOTA: MapRegion = { latitude: 4.711, longitude: -74.0721, latitudeDelta: 0.25, longitudeDelta: 0.25 };
+// Added to the space the search bar and the sheet already take.
+const EDGE_PADDING = { top: 48, right: 48, bottom: 48, left: 48 };
 const TRIP_COLORS = ['#006FFD', '#7C3AED', '#0891B2', '#DB2777', '#EA580C'];
 
 type Point = { latitude: number; longitude: number };
@@ -40,7 +44,11 @@ export default function MapScreen() {
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapHandle>(null);
+  const { has } = usePlan();
+  const mapCapabilities = useMapCapabilities();
+  const canShowTraffic = has('map_traffic') && mapCapabilities.traffic;
+  const [traffic, setTraffic] = useState(false);
   // The bottom sheet can cover up to ~half the screen; keep the map's center above it.
   const { height: windowHeight } = useWindowDimensions();
   const [me, setMe] = useState<Location | null>(null);
@@ -72,15 +80,15 @@ export default function MapScreen() {
     const timer = setTimeout(() => {
       void locationService.getCurrentLocation().then((location) => {
         setMe(location);
-        mapRef.current?.animateToRegion({ ...pick(location), latitudeDelta: 0.08, longitudeDelta: 0.08 }, 600);
+        mapRef.current?.centerOn(location, { delta: 0.08, duration: 600 });
       }).catch(() => undefined);
     }, 0);
     return () => clearTimeout(timer);
   }, []);
 
   const focusOn = (points: Point[]) => {
-    if (points.length === 1) mapRef.current?.animateToRegion({ ...points[0], latitudeDelta: 0.03, longitudeDelta: 0.03 }, 500);
-    else if (points.length > 1) mapRef.current?.fitToCoordinates(points, { edgePadding: EDGE_PADDING, animated: true });
+    if (points.length === 1) mapRef.current?.centerOn(points[0], { delta: 0.03 });
+    else if (points.length > 1) mapRef.current?.fitTo(points, { padding: EDGE_PADDING });
   };
 
   const choose = (location: Location | null) => {
@@ -125,23 +133,15 @@ export default function MapScreen() {
 
   return (
     <View style={styles.root}>
-      <MapView
+      <AppMap
         initialRegion={BOGOTA}
-        // Keeps Google's own controls (my-location button, logo) clear of the search bar and the sheet.
-        mapPadding={{ top: 170, right: 0, bottom: Math.round(windowHeight * 0.45), left: 0 }}
-        onPoiClick={(event) => {
-          const { coordinate, name } = event.nativeEvent;
-          void chooseAt({ ...coordinate, name: name.split('\n')[0].trim() });
-        }}
-        onPress={(event) => {
-          if (event.nativeEvent.action === 'marker-press') return;
-          void chooseAt(event.nativeEvent.coordinate);
-        }}
+        onPress={(event) => void chooseAt({ latitude: event.latitude, longitude: event.longitude, name: event.placeName })}
+        // Map controls stay clear of the search bar and the sheet.
+        overlayInsets={{ top: 170, bottom: Math.round(windowHeight * 0.45) }}
         ref={mapRef}
-        showsMyLocationButton
+        showsTraffic={traffic}
         showsUserLocation
         style={StyleSheet.absoluteFill}
-        toolbarEnabled={false}
       >
         {/* Driver: each upcoming trip with its departure, destination and route. */}
         {isDriver ? driverTrips.map((trip, index) => {
@@ -151,53 +151,67 @@ export default function MapScreen() {
           const path = trip.route?.coordinates ?? [trip.origin, trip.destination];
           return (
             <Fragment key={trip.id}>
-              <Polyline
+              <MapLine
+                color={faded ? '#B8C2CC' : color}
                 coordinates={path}
-                lineDashPattern={trip.route ? undefined : [8, 6]}
-                strokeColor={faded ? '#B8C2CC' : color}
-                strokeWidth={faded ? 3 : 5}
-                tappable
+                dashed={!trip.route}
                 onPress={() => {
                   setSelected(null);
                   setFocusedTripId(trip.id);
                 }}
+                width={faded ? 3 : 5}
               />
-              <Marker coordinate={trip.origin} onPress={() => { setSelected(null); setFocusedTripId(trip.id); }} title={trip.originName}>
+              <MapMarker coordinate={trip.origin} onPress={() => { setSelected(null); setFocusedTripId(trip.id); }} title={trip.originName}>
                 <View style={[styles.pin, { backgroundColor: '#10B981' }]}><Ionicons color={colors.white} name="navigate" size={12} /></View>
-              </Marker>
-              <Marker coordinate={trip.destination} onPress={() => { setSelected(null); setFocusedTripId(trip.id); }} title={trip.destinationName}>
+              </MapMarker>
+              <MapMarker coordinate={trip.destination} onPress={() => { setSelected(null); setFocusedTripId(trip.id); }} title={trip.destinationName}>
                 <View style={[styles.pin, { backgroundColor: color }]}><Ionicons color={colors.white} name="flag" size={12} /></View>
-              </Marker>
+              </MapMarker>
             </Fragment>
           );
         }) : null}
 
         {/* Passenger: departure points of available trips; the ones that suit the destination stand out. */}
+        {!isDriver ? shownTrips.filter((item) => item.trip.route).map(({ trip }) => (
+          <MapLine color="rgba(0,111,253,0.45)" coordinates={trip.route!.coordinates} key={`route-${trip.id}`} width={4} />
+        )) : null}
         {!isDriver ? trips.filter((trip) => hasCoordinates(trip.origin)).map((trip) => {
           const match = highlighted.has(trip.id);
           return (
-            <Marker coordinate={trip.origin} key={trip.id} onPress={() => openTrip(trip)} title={trip.driver.name}>
+            <MapMarker coordinate={trip.origin} key={trip.id} onPress={() => openTrip(trip)} title={trip.driver.name}>
               <View style={[styles.pin, match ? styles.tripPinMatch : styles.tripPin]}>
                 <Ionicons color={colors.white} name="car" size={12} />
               </View>
-            </Marker>
+            </MapMarker>
           );
         }) : null}
-        {!isDriver ? shownTrips.filter((item) => item.trip.route).map(({ trip }) => (
-          <Polyline coordinates={trip.route!.coordinates} key={`route-${trip.id}`} strokeColor="rgba(0,111,253,0.45)" strokeWidth={4} />
-        )) : null}
 
         {selected ? (
-          <Marker
+          <MapMarker
             coordinate={selected}
             draggable
-            onDragEnd={(event) => void chooseAt(event.nativeEvent.coordinate)}
+            onDragEnd={(point) => void chooseAt(point)}
             title={selected.label}
           >
             <View style={[styles.pin, styles.selectedPin]}><Ionicons color={colors.white} name="location" size={16} /></View>
-          </Marker>
+          </MapMarker>
         ) : null}
-      </MapView>
+      </AppMap>
+
+      {/* Traffic: ConVía+; FREE users get an explanation instead. */}
+      <Pressable
+        accessibilityLabel={traffic ? 'Ocultar el tráfico' : 'Mostrar el tráfico'}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: traffic }}
+        onPress={() => {
+          if (!canShowTraffic) requirePlus({ feature: 'map_traffic' });
+          else setTraffic(!traffic);
+        }}
+        style={[styles.mapButton, traffic ? styles.mapButtonActive : null]}
+      >
+        <Ionicons color={traffic ? colors.white : colors.primary} name="speedometer-outline" size={20} />
+        {!canShowTraffic ? <View style={styles.mapButtonBadge}><PlusBadge compact /></View> : null}
+      </Pressable>
 
       <SafeAreaView edges={['top']} pointerEvents="box-none" style={styles.top}>
         <View style={styles.searchCard}>
@@ -369,10 +383,6 @@ function TripCarousel({ items, onOpen, passingIds }: Readonly<{
   );
 }
 
-function pick(location: Location): Point {
-  return { latitude: location.latitude, longitude: location.longitude };
-}
-
 function Chip({ icon, label, onPress }: Readonly<{ icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }>) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.chip}>
@@ -412,6 +422,24 @@ const styles = StyleSheet.create({
   tripPin: { backgroundColor: '#8A97A6' },
   tripPinMatch: { backgroundColor: colors.primary },
   selectedPin: { backgroundColor: colors.error, height: 34, width: 34 },
+  mapButton: {
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: radius.radiusFull,
+    elevation: 4,
+    height: 44,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 12,
+    shadowColor: colors.shadow,
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    top: 236,
+    width: 44,
+  },
+  mapButtonActive: { backgroundColor: colors.primary },
+  mapButtonBadge: { position: 'absolute', right: -6, top: -6 },
   sheet: {
     backgroundColor: colors.white,
     borderTopLeftRadius: radius.radiusXL,

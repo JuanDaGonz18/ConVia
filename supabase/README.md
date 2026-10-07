@@ -3,7 +3,9 @@
 Proyecto: **WheelsApp** · ref `hfnsgeunskbkapjavcao` · región Canada (Central) · plan Free
 URL: `https://hfnsgeunskbkapjavcao.supabase.co`
 
-Estado: las migraciones 1–7 están aplicadas (historial reparado el 2026-09-26). La 6 añade chat persistente y referencia facial privada; la 7 añade `expo_push_token` y `notifications_enabled` en `profiles`.
+Estado: las migraciones 1–19 están aplicadas (historial reparado el 2026-09-26). La 6 añade chat persistente y referencia facial privada; la 7 añade `expo_push_token` y `notifications_enabled` en `profiles`.
+
+La 19 (`20261007000019_subscriptions.sql`, aplicada el 2026-10-07) crea los planes FREE / ConVía+: tablas `plans` y `subscriptions` (sin fila = FREE; la app solo puede leer la suya), `get_my_plan()` para la app, y triggers que limitan vehículos activos, lugares guardados y conductores favoritos según el plan (`private.plan_limit`). Para activar ConVía+ a mano ver el README principal.
 
 Edge Functions desplegadas: `notify` (push de solicitudes, respuestas y mensajes; los destinatarios se calculan en el servidor) y `delete-account` (borra archivos de Storage y el usuario con `auth.admin.deleteUser`; cascada al resto).
 

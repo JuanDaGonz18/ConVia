@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import MapView, { Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,6 +8,7 @@ import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import { AppMap, LatLng, MapHandle, MapRegion } from '@/maps';
 import { locationService } from '@/services/locationService';
 import { Location } from '@/types';
 
@@ -22,8 +22,10 @@ type MapPickerModalProps = Readonly<{
   onClose: () => void;
 }>;
 
-const DEFAULT_REGION: Region = { latitude: 4.711, longitude: -74.0721, latitudeDelta: 0.12, longitudeDelta: 0.12 };
+const DEFAULT_REGION: MapRegion = { latitude: 4.711, longitude: -74.0721, latitudeDelta: 0.12, longitudeDelta: 0.12 };
 const ZOOMED = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
+/** The map settling this close (km) to a chosen point keeps that point and its name. */
+const SAME_SPOT_KM = 0.015;
 
 /**
  * Full-screen picker: move the map under the center pin, tap any point or
@@ -31,7 +33,7 @@ const ZOOMED = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
  * coordinates and a reverse-geocoded address.
  */
 export function MapPickerModal({ visible, title, initial, near, onConfirm, onClose }: MapPickerModalProps) {
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapHandle>(null);
   const start = initial ?? near;
   const [point, setPoint] = useState<Location | null>(null);
   const [resolving, setResolving] = useState(false);
@@ -41,14 +43,14 @@ export function MapPickerModal({ visible, title, initial, near, onConfirm, onClo
   const [searchError, setSearchError] = useState<string | null>(null);
   // Name of a tapped place, kept until the map settles on it.
   const pendingName = useRef<string | null>(null);
-  // Set when the next map settle must not replace the chosen point's name.
-  const skipNextSettle = useRef(false);
+  // A point chosen by name (initial value or search result): while the map rests
+  // on it, keep its name instead of replacing it with the street address.
+  const keepAt = useRef<LatLng | null>(null);
   const lookup = useRef(0);
 
   useEffect(() => {
     if (!visible) return;
-    // The map settles once when it opens; keep the name of an existing value.
-    skipNextSettle.current = !!initial;
+    keepAt.current = initial ?? null;
     const timer = setTimeout(() => {
       setPoint(initial ?? null);
       setQuery('');
@@ -73,7 +75,8 @@ export function MapPickerModal({ visible, title, initial, near, onConfirm, onClo
 
   const moveTo = (latitude: number, longitude: number, name?: string) => {
     pendingName.current = name ?? null;
-    mapRef.current?.animateToRegion({ latitude, longitude, ...ZOOMED }, 400);
+    keepAt.current = null;
+    mapRef.current?.centerOn({ latitude, longitude }, { delta: ZOOMED.latitudeDelta, duration: 400 });
   };
 
   const search = async () => {
@@ -100,37 +103,24 @@ export function MapPickerModal({ visible, title, initial, near, onConfirm, onClo
     lookup.current += 1; // ignore any lookup still running
     setPoint(location);
     pendingName.current = null;
-    mapRef.current?.animateToRegion({ latitude: location.latitude, longitude: location.longitude, ...ZOOMED }, 400);
-    // The settled region would re-geocode; keep the searched name instead.
-    skipNextSettle.current = true;
+    keepAt.current = location;
+    mapRef.current?.centerOn(location, { delta: ZOOMED.latitudeDelta, duration: 400 });
   };
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen" visible={visible}>
       <View style={styles.root}>
-        <MapView
+        <AppMap
           initialRegion={start ? { latitude: start.latitude, longitude: start.longitude, ...ZOOMED } : DEFAULT_REGION}
-          onPoiClick={(event) => {
-            const { coordinate, name } = event.nativeEvent;
-            moveTo(coordinate.latitude, coordinate.longitude, name.split('\n')[0].trim());
-          }}
-          onPress={(event) => {
-            if (event.nativeEvent.action === 'marker-press') return;
-            const { latitude, longitude } = event.nativeEvent.coordinate;
-            moveTo(latitude, longitude);
-          }}
-          onRegionChangeComplete={(region) => {
-            if (skipNextSettle.current) {
-              skipNextSettle.current = false;
-              return;
-            }
-            void resolve(region.latitude, region.longitude);
+          onPress={(event) => moveTo(event.latitude, event.longitude, event.placeName)}
+          onRegionChangeComplete={(center) => {
+            if (keepAt.current && locationService.distanceKm(center, keepAt.current) < SAME_SPOT_KM) return;
+            keepAt.current = null;
+            void resolve(center.latitude, center.longitude);
           }}
           ref={mapRef}
-          showsMyLocationButton
           showsUserLocation
           style={StyleSheet.absoluteFill}
-          toolbarEnabled={false}
         />
 
         {/* Fixed pin: the selected point is always the center of the map. */}

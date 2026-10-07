@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 
+import { PlusBadge } from '@/components/subscription/PlusBadge';
+import { requirePlus } from '@/components/subscription/PlusGate';
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { toast } from '@/components/ui/Toast';
@@ -23,6 +25,7 @@ import { locationService } from '@/services/locationService';
 import { tripService, TripTemplate } from '@/services/tripService';
 import { MAX_SEATS, vehicleService } from '@/services/vehicleService';
 import { useAppStore } from '@/store/appStore';
+import { usePlan } from '@/subscription/usePlan';
 import { Location, TripRoute, Vehicle } from '@/types';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
 
@@ -71,6 +74,8 @@ export default function CreateTripScreen() {
   const driverStatus = useAppStore((state) => state.currentUser?.driverStatus);
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const { isPlus, atLimit } = usePlan();
+  const vehiclesFull = atLimit('vehicles', vehicles.length);
   const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [vehicleLoaded, setVehicleLoaded] = useState(false);
   const [origin, setOrigin] = useState<Location | null>(null);
@@ -301,10 +306,17 @@ export default function CreateTripScreen() {
                 </Pressable>
               );
             })}
-            <Pressable accessibilityLabel="Agregar vehículo" onPress={() => router.push('/vehicle')} style={[styles.vehicleCard, styles.vehicleAdd]}>
-              <Ionicons color={colors.primary} name="add-circle-outline" size={28} />
-              <Text style={styles.vehicleMeta}>Agregar</Text>
-            </Pressable>
+            {!vehiclesFull || !isPlus ? (
+              <Pressable
+                accessibilityLabel="Agregar vehículo"
+                onPress={() => (vehiclesFull ? requirePlus({ limit: 'vehicles' }) : router.push('/vehicle'))}
+                style={[styles.vehicleCard, styles.vehicleAdd]}
+              >
+                <Ionicons color={colors.primary} name="add-circle-outline" size={28} />
+                <Text style={styles.vehicleMeta}>Agregar</Text>
+                {vehiclesFull ? <PlusBadge /> : null}
+              </Pressable>
+            ) : null}
           </ScrollView>
         ) : null}
         {vehicle && !vehicle.photoUrl ? (

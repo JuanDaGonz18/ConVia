@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 
 import { MapPickerModal } from '@/components/map/MapPickerModal';
@@ -8,6 +7,7 @@ import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import { AppMap, MapHandle, MapLine, MapMarker } from '@/maps';
 import { locationService, RoutePreview } from '@/services/locationService';
 import { Location, TripRoute } from '@/types';
 
@@ -40,7 +40,7 @@ function closestTo(routes: RoutePreview[], km: number) {
  * up to three stops the trip must pass through. Reports the chosen route.
  */
 export function RoutePicker({ origin, destination, initialRoute, onChange }: RoutePickerProps) {
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapHandle>(null);
   const [stops, setStops] = useState<Location[]>(initialRoute?.via ?? []);
   const [routes, setRoutes] = useState<RoutePreview[]>([]);
   const [selected, setSelected] = useState(0);
@@ -78,7 +78,7 @@ export function RoutePicker({ origin, destination, initialRoute, onChange }: Rou
   useEffect(() => {
     onChange(chosen ? { ...chosen, via: stops } : null);
     const points = chosen?.coordinates ?? [origin, destination];
-    const timer = setTimeout(() => mapRef.current?.fitToCoordinates(points, { edgePadding: EDGE_PADDING, animated: true }), 100);
+    const timer = setTimeout(() => mapRef.current?.fitTo(points, { padding: EDGE_PADDING }), 100);
     return () => clearTimeout(timer);
   }, [chosen, destination, onChange, origin, stops]);
 
@@ -87,7 +87,7 @@ export function RoutePicker({ origin, destination, initialRoute, onChange }: Rou
   return (
     <View style={styles.container}>
       <View style={styles.mapCard}>
-        <MapView
+        <AppMap
           initialRegion={{
             latitude: (origin.latitude + destination.latitude) / 2,
             longitude: (origin.longitude + destination.longitude) / 2,
@@ -97,35 +97,33 @@ export function RoutePicker({ origin, destination, initialRoute, onChange }: Rou
           ref={mapRef}
           rotateEnabled={false}
           style={styles.map}
-          toolbarEnabled={false}
         >
           {/* Alternatives first so the chosen route is drawn on top. */}
           {routes.map((route, index) => (index === selected ? null : (
-            <Polyline
+            <MapLine
+              color="#9AA5B1"
               coordinates={route.coordinates}
               key={`alt-${index}`}
               onPress={() => setSelected(index)}
-              strokeColor="#9AA5B1"
-              strokeWidth={5}
-              tappable
+              width={5}
             />
           )))}
-          {chosen ? <Polyline coordinates={chosen.coordinates} strokeColor={colors.primary} strokeWidth={6} /> : null}
+          {chosen ? <MapLine color={colors.primary} coordinates={chosen.coordinates} width={6} /> : null}
           {!chosen && !loading ? (
-            <Polyline coordinates={[origin, ...stops, destination]} lineDashPattern={[8, 6]} strokeColor={colors.primary} strokeWidth={4} />
+            <MapLine color={colors.primary} coordinates={[origin, ...stops, destination]} dashed width={4} />
           ) : null}
-          <Marker coordinate={origin} title={origin.label}>
+          <MapMarker coordinate={origin} title={origin.label}>
             <View style={[styles.pin, styles.originPin]}><Ionicons color={colors.white} name="navigate" size={12} /></View>
-          </Marker>
+          </MapMarker>
           {stops.map((stop, index) => (
-            <Marker coordinate={stop} key={stop.id} title={stop.label}>
+            <MapMarker coordinate={stop} key={stop.id} title={stop.label}>
               <View style={[styles.pin, styles.stopPin]}><Text style={styles.stopNumber}>{index + 1}</Text></View>
-            </Marker>
+            </MapMarker>
           ))}
-          <Marker coordinate={destination} title={destination.label}>
+          <MapMarker coordinate={destination} title={destination.label}>
             <View style={[styles.pin, styles.destinationPin]}><Ionicons color={colors.white} name="flag" size={12} /></View>
-          </Marker>
-        </MapView>
+          </MapMarker>
+        </AppMap>
         {loading ? (
           <View style={styles.mapOverlay}>
             <ActivityIndicator color={colors.primary} />

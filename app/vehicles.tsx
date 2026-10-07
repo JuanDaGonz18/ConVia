@@ -4,10 +4,13 @@ import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { PlusBadge } from '@/components/subscription/PlusBadge';
+import { requirePlus } from '@/components/subscription/PlusGate';
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { toast } from '@/components/ui/Toast';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
+import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { RowSkeleton } from '@/components/ui/Skeleton';
@@ -17,6 +20,8 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { vehicleService } from '@/services/vehicleService';
+import { LIMIT_INFO } from '@/subscription/plans';
+import { refreshPlan, usePlan } from '@/subscription/usePlan';
 import { Vehicle } from '@/types';
 import { errorMessage } from '@/utils/format';
 
@@ -26,6 +31,9 @@ export default function VehiclesScreen() {
   const [error, setError] = useState<string | null>(null);
   const [toRemove, setToRemove] = useState<Vehicle | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const { isPlus, limit, atLimit } = usePlan();
+  const vehicleLimit = limit('vehicles');
+  const full = atLimit('vehicles', vehicles.length);
 
   const load = useCallback(async () => {
     try {
@@ -38,12 +46,18 @@ export default function VehiclesScreen() {
     }
   }, []);
 
-  // Reload after adding or editing a vehicle.
+  // Reload after adding or editing a vehicle (and the plan, in case it changed).
   useFocusEffect(
     useCallback(() => {
       void load();
+      void refreshPlan();
     }, [load]),
   );
+
+  const addVehicle = () => {
+    if (full) requirePlus({ limit: 'vehicles' });
+    else router.push('/vehicle');
+  };
 
   const remove = async (vehicle: Vehicle) => {
     setToRemove(null);
@@ -117,7 +131,26 @@ export default function VehiclesScreen() {
           </View>
         ))}
 
-        <ButtonPrimary onPress={() => router.push('/vehicle')} title="Agregar vehículo" />
+        {!loading && vehicleLimit !== null ? (
+          <View style={styles.planRow}>
+            {isPlus ? <PlusBadge /> : null}
+            <Text style={styles.planText}>
+              {isPlus
+                ? `Usas ${vehicles.length} de ${vehicleLimit} vehículos de tu plan.`
+                : vehicles.length > vehicleLimit
+                  ? `${LIMIT_INFO.vehicles.freeText(vehicleLimit)} Puedes seguir usando los que ya tienes, pero para agregar otro necesitas ConVía+.`
+                  : LIMIT_INFO.vehicles.freeText(vehicleLimit)}
+            </Text>
+          </View>
+        ) : null}
+
+        {!full ? (
+          <ButtonPrimary onPress={addVehicle} title="Agregar vehículo" />
+        ) : isPlus ? (
+          <Text style={styles.planText}>Llegaste al máximo de vehículos de tu plan.</Text>
+        ) : (
+          <ButtonSecondary icon="sparkles-outline" onPress={addVehicle} title="Registra varios vehículos con ConVía+" />
+        )}
       </ScrollView>
 
       <ConfirmDialog
@@ -148,5 +181,14 @@ const styles = StyleSheet.create({
   cardTitle: { ...typography.bodyMedium, color: colors.text, fontWeight: '700' },
   cardMeta: { ...typography.bodySmall, color: colors.textSecondary },
   iconButton: { padding: spacing[8] },
+  planRow: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.radiusMedium,
+    flexDirection: 'row',
+    gap: spacing[8],
+    padding: spacing[12],
+  },
+  planText: { ...typography.bodySmall, color: colors.textSecondary, flex: 1 },
   error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
 });

@@ -4,12 +4,14 @@ import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { PlusGateHost } from '@/components/subscription/PlusGate';
 import { ToastHost } from '@/components/ui/Toast';
 import { colors } from '@/constants/colors';
 import { authService } from '@/services/authService';
 import { notificationService } from '@/services/notificationService';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
+import { SubscriptionSync } from '@/subscription/usePlan';
 import { useEffect } from 'react';
 
 export default function RootLayout() {
@@ -60,6 +62,8 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="map" options={{ animation: 'fade_from_bottom' }} />
       </Stack>
+      <SubscriptionSync />
+      <PlusGateHost />
       <ToastHost />
     </SafeAreaProvider>
   );

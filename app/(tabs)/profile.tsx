@@ -24,6 +24,7 @@ import { authService } from '@/services/authService';
 import { notificationService } from '@/services/notificationService';
 import { profileService } from '@/services/profileService';
 import { isSupabaseEnabled } from '@/lib/supabase';
+import { usePlan } from '@/subscription/usePlan';
 import { errorMessage } from '@/utils/format';
 
 const DRIVER_STATUS_LABELS = {
@@ -91,6 +92,7 @@ export default function ProfileScreen() {
   const userName = currentUser?.name || 'Usuario ConVía';
   const userEmail = currentUser?.email ?? '';
   const isDriver = currentUser?.role === 'driver';
+  const { isPlus } = usePlan();
   const isVerified = currentUser?.faceVerified === true;
 
   const handleConfirmLogout = async () => {
@@ -138,6 +140,13 @@ export default function ProfileScreen() {
             onPress={() => router.push('/profile-edit')}
             subtitle="Nombre, teléfono, foto y contraseña"
             title="Información personal"
+          />
+          <Divider />
+          <ListItem
+            icon={isPlus ? 'sparkles' : 'sparkles-outline'}
+            onPress={() => router.push('/plus')}
+            subtitle={isPlus ? 'ConVía+ activo' : 'Plan gratis · Conoce ConVía+'}
+            title="Tu plan"
           />
           <Divider />
           <ListItem

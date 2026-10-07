@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import { AppMap, MapHandle, MapLine, MapMarker } from '@/maps';
 import { locationService, RoutePreview } from '@/services/locationService';
 import { Location, TripRoute } from '@/types';
 import { hasCoordinates } from '@/utils/tripRanking';
@@ -18,15 +18,14 @@ type TripRoutePreviewProps = Readonly<{
   chosenRoute?: TripRoute;
 }>;
 
-// Extra room on top: pins are drawn above their coordinate.
-const EDGE_PADDING = { top: 72, right: 48, bottom: 40, left: 48 };
+const EDGE_PADDING = { top: 48, right: 48, bottom: 40, left: 48 };
 
 /**
  * Small, non-interactive map with the departure, the destination and the road
  * route between them (a dashed straight line when the route is unavailable).
  */
 export function TripRoutePreview({ origin, destination, chosenRoute }: TripRoutePreviewProps) {
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapHandle>(null);
   const [fetchedRoute, setFetchedRoute] = useState<RoutePreview | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(!chosenRoute);
   const located = hasCoordinates(origin) && hasCoordinates(destination);
@@ -47,7 +46,7 @@ export function TripRoutePreview({ origin, destination, chosenRoute }: TripRoute
   const path = route?.coordinates ?? [origin, destination];
 
   // Frame the whole route once the map (and the route, when it arrives) is ready.
-  const frame = () => mapRef.current?.fitToCoordinates(path, { edgePadding: EDGE_PADDING, animated: false });
+  const frame = () => mapRef.current?.fitTo(path, { padding: EDGE_PADDING, animated: false });
   useEffect(() => {
     const timer = setTimeout(frame, 50);
     return () => clearTimeout(timer);
@@ -60,7 +59,7 @@ export function TripRoutePreview({ origin, destination, chosenRoute }: TripRoute
 
   return (
     <View style={styles.card}>
-      <MapView
+      <AppMap
         accessibilityLabel={`Mapa del recorrido de ${origin.label} a ${destination.label}`}
         initialRegion={{
           latitude: (origin.latitude + destination.latitude) / 2,
@@ -68,41 +67,30 @@ export function TripRoutePreview({ origin, destination, chosenRoute }: TripRoute
           latitudeDelta: Math.max(0.02, Math.abs(origin.latitude - destination.latitude) * 1.8),
           longitudeDelta: Math.max(0.02, Math.abs(origin.longitude - destination.longitude) * 1.8),
         }}
-        liteMode
-        onMapReady={frame}
-        pitchEnabled={false}
-        pointerEvents="none"
+        interactive={false}
+        onReady={frame}
         ref={mapRef}
-        rotateEnabled={false}
-        scrollEnabled={false}
         style={styles.map}
-        toolbarEnabled={false}
-        zoomEnabled={false}
       >
-        <Polyline
-          coordinates={path}
-          lineDashPattern={route ? undefined : [8, 6]}
-          strokeColor={colors.primary}
-          strokeWidth={4}
-        />
-        <Marker coordinate={origin} title={origin.label}>
+        <MapLine color={colors.primary} coordinates={path} dashed={!route} width={4} />
+        <MapMarker coordinate={origin} title={origin.label}>
           <View style={[styles.pin, styles.originPin]}>
             <Ionicons color={colors.white} name="navigate" size={12} />
           </View>
-        </Marker>
+        </MapMarker>
         {stops.map((stop, index) => (
-          <Marker coordinate={stop} key={stop.id} title={stop.label}>
+          <MapMarker coordinate={stop} key={stop.id} title={stop.label}>
             <View style={[styles.pin, styles.stopPin]}>
               <Text style={styles.stopNumber}>{index + 1}</Text>
             </View>
-          </Marker>
+          </MapMarker>
         ))}
-        <Marker coordinate={destination} title={destination.label}>
+        <MapMarker coordinate={destination} title={destination.label}>
           <View style={[styles.pin, styles.destinationPin]}>
             <Ionicons color={colors.white} name="flag" size={12} />
           </View>
-        </Marker>
-      </MapView>
+        </MapMarker>
+      </AppMap>
 
       <View style={styles.legend}>
         <View style={styles.legendRow}>

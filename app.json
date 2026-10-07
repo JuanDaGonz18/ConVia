@@ -61,6 +61,7 @@
         }
       ],
       "expo-asset",
+      "@maplibre/maplibre-react-native",
       [
         "expo-notifications",
         {
