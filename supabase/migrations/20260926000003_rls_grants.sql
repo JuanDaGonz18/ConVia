@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — permisos (Data API) y Row Level Security
+-- ConVía — permisos (Data API) y Row Level Security
 -- "Automatically expose new tables" está desactivado: todo se concede aquí.
 -- =====================================================================
 

@@ -1,4 +1,4 @@
--- WheelsApp: persisted participant chat and server-owned face references
+-- ConVía: persisted participant chat and server-owned face references
 
 alter table public.profiles
   add column if not exists face_reference_path text;

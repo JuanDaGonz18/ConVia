@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — lugares guardados y conductores favoritos
+-- ConVía — lugares guardados y conductores favoritos
 --  * saved_places: lugares opcionales del usuario (casa, trabajo,
 --    universidad u otros) con coordenadas reales. La app los usa para
 --    priorizar los viajes cuyo destino queda cerca de ellos.

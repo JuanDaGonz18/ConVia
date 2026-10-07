@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — esquema inicial
+-- ConVía — esquema inicial
 -- Carpooling para comunidades cerradas (universidad / empresa)
 -- Roles: usuario (pasajero) y conductor
 -- =====================================================================

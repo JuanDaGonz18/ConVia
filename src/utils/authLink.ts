@@ -1,6 +1,6 @@
 /**
  * Supabase email links (sign-up confirmation) come back to the app as
- * wheelsapp://callback?code=… on success, but report failures
+ * convia://callback?code=… on success, but report failures
  * (expired or reused links) in the URL fragment: #error=…&error_code=….
  * Expo Router params only include the query string, so both are read here.
  */

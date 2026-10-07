@@ -1,5 +1,5 @@
 {
-  "name": "wheelsapp",
+  "name": "convia",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
@@ -27,6 +27,7 @@
     "expo-secure-store": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
+    "leaflet": "^1.9.4",
     "onnxruntime-common": "^1.24.3",
     "onnxruntime-react-native": "^1.24.3",
     "query-string": "^9.5.1",
@@ -52,7 +53,9 @@
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
+    "@types/leaflet": "^1.9.22",
     "@types/react": "~19.2.2",
+    "@types/react-dom": "~19.2.0",
     "babel-preset-expo": "^57.0.12",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",

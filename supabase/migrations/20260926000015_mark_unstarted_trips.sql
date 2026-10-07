@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — marcar automáticamente los viajes no iniciados
+-- ConVía — marcar automáticamente los viajes no iniciados
 --  Cada 10 minutos (pg_cron): los viajes 'por_empezar' cuya salida fue
 --  hace más de 2 horas pasan a 'no_iniciado', y sus solicitudes pendientes
 --  o aceptadas se cancelan para que el pasajero no quede esperando.

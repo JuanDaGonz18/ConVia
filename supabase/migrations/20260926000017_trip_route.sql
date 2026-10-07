@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — ruta elegida por el conductor
+-- ConVía — ruta elegida por el conductor
 --  El conductor escoge la ruta al publicar (entre alternativas o agregando
 --  paradas intermedias). Se guarda en trips.ruta y es la que ven los
 --  pasajeros:

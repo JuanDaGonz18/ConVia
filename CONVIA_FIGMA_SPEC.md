@@ -1,4 +1,4 @@
-# WheelsApp — Especificación extraída del Figma
+# ConVía — Especificación extraída del Figma
 
 Fuente: `figma.com/design/aEHTWD1yun7qkzKrHFbN30/WheelsApp` (página única "Page 1"). Solo lectura, no se modificó nada.
 Fecha de extracción: 25-sep-2026. Los IDs `[x:y]` son los nodos de Figma, por si necesitas volver a uno puntual.

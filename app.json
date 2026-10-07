@@ -2,7 +2,7 @@
   "expo": {
     "name": "ConVía",
     "slug": "wheelsapp",
-    "scheme": "wheelsapp",
+    "scheme": "convia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
       }
     },
     "android": {
-      "package": "com.juanda1809.wheelsapp",
+      "package": "com.juanda1809.convia",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",

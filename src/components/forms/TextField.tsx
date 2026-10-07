@@ -87,6 +87,8 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     flex: 1,
+    // Web inputs have an intrinsic width; without this the right accessory overflows.
+    minWidth: 0,
     minHeight: dimensions.controlHeight + 2,
     paddingHorizontal: spacing[16],
   },

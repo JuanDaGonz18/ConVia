@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
@@ -7,7 +8,7 @@ import { LEGAL_VERSION } from '@/content/legal';
 import { notificationService } from '@/services/notificationService';
 import { DriverStatus, User, UserRole } from '@/types';
 
-const SESSION_KEY = 'wheelsapp.demo.session';
+const SESSION_KEY = 'convia.demo.session';
 const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
 
 type SupabaseProfile = {
@@ -58,6 +59,14 @@ const getSupabaseUser = async (): Promise<User | null> => {
   }
   return mapProfile(data as unknown as SupabaseProfile);
 };
+
+/** Where the confirmation e-mail sends the user back: the app on phones, this site on the web build. */
+function authCallbackUrl() {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.origin}${process.env.EXPO_PUBLIC_WEB_BASE_URL ?? ''}/callback`;
+  }
+  return 'convia://callback';
+}
 
 export const authService = {
   async getCurrentUser(): Promise<User | null> {
@@ -119,7 +128,7 @@ export const authService = {
             terms_version: LEGAL_VERSION,
           },
           // Route groups are not part of the URL: app/(auth)/callback.tsx is /callback.
-          emailRedirectTo: 'wheelsapp://callback',
+          emailRedirectTo: authCallbackUrl(),
         },
       });
       if (error) throw error;

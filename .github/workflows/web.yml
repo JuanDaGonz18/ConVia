@@ -1,0 +1,54 @@
+# Publishes the ConVía website on GitHub Pages:
+#   https://juandagonz18.github.io/ConVia/      → download page (web-landing/)
+#   https://juandagonz18.github.io/ConVia/app/  → web app for iPhone users
+# Runs on every push to main and can be started by hand from the Actions tab.
+name: Sitio web (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Public client settings (the anon key is meant to be public; access is enforced by Supabase RLS).
+      EXPO_PUBLIC_SUPABASE_URL: https://hfnsgeunskbkapjavcao.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_d_BpHw8eIUvUkrwjGT2v1w_cFD6k3hh
+      EXPO_PUBLIC_USE_SUPABASE: 'true'
+      EXPO_PUBLIC_WEB_BASE_URL: /${{ github.event.repository.name }}/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Exportar la app web
+        run: npx expo export --platform web --output-dir dist
+      - name: Armar el sitio (landing + app)
+        run: node scripts/prepare-web.mjs dist site "$EXPO_PUBLIC_WEB_BASE_URL"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

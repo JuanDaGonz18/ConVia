@@ -1,6 +1,6 @@
-# WheelsApp — Backend Supabase
+# ConVía — Backend Supabase
 
-Proyecto: **WheelsApp** · ref `hfnsgeunskbkapjavcao` · región Canada (Central) · plan Free
+Proyecto: **ConVía** · ref `hfnsgeunskbkapjavcao` · región Canada (Central) · plan Free
 URL: `https://hfnsgeunskbkapjavcao.supabase.co`
 
 Estado: las migraciones 1–19 están aplicadas (historial reparado el 2026-09-26). La 6 añade chat persistente y referencia facial privada; la 7 añade `expo_push_token` y `notifications_enabled` en `profiles`.
@@ -94,8 +94,8 @@ Otras reglas: un pasajero puede volver a pedir un viaje si su solicitud anterior
 ## Auth
 
 - Email + contraseña (proveedor por defecto).
-- Site URL `wheelsapp://` · Redirect URLs `wheelsapp://**` y `exp://**` (Expo Go). Configura `"scheme": "wheelsapp"` en `app.json`.
-- Los enlaces de correo usan PKCE: vuelven como `wheelsapp://callback?code=…`. Si el enlace venció, Supabase manda el error en el fragmento (`#error_code=otp_expired`); `src/utils/authLink.ts` lo lee.
+- Site URL `convia://` · Redirect URLs `convia://**`, `exp://**` (Expo Go) y `https://juandagonz18.github.io/ConVia/**` (versión web). Configura `"scheme": "convia"` en `app.json`.
+- Los enlaces de correo usan PKCE: vuelven como `convia://callback?code=…`. Si el enlace venció, Supabase manda el error en el fragmento (`#error_code=otp_expired`); `src/utils/authLink.ts` lo lee.
 
 
 ## Verificación facial (gratuita, en el dispositivo)

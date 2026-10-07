@@ -1,5 +1,5 @@
 -- =====================================================================
--- WheelsApp — chat solo para pasajeros aceptados y edición de viajes
+-- ConVía — chat solo para pasajeros aceptados y edición de viajes
 --  1. Un pasajero lee y escribe en el chat del viaje solo cuando el
 --     conductor aceptó su solicitud (o ya abordó). Antes bastaba con tener
 --     una solicitud pendiente.

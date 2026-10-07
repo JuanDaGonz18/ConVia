@@ -1,0 +1,51 @@
+# Publishes an Android APK built by EAS as a GitHub Release, so the download
+# page's link (…/releases/latest/download/convia.apk) always serves the newest one.
+#
+# How to use: Actions → "Publicar APK" → Run workflow, and paste the APK link
+# from the EAS build page (the "Install" / download button).
+name: Publicar APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      apk_url:
+        description: Enlace de descarga del APK (página del build en expo.dev)
+        required: true
+      version:
+        description: Versión (ej. 1.0.0-beta.2)
+        required: true
+      notes:
+        description: Qué cambió en esta versión
+        required: false
+        default: Nueva versión beta de ConVía.
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el APK
+        env:
+          APK_URL: ${{ inputs.apk_url }}
+        run: |
+          case "$APK_URL" in
+            https://expo.dev/*|https://*.expo.dev/*|https://storage.googleapis.com/*) ;;
+            *) echo "El enlace debe ser de expo.dev"; exit 1 ;;
+          esac
+          curl -fL --retry 3 -o convia.apk "$APK_URL"
+          # An APK is a zip file: reject HTML error pages or partial downloads.
+          unzip -tq convia.apk > /dev/null
+          ls -lh convia.apk
+      - name: Crear el release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          gh release create "v$VERSION" convia.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "ConVía $VERSION" \
+            --notes "$NOTES" \
+            --latest
