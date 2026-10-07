@@ -1,5 +1,5 @@
 /**
- * Web stand-in for react-native-maps, built on Leaflet + OpenStreetMap/CARTO
+ * Web stand-in for react-native-maps, built on Leaflet + OpenStreetMap
  * tiles (free, no API key). metro.config.js points `react-native-maps` here
  * for web builds only; Android/iOS keep using the real library.
  *
@@ -34,8 +34,9 @@ export const PROVIDER_DEFAULT = undefined;
 
 const MapContext = createContext<L.Map | null>(null);
 
-const TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+// OpenStreetMap's own tiles: free, no API key (CARTO's now require one). Attribution is mandatory.
+const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
 const toLatLng = (point: LatLng) => L.latLng(point.latitude, point.longitude);
 const fromLatLng = (point: L.LatLng): LatLng => ({ latitude: point.lat, longitude: point.lng });
@@ -123,7 +124,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(props, 
       dragging: props.scrollEnabled !== false,
       scrollWheelZoom: props.zoomEnabled !== false,
     });
-    L.tileLayer(TILES, { attribution: ATTRIBUTION, subdomains: 'abcd', maxZoom: 20 }).addTo(instance);
+    L.tileLayer(TILES, { attribution: ATTRIBUTION, maxZoom: 19 }).addTo(instance);
     const start = region ?? initialRegion;
     if (start) instance.fitBounds(regionBounds(start), { animate: false });
     else instance.setView([4.861, -74.032], 12); // Chía
