@@ -24,6 +24,9 @@ declare
 
 begin
   -- ---------------- datos de prueba (como administrador) ----------------
+  -- Estas pruebas verifican las reglas tal como regirán después de la beta
+  -- (límites de plan aplicados). El cambio se deshace al final.
+  update public.app_config set beta_mode = false;
   insert into public.institutions (nombre, tipo, dominio) values ('Org B (prueba)', 'universidad', 'orgb-prueba.edu.co');
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
     (dA,  'zz.driver@unisabana.edu.co', '{"nombre":"ZZ Conductor A","rol":"conductor"}', 'authenticated', 'authenticated'),

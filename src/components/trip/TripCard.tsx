@@ -29,7 +29,7 @@ export function TripCard({ trip, onChatPress, onTripPress, match }: TripCardProp
       {match ? <MatchSummary match={match} /> : null}
       <View style={styles.header}>
         <View style={styles.driver}>
-          <Avatar imageUrl={trip.driver.avatarUrl} name={trip.driver.name} size={44} />
+          <Avatar highlight={trip.driver.isPlus} imageUrl={trip.driver.avatarUrl} name={trip.driver.name} size={44} />
           <View style={styles.driverInfo}>
             <View style={styles.nameRow}>
               <Text numberOfLines={1} style={styles.driverName}>{trip.driver.name}</Text>

@@ -49,7 +49,7 @@ export function parseRoute(value: unknown): TripRoute | undefined {
 }
 
 /** TripRoute → the compact shape stored in trips.ruta. */
-function serializeRoute(route: TripRoute | null | undefined): Json | null {
+export function serializeRoute(route: TripRoute | null | undefined): Json | null {
   if (!route) return null;
   const round = (value: number) => Math.round(value * 1e6) / 1e6;
   return {
@@ -113,6 +113,8 @@ export type DriverTripRecord = {
   price: number;
   totalSeats: number;
   status: DriverTripStatus;
+  /** Published by a weekly schedule (recurring trip). */
+  recurring: boolean;
 };
 
 async function requireUserId() {
@@ -221,6 +223,14 @@ export const tripService = {
 
     return mockTrips;
   },
+  /** Open trips by id (same reduced data as the list), e.g. the ones an alert found. */
+  async getAvailableTripsByIds(ids: string[]): Promise<Trip[]> {
+    if (!useSupabase || !ids.length) return [];
+    ensureSupabaseConfigured();
+    const { data, error } = await supabase.from('available_trips').select('*').in('id', ids).order('salida_at');
+    if (error) throw error;
+    return data.map(mapAvailableTrip).filter((trip): trip is Trip => trip !== null);
+  },
   async createTrip(input: CreateTripInput) {
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     const userId = await requireUserId();
@@ -244,6 +254,8 @@ export const tripService = {
       .select('*')
       .single();
     if (error) throw error;
+    // Passengers whose route alert matches this trip are notified by the server.
+    notificationService.notify('trip_published', data.id);
     return data;
   },
   /** `dropoff`: where the passenger wants to get off (optional), so the driver can judge the fit. */
@@ -362,7 +374,7 @@ export const tripService = {
     const userId = await requireUserId();
     const { data, error } = await supabase
       .from('trips')
-      .select('id, origen_nombre, origen_lat, origen_lng, destino_nombre, destino_lat, destino_lng, ruta, salida_at, precio, cupos_totales, estado')
+      .select('id, origen_nombre, origen_lat, origen_lng, destino_nombre, destino_lat, destino_lng, ruta, salida_at, precio, cupos_totales, estado, recurring_trip_id')
       .eq('driver_id', userId)
       .order('salida_at', { ascending: false })
       .limit(50);
@@ -382,6 +394,7 @@ export const tripService = {
       price: Number(row.precio),
       totalSeats: row.cupos_totales,
       status: row.estado,
+      recurring: row.recurring_trip_id !== null,
     }));
   },
   /** A previous trip of this driver, to prefill "Repetir viaje". */
@@ -443,6 +456,8 @@ export const tripService = {
     if (error) throw error;
     const result = data as unknown as { changes: string[]; update_id: string | null; accepted: number };
     if (result.update_id && result.accepted > 0) notificationService.notify('trip_updated', result.update_id);
+    // A changed route or time can make the trip match new alerts (each user is alerted once per trip).
+    if (result.changes.length) notificationService.notify('trip_published', tripId);
     return { changes: result.changes, notified: result.update_id ? result.accepted : 0 };
   },
   async cancelRequest(requestId: string) {

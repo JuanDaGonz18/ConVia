@@ -1,4 +1,4 @@
-import { LIMIT_INFO, planLimitFromError } from '@/subscription/plans';
+import { CAPABILITIES, capabilityFromError, LIMIT_INFO, planLimitFromError } from '@/subscription/plans';
 
 function toDate(value: string | Date) {
   const date = value instanceof Date ? value : new Date(value);
@@ -69,6 +69,9 @@ export function errorMessage(error: unknown, fallback: string) {
   // A plan limit enforced by the database ('LIMITE_PLAN:<key>:<limit>').
   const planLimit = planLimitFromError(message);
   if (planLimit) return LIMIT_INFO[planLimit.key].reachedText(planLimit.limit);
+  // A ConVía+ capability the plan does not include ('CAPACIDAD_PLAN:<key>').
+  const capability = capabilityFromError(message);
+  if (capability) return `${CAPABILITIES[capability].title} es parte de ConVía+.`;
 
   for (const [pattern, friendly] of FRIENDLY_ERRORS) {
     if (pattern.test(message)) return friendly;

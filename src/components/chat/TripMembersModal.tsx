@@ -3,6 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Avatar } from '@/components/ui/Avatar';
 import { Rating } from '@/components/ui/Rating';
 import { colors } from '@/constants/colors';
@@ -91,9 +92,12 @@ export function TripMembersModal({ tripId, visible, onClose }: TripMembersModalP
 
               <Text style={styles.section}>Conductor</Text>
               <View style={styles.memberRow}>
-                <Avatar imageUrl={members.driver.avatarUrl} name={members.driver.name} size={44} />
+                <Avatar highlight={members.driver.isPlus} imageUrl={members.driver.avatarUrl} name={members.driver.name} size={44} />
                 <View style={styles.flex}>
-                  <Text style={styles.memberName}>{members.driver.name}{members.viewerIsDriver ? ' (tú)' : ''}</Text>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.memberName}>{members.driver.name}{members.viewerIsDriver ? ' (tú)' : ''}</Text>
+                    {members.driver.isPlus ? <PlusBadge /> : null}
+                  </View>
                   <Rating score={members.driver.rating} />
                 </View>
                 <Ionicons color={colors.primary} name="car-sport" size={20} />
@@ -107,9 +111,12 @@ export function TripMembersModal({ tripId, visible, onClose }: TripMembersModalP
               ) : null}
               {members.passengers.map((passenger) => (
                 <View key={passenger.requestId} style={styles.memberRow}>
-                  <Avatar imageUrl={passenger.avatarUrl} name={passenger.name} size={44} />
+                  <Avatar highlight={passenger.isPlus} imageUrl={passenger.avatarUrl} name={passenger.name} size={44} />
                   <View style={styles.flex}>
-                    <Text style={styles.memberName}>{passenger.name}{passenger.isMe ? ' (tú)' : ''}</Text>
+                    <View style={styles.nameRow}>
+                      <Text style={styles.memberName}>{passenger.name}{passenger.isMe ? ' (tú)' : ''}</Text>
+                      {passenger.isPlus ? <PlusBadge /> : null}
+                    </View>
                     <Rating score={passenger.rating} />
                     {passenger.pickupAddress ? <Text style={styles.meta}>Recogida: {passenger.pickupAddress}</Text> : null}
                   </View>
@@ -130,6 +137,7 @@ export function TripMembersModal({ tripId, visible, onClose }: TripMembersModalP
 }
 
 const styles = StyleSheet.create({
+  nameRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   safeArea: { backgroundColor: colors.background, flex: 1 },
   header: {
     alignItems: 'center',

@@ -47,9 +47,9 @@ export default function MapScreen() {
   const viewerId = useAppStore((state) => state.currentUser?.id ?? null);
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
   const mapRef = useRef<MapHandle>(null);
-  const { has } = usePlan();
+  const { can } = usePlan();
   const mapCapabilities = useMapCapabilities();
-  const canShowTraffic = has('map_traffic') && mapCapabilities.traffic;
+  const canShowTraffic = can('map_traffic') && mapCapabilities.traffic;
   const [traffic, setTraffic] = useState(false);
   // The bottom sheet can cover up to ~half the screen; keep the map's center above it.
   const { height: windowHeight } = useWindowDimensions();
@@ -207,7 +207,7 @@ export default function MapScreen() {
         accessibilityRole="switch"
         accessibilityState={{ checked: traffic }}
         onPress={() => {
-          if (!canShowTraffic) requirePlus({ feature: 'map_traffic' });
+          if (!canShowTraffic) requirePlus({ capability: 'map_traffic' });
           else setTraffic(!traffic);
         }}
         style={[styles.mapButton, traffic ? styles.mapButtonActive : null]}

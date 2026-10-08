@@ -94,6 +94,33 @@ export type SavedPlace = Location & {
   kind: SavedPlaceKind;
 };
 
+/** A route the passenger takes often: a search shortcut and, optionally, an alert. */
+export type SavedRoute = {
+  id: string;
+  name: string;
+  origin: Location;
+  destination: Location;
+  /** ISO weekdays (1 = Monday … 7 = Sunday); empty = any day. */
+  days: number[];
+  /** Local departure window "HH:MM"; null = any time. */
+  timeFrom: string | null;
+  timeTo: string | null;
+  /** Notify when a compatible trip is published. */
+  alert: boolean;
+};
+
+/** Personal defaults for search and notifications (they never change compatibility). */
+export type UserPreferences = {
+  sort: 'match' | 'departure' | 'price';
+  time: 'soon' | 'today' | 'tomorrow' | 'any';
+  maxPickupKm: number | null;
+  maxDropoffKm: number | null;
+  /** Saved place used as the pickup point; null = current location. */
+  pickupPlaceId: string | null;
+  notifyAlerts: boolean;
+  notifyRecurring: boolean;
+};
+
 export type FavoriteDriver = {
   id: string;
   name: string;

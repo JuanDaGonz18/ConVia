@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { PlusBadge } from '@/components/subscription/PlusBadge';
+import { requirePlus } from '@/components/subscription/PlusGate';
 import { RateDriverBanner } from '@/components/trip/RateDriverBanner';
 import { Notice } from '@/components/ui/Notice';
 import { PlaceSearchField } from '@/components/forms/PlaceSearchField';
 import { DriverApprovalNotice } from '@/components/profile/DriverApprovalNotice';
 import { ModeSwitch } from '@/components/profile/ModeSwitch';
 import { TimePreferenceChips } from '@/components/trip/TimePreferenceChips';
+import { TripFiltersSheet } from '@/components/trip/TripFiltersSheet';
+import { FilterButton } from '@/components/ui/FilterButton';
 import { TripCard } from '@/components/trip/TripCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TripListSkeleton } from '@/components/ui/Skeleton';
@@ -21,10 +25,12 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { locationService } from '@/services/locationService';
+import { activeFilterCount, applyTripFilters, DEFAULT_FILTERS, TripFilters } from '@/services/tripFilters';
 import { rankTripsForJourney, suggestTrips } from '@/services/tripMatching';
 import { DriverTripRecord, DriverTripStatus, tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
+import { usePlan } from '@/subscription/usePlan';
 import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
 
 /** Trips suggested on the passenger home before choosing a destination. */
@@ -87,13 +93,21 @@ function PassengerHome() {
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
-  const { destination, time } = useAppStore((state) => state.tripSearch);
+  const { destination, time, origin: chosenOrigin } = useAppStore((state) => state.tripSearch);
   const setTripSearch = useAppStore((state) => state.setTripSearch);
   const viewerId = useAppStore((state) => state.currentUser?.id ?? null);
+  const savedRoutes = useAppStore((state) => state.savedRoutes);
+  const storedPreferences = useAppStore((state) => state.preferences);
+  const { limit, can, isBetaPerk } = usePlan();
+  // Personal defaults apply only with the capability (open to everyone during the beta).
+  const preferences = can('advanced_preferences') ? storedPreferences : null;
   const [gpsOrigin, setGpsOrigin] = useState<Location | null>(null);
-  // 'gps' = where the phone is; the passenger can pick another starting point.
-  const [originChoice, setOriginChoice] = useState<Location | null | 'gps'>('gps');
-  const origin = originChoice === 'gps' ? gpsOrigin : originChoice;
+  // Pickup point: the one chosen for this search, else the preferred place, else the phone's location.
+  const preferredPickup = savedPlaces.find((place) => place.id === preferences?.pickupPlaceId) ?? null;
+  const origin = chosenOrigin ?? preferredPickup ?? gpsOrigin;
+  const [filters, setFilters] = useState<TripFilters>(DEFAULT_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
+  const filtersEnabled = can('advanced_filters');
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -112,6 +126,20 @@ function PassengerHome() {
   }, []);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  // Preferences become the starting time and filters (again whenever they are saved); the passenger can change them.
+  const appliedPreferences = useRef<typeof preferences>(null);
+  useEffect(() => {
+    if (!preferences || appliedPreferences.current === preferences) return;
+    appliedPreferences.current = preferences;
+    if (preferences.time !== 'any') setTripSearch({ time: preferences.time });
+    setFilters((current) => ({
+      ...current,
+      sort: preferences.sort,
+      maxPickupKm: preferences.maxPickupKm,
+      maxDropoffKm: preferences.maxDropoffKm,
+    }));
+  }, [preferences, setTripSearch]);
 
   // Where the passenger is: biases the search and is matched as the pickup point.
   useEffect(() => {
@@ -140,7 +168,25 @@ function PassengerHome() {
       : suggestTrips(trips, { origin, places: savedPlaces, favoriteDriverIds: favorites, time, viewerId })),
     [destination, favorites, origin, savedPlaces, time, trips, viewerId],
   );
-  const shown = expanded ? results : results.slice(0, INITIAL_RESULTS);
+  // Advanced filters narrow the compatible results (never add incompatible ones).
+  const filtered = useMemo(
+    () => (filtersEnabled ? applyTripFilters(results, filters, favorites) : results),
+    [favorites, filters, filtersEnabled, results],
+  );
+  const filterCount = filtersEnabled ? activeFilterCount(filters) : 0;
+  const hiddenByFilters = results.length - filtered.length;
+  const maxResults = limit('visible_results');
+  const allowed = maxResults === null ? filtered : filtered.slice(0, maxResults);
+  const shown = expanded ? allowed : allowed.slice(0, INITIAL_RESULTS);
+  const hiddenByPlan = filtered.length - allowed.length;
+  // Offer to save the current search as a route (with an alert) unless it already is one.
+  const routeSaved = !!destination && !!origin && savedRoutes.some((route) => locationService.distanceKm(route.destination, destination) < 0.5
+    && locationService.distanceKm(route.origin, origin) < 0.5);
+
+  const openFilters = () => {
+    if (filtersEnabled) setShowFilters(true);
+    else requirePlus({ capability: 'advanced_filters' });
+  };
 
   return (
     <ScrollView
@@ -171,7 +217,7 @@ function PassengerHome() {
             mapTitle="Dónde te recogen"
             near={gpsOrigin}
             onChange={(place) => {
-              setOriginChoice(place);
+              setTripSearch({ origin: place });
               setExpanded(false);
             }}
             placeholder="Busca dónde te recogen"
@@ -186,6 +232,53 @@ function PassengerHome() {
           }}
           value={time}
         />
+        <View style={styles.toolsRow}>
+          <FilterButton onPress={openFilters} selected={filterCount > 0} title={filterCount ? `Filtros (${filterCount})` : 'Filtros'} />
+          {!filtersEnabled || isBetaPerk('advanced_filters') ? <PlusBadge compact /> : null}
+          {destination && origin && !routeSaved ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push({
+                pathname: '/route',
+                params: {
+                  originLabel: origin.label, originLat: String(origin.latitude), originLng: String(origin.longitude),
+                  destLabel: destination.label, destLat: String(destination.latitude), destLng: String(destination.longitude),
+                },
+              })}
+              style={styles.saveRoute}
+            >
+              <Ionicons color={colors.primary} name="notifications-outline" size={14} />
+              <Text numberOfLines={1} style={styles.inlineLinkText}>Guardar ruta y avisarme</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        {savedRoutes.length ? (
+          <ScrollView contentContainerStyle={styles.routeChips} horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false}>
+            {savedRoutes.map((route) => {
+              const active = !!destination && locationService.distanceKm(route.destination, destination) < 0.05
+                && !!chosenOrigin && locationService.distanceKm(route.origin, chosenOrigin) < 0.05;
+              return (
+                <Pressable
+                  accessibilityLabel={`Buscar ${route.name}`}
+                  accessibilityState={{ selected: active }}
+                  key={route.id}
+                  onPress={() => {
+                    setTripSearch({ destination: route.destination, origin: route.origin });
+                    setExpanded(false);
+                  }}
+                  style={[styles.routeChip, active ? styles.routeChipActive : null]}
+                >
+                  <Ionicons color={active ? colors.white : colors.primary} name={route.alert ? 'notifications' : 'git-branch-outline'} size={12} />
+                  <Text numberOfLines={1} style={[styles.routeChipText, active ? styles.routeChipTextActive : null]}>{route.name}</Text>
+                </Pressable>
+              );
+            })}
+            <Pressable accessibilityLabel="Rutas y alertas" onPress={() => router.push('/saved-routes')} style={styles.routeChip}>
+              <Ionicons color={colors.primary} name="settings-outline" size={12} />
+              <Text style={styles.routeChipText}>Rutas</Text>
+            </Pressable>
+          </ScrollView>
+        ) : null}
         {savedPlaces.length === 0 ? (
           <Pressable onPress={() => router.push('/saved-places')} style={styles.inlineLink}>
             <Ionicons color={colors.primary} name="bookmark-outline" size={14} />
@@ -200,9 +293,9 @@ function PassengerHome() {
         <Text style={styles.sectionTitle}>
           {destination ? `Viajes hacia ${destination.label}` : 'Viajes para ti'}
         </Text>
-        {!loading && results.length ? (
+        {!loading && filtered.length ? (
           <Text style={styles.sectionMeta}>
-            {`${results.length} compatible${results.length === 1 ? '' : 's'}`}
+            {`${filtered.length} compatible${filtered.length === 1 ? '' : 's'}`}
           </Text>
         ) : null}
       </View>
@@ -231,17 +324,43 @@ function PassengerHome() {
         />
       ) : null}
 
+      {!loading && hiddenByFilters > 0 ? (
+        <Pressable accessibilityRole="button" onPress={() => setFilters(DEFAULT_FILTERS)} style={styles.filterNote}>
+          <Ionicons color={colors.textSecondary} name="options-outline" size={14} />
+          <Text style={styles.filterNoteText}>
+            {hiddenByFilters} viaje{hiddenByFilters === 1 ? '' : 's'} compatible{hiddenByFilters === 1 ? '' : 's'} oculto{hiddenByFilters === 1 ? '' : 's'} por tus filtros.
+          </Text>
+          <Text style={styles.seeAllText}>Quitar filtros</Text>
+        </Pressable>
+      ) : null}
+
       {shown.map(({ item, match }) => (
         <TripCard key={item.id} match={match} onTripPress={() => openTrip(item)} trip={item} />
       ))}
 
-      {!expanded && results.length > shown.length ? (
+      {!expanded && allowed.length > shown.length ? (
         <Pressable onPress={() => setExpanded(true)} style={styles.seeAll}>
-          <Text style={styles.seeAllText}>Ver más viajes compatibles ({results.length - shown.length})</Text>
+          <Text style={styles.seeAllText}>Ver más viajes compatibles ({allowed.length - shown.length})</Text>
           <Ionicons color={colors.primary} name="chevron-down" size={16} />
         </Pressable>
       ) : null}
+      {hiddenByPlan > 0 && (expanded || allowed.length === shown.length) ? (
+        <Pressable onPress={() => requirePlus({ capability: 'unlimited_results' })} style={styles.seeAll}>
+          <Text style={styles.seeAllText}>{hiddenByPlan} viaje{hiddenByPlan === 1 ? '' : 's'} compatible{hiddenByPlan === 1 ? '' : 's'} más con ConVía+</Text>
+          <PlusBadge compact />
+        </Pressable>
+      ) : null}
       {/* With no results, the empty state already offers this. */}
+      <TripFiltersSheet
+        onApply={(next) => {
+          setFilters(next);
+          setShowFilters(false);
+          setExpanded(false);
+        }}
+        onClose={() => setShowFilters(false)}
+        value={filters}
+        visible={showFilters}
+      />
       {!destination && trips.length > 0 && results.length > 0 ? (
         <Pressable onPress={() => router.push('/(tabs)/trips')} style={styles.seeAll}>
           <Text style={styles.seeAllText}>Ver todos los viajes ({trips.length})</Text>
@@ -258,6 +377,10 @@ function DriverHome() {
   const driverStatus = useAppStore((state) => state.currentUser?.driverStatus);
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const approved = driverStatus === 'aprobado';
+  // "Repetir viaje" is ConVía+; during the beta everyone has it (marked with a subtle label).
+  const { can, isBetaPerk } = usePlan();
+  const canRepeat = can('repeat_trip');
+  const repeatIsBetaPerk = isBetaPerk('repeat_trip');
   const [plannedDestination, setPlannedDestination] = useState<Location | null>(null);
   const [trips, setTrips] = useState<DriverTripRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -319,10 +442,16 @@ function DriverHome() {
               title="Planear un viaje hacia aquí"
             />
           ) : (
-            <Pressable onPress={() => router.push('/create-trip')} style={styles.inlineLink}>
-              <Ionicons color={colors.primary} name="add-circle-outline" size={14} />
-              <Text style={styles.inlineLinkText}>O publica un viaje desde cero</Text>
-            </Pressable>
+            <>
+              <Pressable onPress={() => router.push('/create-trip')} style={styles.inlineLink}>
+                <Ionicons color={colors.primary} name="add-circle-outline" size={14} />
+                <Text style={styles.inlineLinkText}>O publica un viaje desde cero</Text>
+              </Pressable>
+              <Pressable onPress={() => router.push('/recurring-trips')} style={styles.inlineLink}>
+                <Ionicons color={colors.primary} name="sync-outline" size={14} />
+                <Text style={styles.inlineLinkText}>Programa tus viajes de cada semana</Text>
+              </Pressable>
+            </>
           )}
         </View>
       ) : (
@@ -402,8 +531,10 @@ function DriverHome() {
             {approved ? (
               <SmallAction
                 icon="repeat"
-                label="Repetir viaje"
-                onPress={() => router.push({ pathname: '/create-trip', params: { repeatFrom: trip.id } })}
+                label={canRepeat && !repeatIsBetaPerk ? 'Repetir viaje' : 'Repetir viaje · ConVía+'}
+                onPress={() => (canRepeat
+                  ? router.push({ pathname: '/create-trip', params: { repeatFrom: trip.id } })
+                  : requirePlus({ capability: 'repeat_trip' }))}
                 primary
               />
             ) : null}
@@ -478,6 +609,24 @@ const styles = StyleSheet.create({
   },
   searchCard: { ...cardBase, gap: spacing[8], padding: spacing[16] },
   inlineLink: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+  toolsRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
+  saveRoute: { alignItems: 'center', flexDirection: 'row', flexShrink: 1, gap: 4, marginLeft: 'auto' },
+  routeChips: { gap: spacing[8] },
+  routeChip: {
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.radiusFull,
+    flexDirection: 'row',
+    gap: 4,
+    maxWidth: 200,
+    paddingHorizontal: spacing[12],
+    paddingVertical: 6,
+  },
+  routeChipActive: { backgroundColor: colors.primary },
+  routeChipText: { ...typography.caption, color: colors.primary, flexShrink: 1, fontWeight: '700' },
+  routeChipTextActive: { color: colors.white },
+  filterNote: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing[4] },
+  filterNoteText: { ...typography.caption, color: colors.textSecondary },
   inlineLinkText: { ...typography.caption, color: colors.primary, flex: 1 },
   mapCard: { ...cardBase, alignItems: 'center', flexDirection: 'row', gap: spacing[12], padding: spacing[16] },
   mapIcon: {

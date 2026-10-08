@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 
+import { requirePlus } from '@/components/subscription/PlusGate';
 import { Notice } from '@/components/ui/Notice';
 import { toast } from '@/components/ui/Toast';
 import { PlusBadge } from '@/components/subscription/PlusBadge';
@@ -27,6 +28,7 @@ import { suggestTrips, TripMatch } from '@/services/tripMatching';
 import { DriverTripRecord, DriverTripStatus, needsDriverRating, PassengerTripRecord, tripService } from '@/services/tripService';
 import { Trip } from '@/types';
 import { useAppStore } from '@/store/appStore';
+import { usePlan } from '@/subscription/usePlan';
 import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
 
 const DRIVER_STATUS_LABELS: Record<DriverTripStatus, string> = {
@@ -81,6 +83,7 @@ export default function TripsScreen() {
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
   const viewerId = useAppStore((state) => state.currentUser?.id ?? null);
+  const { can, isBetaPerk } = usePlan();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [driverTrips, setDriverTrips] = useState<DriverTripRecord[]>([]);
   const [history, setHistory] = useState<PassengerTripRecord[]>([]);
@@ -164,6 +167,13 @@ export default function TripsScreen() {
         </Text>
         <View style={styles.headerActions}>
           {isDriver && driverStatus === 'aprobado' ? <ButtonPrimary onPress={() => router.push('/create-trip')} title="Publicar viaje" /> : null}
+          {isDriver && driverStatus === 'aprobado' ? (
+            <Pressable accessibilityRole="button" onPress={() => router.push('/recurring-trips')} style={styles.headerLink}>
+              <Ionicons color={colors.primary} name="sync-outline" size={16} />
+              <Text style={styles.headerLinkText}>Viajes recurrentes</Text>
+              {isBetaPerk('recurring_trips') || !can('recurring_trips') ? <PlusBadge compact /> : null}
+            </Pressable>
+          ) : null}
           {isDriver && driverStatus !== 'aprobado' ? <DriverApprovalNotice status={driverStatus} /> : null}
           <ButtonSecondary onPress={() => router.push('/requests')} title={isDriver ? 'Solicitudes de pasajeros' : 'Mis solicitudes'} />
         </View>
@@ -314,6 +324,12 @@ export default function TripsScreen() {
                     </Text>
                   </View>
                   <Text style={styles.cardMeta}>Salida: {formatDateTime(trip.departureAt)}</Text>
+                  {trip.recurring ? (
+                    <View style={styles.weeklyTag}>
+                      <Ionicons color={colors.primary} name="sync-outline" size={12} />
+                      <Text style={styles.weeklyTagText}>Viaje recurrente</Text>
+                    </View>
+                  ) : null}
                   <Text style={styles.cardMeta}>{formatPrice(trip.price)} · {trip.totalSeats} cupos</Text>
                   {past ? (
                     <View style={styles.historyLink}>
@@ -365,11 +381,14 @@ export default function TripsScreen() {
                   {trip.status !== 'en_curso' && driverStatus === 'aprobado' ? (
                     <Pressable
                       accessibilityLabel="Repetir este viaje"
-                      onPress={() => router.push({ pathname: '/create-trip', params: { repeatFrom: trip.id } })}
+                      onPress={() => (can('repeat_trip')
+                        ? router.push({ pathname: '/create-trip', params: { repeatFrom: trip.id } })
+                        : requirePlus({ capability: 'repeat_trip' }))}
                       style={styles.repeat}
                     >
                       <Ionicons color={colors.primary} name="repeat" size={18} />
                       <Text style={styles.repeatText}>Repetir viaje</Text>
+                      {!can('repeat_trip') || isBetaPerk('repeat_trip') ? <PlusBadge compact /> : null}
                     </Pressable>
                   ) : null}
                 </Pressable>
@@ -546,6 +565,10 @@ const styles = StyleSheet.create({
   },
   repeatText: { ...typography.bodySmall, color: colors.primary, fontWeight: '700' },
   section: { gap: spacing[12] },
+  headerLink: { alignItems: 'center', alignSelf: 'center', flexDirection: 'row', gap: spacing[4], paddingVertical: spacing[4] },
+  headerLinkText: { ...typography.bodySmall, color: colors.primary, fontWeight: '700' },
+  weeklyTag: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 4 },
+  weeklyTagText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
   driverRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
   driverName: { ...typography.bodySmall, color: colors.text, flexShrink: 1, fontWeight: '600' },
   rateButton: {

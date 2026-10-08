@@ -138,7 +138,7 @@ export default function TripSummaryScreen() {
               <View style={styles.passengerCard}>
                 <Text style={styles.fieldLabel}>Conductor</Text>
                 <View style={styles.passengerHeader}>
-                  <Avatar imageUrl={members.driver.avatarUrl} name={members.driver.name} size={44} />
+                  <Avatar highlight={members.driver.isPlus} imageUrl={members.driver.avatarUrl} name={members.driver.name} size={44} />
                   <View style={styles.flex}>
                     <View style={styles.nameRow}>
                       <Text numberOfLines={1} style={styles.nameText}>{members.driver.name}</Text>
@@ -176,7 +176,7 @@ export default function TripSummaryScreen() {
             ) : (
               <View key={passenger.requestId} style={styles.passengerCard}>
                 <View style={styles.passengerHeader}>
-                  <Avatar imageUrl={passenger.avatarUrl} name={passenger.name} size={44} />
+                  <Avatar highlight={passenger.isPlus} imageUrl={passenger.avatarUrl} name={passenger.name} size={44} />
                   <View style={styles.flex}>
                     <View style={styles.nameRow}>
                       <Text numberOfLines={1} style={styles.nameText}>{passenger.name}{passenger.isMe ? ' (tú)' : ''}</Text>
@@ -257,7 +257,7 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
   return (
     <View style={styles.passengerCard}>
       <View style={styles.passengerHeader}>
-        <Avatar imageUrl={passenger.avatarUrl} name={passenger.name} size={44} />
+        <Avatar highlight={passenger.isPlus} imageUrl={passenger.avatarUrl} name={passenger.name} size={44} />
         <View style={styles.flex}>
           <View style={styles.nameRow}>
             <Text numberOfLines={1} style={styles.nameText}>{passenger.name}</Text>

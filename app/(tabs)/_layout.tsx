@@ -11,6 +11,8 @@ export default function TabsLayout() {
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const setSavedPlaces = useAppStore((state) => state.setSavedPlaces);
   const setFavoriteDriverIds = useAppStore((state) => state.setFavoriteDriverIds);
+  const setSavedRoutes = useAppStore((state) => state.setSavedRoutes);
+  const setPreferences = useAppStore((state) => state.setPreferences);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -25,20 +27,27 @@ export default function TabsLayout() {
     return () => { active = false; };
   }, [setCurrentUser]);
 
-  // Saved places and favorite drivers personalize trip lists; they are optional.
+  // Saved places, favorite drivers, routes and preferences personalize trip lists; they are optional.
   const userId = currentUser?.id;
   useEffect(() => {
     if (!userId) return;
     let active = true;
-    void Promise.all([personalizationService.getSavedPlaces(), personalizationService.getFavoriteDrivers()])
-      .then(([places, drivers]) => {
+    void Promise.all([
+      personalizationService.getSavedPlaces(),
+      personalizationService.getFavoriteDrivers(),
+      personalizationService.getSavedRoutes(),
+      personalizationService.getPreferences(),
+    ])
+      .then(([places, drivers, routes, preferences]) => {
         if (!active) return;
         setSavedPlaces(places);
         setFavoriteDriverIds(drivers.map((driver) => driver.id));
+        setSavedRoutes(routes);
+        setPreferences(preferences);
       })
       .catch((error) => console.warn('[personalization] Could not load saved places', error));
     return () => { active = false; };
-  }, [setFavoriteDriverIds, setSavedPlaces, userId]);
+  }, [setFavoriteDriverIds, setPreferences, setSavedPlaces, setSavedRoutes, userId]);
 
   if (!isHydrated) return null;
   if (!currentUser) return <Redirect href="/(auth)/login" />;

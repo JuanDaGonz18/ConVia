@@ -9,6 +9,7 @@ import { describe, test } from 'node:test';
 
 import type { SavedPlace, Trip } from '../types/index.ts';
 import {
+  alertLevelRank,
   compareMatches,
   type GeoPoint,
   MATCHING_CONFIG,
@@ -301,5 +302,15 @@ describe('driver requests (scored by the server)', () => {
       weight_other: MATCHING_CONFIG.weights.other,
     };
     assert.deepEqual(config, expected);
+  });
+
+  test('route alerts use the same minimum level in the app and the database', () => {
+    const dir = join(process.cwd(), 'supabase', 'migrations');
+    const file = readdirSync(dir).filter((name) => readFileSync(join(dir, name), 'utf8').includes('function private.alert_min_rank()')).sort().at(-1);
+    assert.ok(file, 'no migration defines private.alert_min_rank()');
+    const sql = readFileSync(join(dir, file), 'utf8');
+    const rank = /function private\.alert_min_rank\(\)[\s\S]*?\$\$\s*select\s+(\d+)\s*\$\$/.exec(sql);
+    assert.ok(rank, 'alert_min_rank() body not found');
+    assert.equal(Number(rank[1]), alertLevelRank());
   });
 });

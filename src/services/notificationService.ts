@@ -5,7 +5,15 @@ import { Platform } from 'react-native';
 
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 
-export type NotifyEvent = 'request_created' | 'request_responded' | 'request_cancelled' | 'message' | 'trip_updated';
+export type NotifyEvent =
+  | 'request_created'
+  | 'request_responded'
+  | 'request_cancelled'
+  | 'message'
+  | 'trip_updated'
+  // Deliver the route alerts the server found for a published trip / schedule.
+  | 'trip_published'
+  | 'recurring_saved';
 
 type Notifications = typeof NotificationsModule;
 

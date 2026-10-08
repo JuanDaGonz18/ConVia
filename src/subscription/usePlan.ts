@@ -3,7 +3,7 @@ import { create } from 'zustand';
 
 import { subscriptionService } from '@/services/subscriptionService';
 import { useAppStore } from '@/store/appStore';
-import { DEFAULT_PLANS, isAtLimit, Plan, PlanFeature, PlanLimit } from '@/subscription/plans';
+import { Capability, DEFAULT_PLANS, isAtLimit, isBetaPerk, Plan, PlanLimit } from '@/subscription/plans';
 
 type SubscriptionStore = {
   /** Owner of `plan`; another account never sees the previous user's plan. */
@@ -58,16 +58,27 @@ export function refreshPlan() {
   return userId ? load(userId) : Promise.resolve();
 }
 
-/** The current plan for UI decisions. Every limit is also enforced by the server. */
+/**
+ * The current plan for UI decisions, as decided by the server (plan + beta).
+ * Ask for capabilities and limits here instead of checking the tier.
+ */
 export function usePlan() {
   const plan = useSubscriptionStore((state) => state.plan);
   const loaded = useSubscriptionStore((state) => state.loaded);
   return {
     plan,
     loaded,
+    /** Real ConVía+ subscription (badge, plan screen). Not for permissions: use can(). */
     isPlus: plan.tier === 'plus',
-    has: (feature: PlanFeature) => plan.features.includes(feature),
+    betaMode: plan.betaMode,
+    /** The user can use this capability now. */
+    can: (capability: Capability) => plan.capabilities.includes(capability),
+    /** ConVía+ capability the user has only because of the beta (show a subtle "ConVía+" label). */
+    isBetaPerk: (capability: Capability) => isBetaPerk(plan, capability),
+    /** Limit in force now (relaxed during the beta); null = unlimited. */
     limit: (key: PlanLimit) => plan.limits[key],
+    /** The plan's own limit, i.e. what applies after the beta. */
+    planLimit: (key: PlanLimit) => plan.planLimits[key],
     atLimit: (key: PlanLimit, used: number) => isAtLimit(plan, key, used),
   };
 }

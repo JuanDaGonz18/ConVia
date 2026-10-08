@@ -16,7 +16,8 @@ import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
-import { MAX_SAVED_PLACES, PLACE_KIND_LABELS, personalizationService } from '@/services/personalizationService';
+import { PLACE_KIND_LABELS, personalizationService } from '@/services/personalizationService';
+import { usePlan } from '@/subscription/usePlan';
 import { useAppStore } from '@/store/appStore';
 import { Location, SavedPlace, SavedPlaceKind } from '@/types';
 import { errorMessage } from '@/utils/format';
@@ -44,7 +45,10 @@ export default function SavedPlacesScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const others = places.filter((place) => place.kind === 'other');
-  const full = places.length >= MAX_SAVED_PLACES;
+  // Limit from the server (relaxed during the beta); the database enforces it too.
+  const { limit, atLimit } = usePlan();
+  const placeLimit = limit('saved_places');
+  const full = atLimit('saved_places', places.length);
 
   const save = async (location: Location) => {
     if (!editing) return;
@@ -168,7 +172,7 @@ export default function SavedPlacesScreen() {
         ) : (
           <ButtonSecondary disabled={busy || full} onPress={() => setNewOtherName('')} title="Agregar otro lugar" />
         )}
-        {full ? <Text style={styles.note}>Llegaste al máximo de {MAX_SAVED_PLACES} lugares.</Text> : null}
+        {full && placeLimit !== null ? <Text style={styles.note}>Llegaste al máximo de {placeLimit} lugares.</Text> : null}
       </ScrollView>
 
       <MapPickerModal

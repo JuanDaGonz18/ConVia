@@ -19,8 +19,8 @@ function loadProvider(id: MapProviderId): MapProvider {
 
 /** The map provider the user's plan includes. The only place this decision is made. */
 export function useMapProviderId(): MapProviderId {
-  const { has } = usePlan();
-  return has('google_maps') ? 'google' : 'free';
+  const { can } = usePlan();
+  return can('google_maps') ? 'google' : 'free';
 }
 
 /** Capabilities of the provider the user's plan includes (for hints outside the map). */

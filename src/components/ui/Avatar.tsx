@@ -8,9 +8,11 @@ type AvatarProps = {
   name: string;
   imageUrl?: string;
   size?: number;
+  /** ConVía+ profile highlight: a thin blue ring. Purely visual. */
+  highlight?: boolean;
 };
 
-export function Avatar({ name, imageUrl, size = 48 }: AvatarProps) {
+export function Avatar({ name, imageUrl, size = 48, highlight = false }: AvatarProps) {
   const initials = name
     .split(' ')
     .map((part) => part[0])
@@ -18,21 +20,20 @@ export function Avatar({ name, imageUrl, size = 48 }: AvatarProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  if (imageUrl) {
-    return (
-      <Image
-        accessibilityLabel={`Avatar de ${name}`}
-        source={{ uri: imageUrl }}
-        style={[styles.avatar, { height: size, width: size }]}
-      />
-    );
-  }
-
-  return (
+  const avatar = imageUrl ? (
+    <Image
+      accessibilityLabel={`Avatar de ${name}`}
+      source={{ uri: imageUrl }}
+      style={[styles.avatar, { height: size, width: size }]}
+    />
+  ) : (
     <View style={[styles.avatar, styles.fallback, { height: size, width: size }]}>
       <Text style={styles.initials}>{initials}</Text>
     </View>
   );
+
+  if (!highlight) return avatar;
+  return <View accessibilityLabel="Perfil ConVía+" style={styles.ring}>{avatar}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -47,5 +48,11 @@ const styles = StyleSheet.create({
   initials: {
     ...typography.label,
     color: colors.primary,
+  },
+  ring: {
+    borderColor: colors.primary,
+    borderRadius: radius.radiusFull,
+    borderWidth: 2,
+    padding: 2,
   },
 });

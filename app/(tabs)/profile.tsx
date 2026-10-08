@@ -41,6 +41,8 @@ export default function ProfileScreen() {
   const markFaceVerified = useAppStore((state) => state.markFaceVerified);
   const savedPlacesCount = useAppStore((state) => state.savedPlaces.length);
   const favoriteCount = useAppStore((state) => state.favoriteDriverIds.length);
+  const routeCount = useAppStore((state) => state.savedRoutes.length);
+  const alertCount = useAppStore((state) => state.savedRoutes.filter((route) => route.alert).length);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -111,7 +113,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Profile Header */}
         <View style={styles.headerCard}>
-          <Avatar imageUrl={currentUser?.avatarUrl} name={userName} size={72} />
+          <Avatar highlight={isPlus} imageUrl={currentUser?.avatarUrl} name={userName} size={72} />
           <Text style={styles.name}>{userName}</Text>
           <Text selectable style={styles.email}>{userEmail}</Text>
           {isPlus ? <PlusBadge /> : null}
@@ -176,6 +178,29 @@ export default function ProfileScreen() {
           />
           <Divider />
           <ListItem
+            icon="notifications-outline"
+            onPress={() => router.push('/saved-routes')}
+            subtitle={routeCount
+              ? `${routeCount} ruta${routeCount === 1 ? '' : 's'}${alertCount ? ` · ${alertCount} con alerta` : ''}`
+              : 'Busca con un toque y recibe avisos de viajes nuevos'}
+            title="Rutas y alertas"
+          />
+          <Divider />
+          <ListItem
+            icon="options-outline"
+            onPress={() => router.push('/preferences')}
+            subtitle="Recogida, horario, distancias y avisos"
+            title="Preferencias"
+          />
+          <Divider />
+          <ListItem
+            icon="stats-chart-outline"
+            onPress={() => router.push('/stats')}
+            subtitle="Viajes, kilómetros, aportes y calificaciones"
+            title="Estadísticas"
+          />
+          <Divider />
+          <ListItem
             icon="document-text-outline"
             onPress={() => router.push('/requests')}
             subtitle={isDriver ? 'Solicitudes de tus pasajeros' : 'Estado de tus solicitudes y QR'}
@@ -200,6 +225,13 @@ export default function ProfileScreen() {
                 subtitle="Fotos, placas y puestos de tus vehículos"
                 title="Mis vehículos"
               />
+              <Divider />
+              <ListItem
+                icon="sync-outline"
+                onPress={() => router.push('/recurring-trips')}
+                subtitle="Tu horario semanal, publicado automáticamente"
+                title="Viajes recurrentes"
+              />
             </View>
           </>
         ) : null}
@@ -208,7 +240,7 @@ export default function ProfileScreen() {
           <View style={[styles.menuCard, styles.switchRow]}>
             <View style={styles.switchText}>
               <Text style={styles.switchTitle}>Notificaciones</Text>
-              <Text style={styles.switchSubtitle}>Solicitudes, respuestas y mensajes de tus viajes</Text>
+              <Text style={styles.switchSubtitle}>Solicitudes, respuestas, mensajes, cambios de tus viajes y alertas</Text>
             </View>
             <Switch
               accessibilityLabel="Notificaciones"

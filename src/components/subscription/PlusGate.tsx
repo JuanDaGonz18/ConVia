@@ -11,10 +11,10 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { getPlan } from '@/subscription/usePlan';
-import { DEFAULT_PLANS, FEATURE_INFO, LIMIT_INFO, PlanFeature, PlanLimit } from '@/subscription/plans';
+import { CAPABILITIES, Capability, LIMIT_INFO, PLAN_LIMITS, PlanLimit } from '@/subscription/plans';
 
 /** What the user tried to use: an on/off feature or a limit they reached. */
-export type PlusReason = { feature: PlanFeature } | { limit: PlanLimit };
+export type PlusReason = { capability: Capability } | { limit: PlanLimit };
 
 const useGateStore = create<{ reason: PlusReason | null; close: () => void }>((set) => ({
   reason: null,
@@ -30,8 +30,8 @@ export function requirePlus(reason: PlusReason) {
 }
 
 function describe(reason: PlusReason) {
-  if ('feature' in reason) {
-    const info = FEATURE_INFO[reason.feature];
+  if ('capability' in reason) {
+    const info = CAPABILITIES[reason.capability];
     return { icon: info.icon, title: info.title, body: info.description, current: null };
   }
   const info = LIMIT_INFO[reason.limit];
@@ -39,7 +39,7 @@ function describe(reason: PlusReason) {
   return {
     icon: info.icon,
     title: info.title,
-    body: info.plusText(DEFAULT_PLANS.plus.limits[reason.limit]),
+    body: info.plusText(PLAN_LIMITS.plus[reason.limit]),
     current: current === null ? null : info.freeText(current),
   };
 }

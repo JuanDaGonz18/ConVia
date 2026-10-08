@@ -223,6 +223,15 @@ function levelOf(score: number): MatchLevel {
 
 const LEVEL_RANK: Record<MatchLevel, number> = { excellent: 3, good: 2, fair: 1, low: 0 };
 
+/**
+ * Route alerts (migration 25) notify only trips at this level or better, scored
+ * by the server with the same formula (private.request_match). "Algo compatible"
+ * still shows up in searches but does not justify a notification. The database
+ * mirrors it in private.alert_min_rank(); a unit test compares them.
+ */
+export const ALERT_MIN_LEVEL: MatchLevel = 'good';
+export const alertLevelRank = () => LEVEL_RANK[ALERT_MIN_LEVEL];
+
 function excluded(reason: ExclusionReason): TripMatch {
   return { score: 0, level: 'low', compatible: false, excludedBy: reason, pickupKm: null, dropoffKm: null, detourKm: null, reasons: [] };
 }

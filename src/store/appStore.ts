@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 import type { TimePreference } from '@/services/tripMatching';
-import { FaceVerificationState, Location, SavedPlace, Trip, User } from '@/types';
+import { FaceVerificationState, Location, SavedPlace, SavedRoute, Trip, User, UserPreferences } from '@/types';
 
 type AuthState = 'anonymous' | 'authenticated';
 
@@ -15,12 +15,21 @@ type AppStore = {
   /** Optional places used to prioritize trips (loaded after sign-in). */
   savedPlaces: SavedPlace[];
   favoriteDriverIds: string[];
-  /** The passenger's current search, reused by the map and when requesting a seat. */
-  tripSearch: { destination: Location | null; time: TimePreference };
+  /** Routes the passenger takes often (search shortcuts and alerts). */
+  savedRoutes: SavedRoute[];
+  /** Personal search defaults; null until loaded. */
+  preferences: UserPreferences | null;
+  /**
+   * The passenger's current search, reused by the map and when requesting a seat.
+   * origin null = the default pickup (preferred place or current location).
+   */
+  tripSearch: { destination: Location | null; origin: Location | null; time: TimePreference };
   setTripSearch: (search: Partial<AppStore['tripSearch']>) => void;
   setCurrentUser: (user: User | null) => void;
   setSavedPlaces: (places: SavedPlace[]) => void;
   setFavoriteDriverIds: (ids: string[]) => void;
+  setSavedRoutes: (routes: SavedRoute[]) => void;
+  setPreferences: (preferences: UserPreferences) => void;
   setSelectedTrip: (trip: Trip | null) => void;
   setFaceVerificationState: (state: FaceVerificationState) => void;
   /** The server confirmed the user's face (registration or a later check). */
@@ -35,12 +44,16 @@ export const useAppStore = create<AppStore>((set) => ({
   faceVerificationState: 'IDLE',
   savedPlaces: [],
   favoriteDriverIds: [],
-  tripSearch: { destination: null, time: 'any' },
+  savedRoutes: [],
+  preferences: null,
+  tripSearch: { destination: null, origin: null, time: 'any' },
 
   setTripSearch: (search) => set((state) => ({ tripSearch: { ...state.tripSearch, ...search } })),
 
   setSavedPlaces: (savedPlaces) => set({ savedPlaces }),
   setFavoriteDriverIds: (favoriteDriverIds) => set({ favoriteDriverIds }),
+  setSavedRoutes: (savedRoutes) => set({ savedRoutes }),
+  setPreferences: (preferences) => set({ preferences }),
 
   setCurrentUser: (user) =>
     set((state) => {
@@ -51,6 +64,8 @@ export const useAppStore = create<AppStore>((set) => ({
         authenticationState: user ? 'authenticated' : 'anonymous',
         savedPlaces: sameUser ? state.savedPlaces : [],
         favoriteDriverIds: sameUser ? state.favoriteDriverIds : [],
+        savedRoutes: sameUser ? state.savedRoutes : [],
+        preferences: sameUser ? state.preferences : null,
       };
     }),
 
@@ -73,6 +88,8 @@ export const useAppStore = create<AppStore>((set) => ({
       faceVerificationState: 'IDLE',
       savedPlaces: [],
       favoriteDriverIds: [],
-      tripSearch: { destination: null, time: 'any' },
+      savedRoutes: [],
+      preferences: null,
+      tripSearch: { destination: null, origin: null, time: 'any' },
     }),
 }));

@@ -46,6 +46,15 @@ export default function RootLayout() {
       router.push({ pathname: '/trip-summary', params: { tripId, rate: '1' } });
       return;
     }
+    // A route alert found a compatible trip; recurring trips were published.
+    if (type === 'trip_alert') {
+      router.push('/saved-routes');
+      return;
+    }
+    if (type === 'recurring_published') {
+      router.push('/recurring-trips');
+      return;
+    }
     if (type === 'message' && typeof tripId === 'string') router.push({ pathname: '/chat/[tripId]', params: { tripId } });
     else if (type === 'message') router.push('/(tabs)/chats');
     else if (type === 'trip_updated' || (typeof type === 'string' && type.startsWith('request_'))) router.push('/requests');

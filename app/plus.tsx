@@ -15,7 +15,7 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { subscriptionService } from '@/services/subscriptionService';
-import { DEFAULT_PLANS, FEATURE_INFO, LIMIT_INFO, Plan, PlanFeature, PlanLimit, PlanTier } from '@/subscription/plans';
+import { CAPABILITIES, Capability, DEFAULT_PLANS, LIMIT_INFO, Plan, PlanLimit, PlanTier } from '@/subscription/plans';
 import { refreshPlan, usePlan } from '@/subscription/usePlan';
 
 type Row = { label: string; free: string | boolean; plus: string | boolean };
@@ -31,24 +31,28 @@ function limitLabel(value: number | null) {
   return value === null ? 'Sin límite' : String(value);
 }
 
-/** Rows that differ between plans, built from what the server says each plan includes. */
-function planRows(plans: Record<PlanTier, Plan>): Row[] {
-  const rows: Row[] = [
-    { label: 'Mapa', free: 'OpenStreetMap', plus: plans.plus.features.includes('google_maps') ? 'Google Maps' : 'OpenStreetMap' },
-  ];
-  (Object.keys(FEATURE_INFO) as PlanFeature[])
-    .filter((feature) => feature !== 'google_maps')
-    .forEach((feature) => rows.push({
-      label: FEATURE_INFO[feature].title,
-      free: plans.free.features.includes(feature),
-      plus: plans.plus.features.includes(feature),
-    }));
+/**
+ * Rows that differ between plans: ConVía+ capabilities already built (from the
+ * catalog) and limits (from the server). During the beta, FREE shows "En beta"
+ * for what the beta opens to everyone.
+ */
+function planRows(plans: Record<PlanTier, Plan>, betaMode: boolean): Row[] {
+  const rows: Row[] = [{ label: 'Mapa', free: 'OpenStreetMap', plus: 'Google Maps' }];
+  (Object.keys(CAPABILITIES) as Capability[])
+    .filter((key) => {
+      const info = CAPABILITIES[key];
+      return info.tier === 'plus' && info.implemented && key !== 'google_maps';
+    })
+    .forEach((key) => {
+      const info = CAPABILITIES[key];
+      rows.push({ label: info.title, free: betaMode && info.betaUnlocked ? 'En beta' : false, plus: true });
+    });
   (Object.keys(LIMIT_INFO) as PlanLimit[])
-    .filter((key) => plans.free.limits[key] !== plans.plus.limits[key])
+    .filter((key) => plans.free.planLimits[key] !== plans.plus.planLimits[key])
     .forEach((key) => rows.push({
-      label: key === 'vehicles' ? 'Vehículos registrados' : LIMIT_INFO[key].title,
-      free: limitLabel(plans.free.limits[key]),
-      plus: limitLabel(plans.plus.limits[key]),
+      label: LIMIT_INFO[key].title,
+      free: limitLabel(plans.free.planLimits[key]),
+      plus: limitLabel(plans.plus.planLimits[key]),
     }));
   return rows;
 }
@@ -63,7 +67,7 @@ function Cell({ value, highlight }: Readonly<{ value: string | boolean; highligh
 }
 
 export default function PlusScreen() {
-  const { plan, isPlus } = usePlan();
+  const { plan, isPlus, betaMode } = usePlan();
   const [plans, setPlans] = useState<Record<PlanTier, Plan>>(DEFAULT_PLANS);
   const [checking, setChecking] = useState(false);
 
@@ -112,7 +116,7 @@ export default function PlusScreen() {
             <Text style={[styles.cell, styles.headerText]}>Gratis</Text>
             <View style={styles.cell}><PlusBadge /></View>
           </View>
-          {[...ESSENTIALS, ...planRows(plans)].map((row) => (
+          {[...ESSENTIALS, ...planRows(plans, betaMode)].map((row) => (
             <View key={row.label} style={styles.row}>
               <Text style={styles.label}>{row.label}</Text>
               <View style={styles.cell}><Cell value={row.free} /></View>
@@ -120,6 +124,12 @@ export default function PlusScreen() {
             </View>
           ))}
         </View>
+
+        {betaMode && !isPlus ? (
+          <Notice title="Estás en la beta de ConVía" tone="success">
+            Mientras dure la beta puedes usar sin pagar las funciones marcadas “En beta”. Los mapas de Google, el tráfico, la prioridad en solicitudes y el perfil destacado siguen siendo de ConVía+.
+          </Notice>
+        ) : null}
 
         {!isPlus ? (
           <Notice title="Muy pronto podrás suscribirte aquí" tone="info">

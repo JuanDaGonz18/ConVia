@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +23,7 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { locationService } from '@/services/locationService';
+import { describeDays, recurringTripService, toLocalDate, WEEKDAYS } from '@/services/recurringTripService';
 import { tripService, TripTemplate } from '@/services/tripService';
 import { MAX_SEATS, vehicleService } from '@/services/vehicleService';
 import { useAppStore } from '@/store/appStore';
@@ -30,7 +31,7 @@ import { usePlan } from '@/subscription/usePlan';
 import { Location, TripRoute, Vehicle } from '@/types';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
 
-type PickerMode = 'date' | 'time' | null;
+type PickerMode = 'date' | 'time' | 'end' | null;
 
 /** Next full half hour, at least 30 minutes from now. */
 function defaultDeparture() {
@@ -60,13 +61,30 @@ function templatePlace(place: TripTemplate['origin']): Location | null {
 }
 
 /** Problems found in the form, shown under each field. */
-type FieldErrors = Partial<Record<'vehicle' | 'origin' | 'destination' | 'departure' | 'price' | 'seats', string>>;
+type FieldErrors = Partial<Record<'vehicle' | 'origin' | 'destination' | 'departure' | 'price' | 'seats' | 'days', string>>;
+
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** ISO weekday (1 = Monday … 7 = Sunday) of a date. */
+function isoWeekday(date: Date) {
+  return ((date.getDay() + 6) % 7) + 1;
+}
+
+/** "2026-10-07" → local Date at midnight. */
+function fromLocalDate(value: string) {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
 
 export default function CreateTripScreen() {
-  // ?repeatFrom=<id> copies a previous trip; ?edit=<id> edits a published one.
-  const { repeatFrom, edit, destLat, destLng, destLabel } = useLocalSearchParams<{
+  // ?repeatFrom=<id> copies a previous trip; ?edit=<id> edits a published one;
+  // ?recurring=<id> edits a weekly schedule.
+  // ?weekly=1 starts a new weekly schedule.
+  const { repeatFrom, edit, recurring, weekly: startWeekly, destLat, destLng, destLabel } = useLocalSearchParams<{
     repeatFrom?: string;
     edit?: string;
+    recurring?: string;
+    weekly?: string;
     // "Planear un viaje hacia aquí" from the map or the driver home.
     destLat?: string;
     destLng?: string;
@@ -78,7 +96,11 @@ export default function CreateTripScreen() {
   const driverStatus = useAppStore((state) => state.currentUser?.driverStatus);
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const { isPlus, atLimit } = usePlan();
+  const { isPlus, atLimit, can, isBetaPerk } = usePlan();
+  // Weekly schedule: the server publishes each trip up to 7 days ahead.
+  const [weekly, setWeekly] = useState(!!recurring || startWeekly === '1');
+  const [days, setDays] = useState<number[]>(() => (startWeekly === '1' && !recurring ? [isoWeekday(defaultDeparture())] : []));
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const vehiclesFull = atLimit('vehicles', vehicles.length);
   const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [vehicleLoaded, setVehicleLoaded] = useState(false);
@@ -118,7 +140,7 @@ export default function CreateTripScreen() {
   useEffect(() => {
     const latitude = Number(destLat);
     const longitude = Number(destLng);
-    if (sourceId || !destLat || !destLng || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+    if (sourceId || recurring || !destLat || !destLng || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
     const label = destLabel || 'Destino elegido en el mapa';
     const timer = setTimeout(() => setDestination({
       id: `${latitude.toFixed(6)},${longitude.toFixed(6)}`,
@@ -128,7 +150,49 @@ export default function CreateTripScreen() {
       longitude,
     }), 0);
     return () => clearTimeout(timer);
-  }, [destLabel, destLat, destLng, sourceId]);
+  }, [destLabel, destLat, destLng, recurring, sourceId]);
+
+  // Prefill from a weekly schedule being edited.
+  useEffect(() => {
+    if (!recurring) return;
+    let active = true;
+    void recurringTripService.getMine().then((schedules) => {
+      if (!active) return;
+      const schedule = schedules.find((item) => item.id === recurring);
+      if (!schedule) {
+        setError('No se encontró el viaje recurrente.');
+        return;
+      }
+      setOrigin(schedule.origin);
+      setDestination(schedule.destination);
+      if (schedule.route) setTemplateRoute({ key: `${schedule.origin.id}>${schedule.destination.id}`, route: schedule.route });
+      setVehicleId(schedule.vehicleId);
+      setSeats(String(Math.min(schedule.totalSeats, MAX_SEATS)));
+      setPrice(String(schedule.price));
+      setDescription(schedule.description ?? '');
+      const [hours, minutes] = schedule.time.split(':').map(Number);
+      const start = fromLocalDate(schedule.startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const first = start < today ? today : start;
+      first.setHours(hours, minutes, 0, 0);
+      setDeparture(first);
+      setDays(schedule.days);
+      setEndDate(schedule.endDate ? fromLocalDate(schedule.endDate) : null);
+    }).catch((loadError) => active && setError(errorMessage(loadError, 'No se pudo cargar el viaje recurrente.')));
+    return () => { active = false; };
+  }, [recurring]);
+
+  const toggleWeekly = (value: boolean) => {
+    if (value && !can('recurring_trips')) {
+      requirePlus({ capability: 'recurring_trips' });
+      return;
+    }
+    setWeekly(value);
+    // Start with the weekday of the chosen date.
+    if (value && !days.length) setDays([isoWeekday(departure)]);
+    clearFieldError('days');
+  };
 
   // Prefill from an existing trip. Repeating moves the date forward; editing keeps it.
   useEffect(() => {
@@ -176,6 +240,13 @@ export default function CreateTripScreen() {
     });
   };
 
+  const applyEndDate = (picked: Date) => {
+    setPicker(null);
+    const end = new Date(picked);
+    end.setHours(0, 0, 0, 0);
+    setEndDate(end);
+  };
+
   const validate = () => {
     const parsedPrice = Number(price);
     const parsedSeats = Number(seats);
@@ -185,7 +256,15 @@ export default function CreateTripScreen() {
     if (!origin) found.origin = 'Elige el punto de salida.';
     if (!destination) found.destination = 'Elige el destino.';
     else if (origin && locationService.distanceKm(origin, destination) < 0.3) found.destination = 'El destino debe ser distinto al punto de salida.';
-    if (departure <= new Date()) found.departure = 'La salida debe ser en el futuro.';
+    if (weekly) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (departure < today) found.departure = 'La fecha de inicio no puede estar en el pasado.';
+      if (!days.length) found.days = 'Elige al menos un día de la semana.';
+      else if (endDate && endDate < new Date(departure.getFullYear(), departure.getMonth(), departure.getDate())) {
+        found.days = 'La fecha final debe ser después del inicio.';
+      }
+    } else if (departure <= new Date()) found.departure = 'La salida debe ser en el futuro.';
     if (!price.trim()) found.price = 'Escribe el precio por cupo.';
     else if (!Number.isInteger(parsedPrice) || parsedPrice < 0) found.price = 'Escribe solo números, sin puntos ni decimales.';
     if (!Number.isInteger(parsedSeats) || parsedSeats < 1 || parsedSeats > MAX_SEATS) found.seats = `Elige entre 1 y ${MAX_SEATS} cupos.`;
@@ -226,6 +305,27 @@ export default function CreateTripScreen() {
       route,
     };
     try {
+      if (weekly) {
+        const pad = (value: number) => String(value).padStart(2, '0');
+        const result = await recurringTripService.save({
+          vehicleId: vehicle.id,
+          origin,
+          destination,
+          route,
+          time: `${pad(departure.getHours())}:${pad(departure.getMinutes())}`,
+          days,
+          startDate: toLocalDate(departure),
+          endDate: endDate ? toLocalDate(endDate) : null,
+          price: parsedPrice,
+          totalSeats: parsedSeats,
+          description: description.trim() || undefined,
+        }, recurring);
+        toast.success(result.created
+          ? `Listo. Publicamos ${result.created} viaje${result.created === 1 ? '' : 's'} de los próximos 7 días`
+          : 'Viaje recurrente guardado. Publicaremos cada viaje 7 días antes');
+        router.replace('/recurring-trips');
+        return;
+      }
       if (edit) {
         const { changes, notified } = await tripService.updateTrip(edit, input);
         if (!changes.length) {
@@ -256,7 +356,10 @@ export default function CreateTripScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <ScreenHeader kicker={edit ? 'VIAJE PUBLICADO' : repeatFrom ? 'REPETIR VIAJE' : 'NUEVO VIAJE'} title={edit ? 'Editar viaje' : 'Publicar viaje'} />
+        <ScreenHeader
+          kicker={edit ? 'VIAJE PUBLICADO' : recurring ? 'VIAJE RECURRENTE' : repeatFrom ? 'REPETIR VIAJE' : 'NUEVO VIAJE'}
+          title={edit ? 'Editar viaje' : recurring ? 'Editar horario semanal' : 'Publicar viaje'}
+        />
         {repeated && !edit ? (
           <View style={styles.repeatBanner}>
             <Ionicons color={colors.primary} name="repeat" size={20} />
@@ -371,7 +474,7 @@ export default function CreateTripScreen() {
           </>
         ) : null}
 
-        <Text style={styles.label}>Fecha y hora de salida</Text>
+        <Text style={styles.label}>{weekly ? 'Primer día y hora de salida' : 'Fecha y hora de salida'}</Text>
         <View style={styles.dateRow}>
           <Pressable accessibilityLabel="Elegir fecha" onPress={() => setPicker('date')} style={[styles.dateButton, fieldErrors.departure ? fieldErrorBox : null]}>
             <Ionicons color={colors.primary} name="calendar-outline" size={20} />
@@ -383,7 +486,89 @@ export default function CreateTripScreen() {
           </Pressable>
         </View>
         <FieldError message={fieldErrors.departure} />
-        {picker ? (
+
+        {!edit ? (
+          <View style={styles.weeklyBox}>
+            <View style={styles.weeklyHeader}>
+              <Ionicons color={colors.primary} name="sync-outline" size={20} />
+              <View style={styles.flex}>
+                <View style={styles.weeklyTitleRow}>
+                  <Text style={styles.weeklyTitle}>Repetir cada semana</Text>
+                  {!can('recurring_trips') || isBetaPerk('recurring_trips') ? <PlusBadge compact /> : null}
+                </View>
+                <Text style={styles.weeklyText}>
+                  {weekly
+                    ? `Publicamos cada viaje 7 días antes. ${days.length ? `${capitalize(describeDays(days))}, ${timeLabel}` : 'Elige los días.'}`
+                    : 'Publicamos este viaje automáticamente los días que elijas.'}
+                </Text>
+              </View>
+              <Switch
+                accessibilityLabel="Repetir cada semana"
+                disabled={!!recurring}
+                onValueChange={toggleWeekly}
+                thumbColor={weekly ? colors.primary : undefined}
+                trackColor={{ true: colors.primaryLight }}
+                value={weekly}
+              />
+            </View>
+            {weekly ? (
+              <>
+                <View accessibilityRole="radiogroup" style={styles.dayRow}>
+                  {WEEKDAYS.map(({ day, short, long }) => {
+                    const selected = days.includes(day);
+                    return (
+                      <Pressable
+                        accessibilityLabel={long}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        key={day}
+                        onPress={() => {
+                          setDays((current) => (selected ? current.filter((item) => item !== day) : [...current, day].sort((a, b) => a - b)));
+                          clearFieldError('days');
+                        }}
+                        style={[styles.day, selected ? styles.daySelected : null]}
+                      >
+                        <Text style={[styles.dayText, selected ? styles.dayTextSelected : null]}>{short}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <FieldError message={fieldErrors.days} />
+                <View style={styles.endRow}>
+                  <Pressable accessibilityLabel="Elegir fecha final" onPress={() => setPicker('end')} style={styles.endButton}>
+                    <Ionicons color={colors.primary} name="flag-outline" size={16} />
+                    <Text style={styles.endText}>
+                      {endDate
+                        ? `Hasta el ${endDate.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                        : 'Sin fecha final'}
+                    </Text>
+                  </Pressable>
+                  {endDate ? (
+                    <Pressable hitSlop={8} onPress={() => setEndDate(null)}>
+                      <Text style={styles.endClear}>Quitar</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </>
+            ) : null}
+          </View>
+        ) : null}
+
+        {picker === 'end' ? (
+          <View style={Platform.OS === 'ios' ? styles.iosPicker : undefined}>
+            <DateTimePicker
+              accentColor={colors.primary}
+              minimumDate={departure}
+              mode="date"
+              onDismiss={() => setPicker(null)}
+              onValueChange={(_event, picked) => (Platform.OS === 'ios' ? setEndDate(picked) : applyEndDate(picked))}
+              positiveButton={{ label: 'Aceptar' }}
+              value={endDate ?? departure}
+            />
+            {Platform.OS === 'ios' ? <ButtonSecondary onPress={() => setPicker(null)} title="Listo" /> : null}
+          </View>
+        ) : null}
+        {picker && picker !== 'end' ? (
           <View style={Platform.OS === 'ios' ? styles.iosPicker : undefined}>
             <DateTimePicker
               accentColor={colors.primary}
@@ -459,7 +644,7 @@ export default function CreateTripScreen() {
           disabled={driverStatus !== 'aprobado' || !editable}
           loading={loading}
           onPress={publishTrip}
-          title={edit ? 'Guardar cambios' : 'Publicar viaje'}
+          title={edit || recurring ? 'Guardar cambios' : weekly ? 'Guardar viaje recurrente' : 'Publicar viaje'}
         />
       </ScrollView>
     </SafeAreaView>
@@ -486,6 +671,35 @@ const styles = StyleSheet.create({
   },
   dateText: { ...typography.bodyMedium, color: colors.text },
   iosPicker: { gap: spacing[8] },
+  flex: { flex: 1 },
+  weeklyBox: {
+    borderColor: colors.lightGray,
+    borderRadius: radius.radiusLarge,
+    borderWidth: 1,
+    gap: spacing[12],
+    padding: spacing[12],
+  },
+  weeklyHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[12] },
+  weeklyTitleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
+  weeklyTitle: { ...typography.bodyMedium, color: colors.text, fontWeight: '700' },
+  weeklyText: { ...typography.caption, color: colors.textSecondary },
+  dayRow: { flexDirection: 'row', gap: spacing[4], justifyContent: 'space-between' },
+  day: {
+    alignItems: 'center',
+    borderColor: colors.border,
+    borderRadius: radius.radiusFull,
+    borderWidth: 1,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
+  },
+  daySelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  dayText: { ...typography.bodySmall, color: colors.text, fontWeight: '700' },
+  dayTextSelected: { color: colors.white },
+  endRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[12], justifyContent: 'space-between' },
+  endButton: { alignItems: 'center', flexDirection: 'row', gap: spacing[4] },
+  endText: { ...typography.bodySmall, color: colors.text, fontWeight: '600' },
+  endClear: { ...typography.bodySmall, color: colors.primary, fontWeight: '700' },
   repeatBanner: {
     alignItems: 'center',
     backgroundColor: colors.primaryLight,

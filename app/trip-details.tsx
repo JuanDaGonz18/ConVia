@@ -46,7 +46,9 @@ export default function TripDetailsScreen() {
   const [showFaceCheck, setShowFaceCheck] = useState(false);
   // Users who skipped the selfie at sign-up register it here.
   const [showEnrollment, setShowEnrollment] = useState(false);
-  const [pickup, setPickup] = useState<Location | null>(null);
+  // Prefilled with where the passenger searched from, when they chose a place.
+  const searchOrigin = useAppStore((state) => state.tripSearch.origin);
+  const [pickup, setPickup] = useState<Location | null>(searchOrigin);
   const [pickupError, setPickupError] = useState<string | null>(null);
   // Where the passenger gets off; prefilled with the destination they searched for.
   const searchDestination = useAppStore((state) => state.tripSearch.destination);
@@ -151,7 +153,7 @@ export default function TripDetailsScreen() {
         <TripRoutePreview chosenRoute={trip.route} destination={trip.destination} origin={trip.origin} />
 
         <View style={styles.driverCard}>
-          <Avatar imageUrl={trip.driver.avatarUrl} name={trip.driver.name} size={48} />
+          <Avatar highlight={trip.driver.isPlus} imageUrl={trip.driver.avatarUrl} name={trip.driver.name} size={48} />
           <View style={styles.driverText}>
             <View style={styles.nameRow}>
               <Text numberOfLines={1} style={styles.driverName}>{trip.driver.name}</Text>

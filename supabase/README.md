@@ -3,7 +3,7 @@
 Proyecto: **ConVía** · ref `hfnsgeunskbkapjavcao` · región Canada (Central) · plan Free
 URL: `https://hfnsgeunskbkapjavcao.supabase.co`
 
-Estado: las migraciones 1–23 están aplicadas (historial reparado el 2026-09-26). La 6 añade chat persistente y referencia facial privada; la 7 añade `expo_push_token` y `notifications_enabled` en `profiles`.
+Estado: las migraciones 1–26 están aplicadas (historial reparado el 2026-09-26). La 6 añade chat persistente y referencia facial privada; la 7 añade `expo_push_token` y `notifications_enabled` en `profiles`.
 
 La 19 (`20261007000019_subscriptions.sql`, aplicada el 2026-10-07) crea los planes FREE / ConVía+: tablas `plans` y `subscriptions` (sin fila = FREE; la app solo puede leer la suya), `get_my_plan()` para la app, y triggers que limitan vehículos activos, lugares guardados y conductores favoritos según el plan (`private.plan_limit`). Para activar ConVía+ a mano ver el README principal.
 
@@ -19,9 +19,33 @@ La 22 (`20261007000022_privacy_matching_priority.sql`) y la 23 (`20261007000023_
 - La compatibilidad de las solicitudes se calcula en el servidor (`private.request_match`, umbrales en `private.matching_config()`, iguales a `MATCHING_CONFIG` de la app) y la prioridad ConVía+ solo aplica entre solicitudes igual o más compatibles.
 - **Las versiones de la app anteriores a esta no pueden iniciar sesión** (leían columnas que ahora están cerradas).
 
+La 24 (`20261008000024_plan_capabilities_beta.sql`, aplicada el 2026-10-08): capacidades por plan (`plan_capabilities`), modo beta (`app_config.beta_mode`, hoy activo), límites relajados durante la beta (`private.plan_limit`), `private.has_capability()` y `get_my_plan()` con capacidades efectivas. Ver `docs/PLANES.md`.
+
+La 25 (`20261008000025_planned_features.sql`) y la 26 (`20261008000026_ride_km_on_route.sql`), aplicadas el 2026-10-08, construyen las funciones planeadas de ConVía+ (abiertas a todos durante la beta):
+
+- **Viajes recurrentes** (`recurring_trips`, solo lectura del dueño): se crean y cambian con `save_recurring_trip()`, `set_recurring_trip_active()` y `delete_recurring_trip()`, que validan conductor aprobado, vehículo propio y activo, y la capacidad `recurring_trips`. `private.generate_recurring_trips()` publica los viajes de los próximos 7 días (pg_cron cada hora, `generate-recurring-trips`). Cada viaje guarda `trips.recurring_trip_id` y `recurring_slot` (índice único), así que nunca se duplica y un viaje cancelado o editado no se vuelve a publicar. Al cambiar o pausar un horario se quitan sus viajes futuros sin solicitudes; los que tienen solicitudes se conservan. Un vehículo usado por un horario activo no se puede quitar.
+- **Rutas guardadas y alertas** (`saved_routes`, `trip_alert_hits`, solo del dueño): límite de plan `saved_routes` y alerta solo con la capacidad `smart_match_alerts`. Al publicar o cambiar un viaje, un trigger lo compara con las rutas con alerta de la misma organización usando `private.request_match` (la misma compatibilidad de siempre) y guarda una sola alerta por usuario y viaje cuando el nivel es "Compatible" o mejor (`private.alert_min_rank()`).
+- **Notificaciones de alertas y horarios:** `claim_alert_pushes()` y `claim_recurring_pushes()` (solo `service_role`) deciden qué se envía (permiso del usuario, preferencias, máximo 3 alertas por día) y lo marcan para no repetirlo; los textos usan lugares sin número de casa. La función `notify` las envía al publicar (`trip_published`, `recurring_saved`, solo el conductor del viaje) y cada 5 minutos por `dispatch-pending-pushes` (pg_cron + pg_net, evento `sweep`).
+- **Preferencias** (`user_preferences`, solo del dueño) y **estadísticas** (`my_trip_stats()`, solo datos del propio usuario; cada sección exige su capacidad).
+
+### Secretos del envío programado
+
+`dispatch-pending-pushes` lee de Vault `convia_project_url`, `convia_anon_key` y `convia_cron_secret`, y la función `notify` compara el encabezado `x-convia-cron` con su variable `CRON_SECRET`. No están en el repositorio. Para rotarlos (mismo valor en los dos lados):
+
+```bash
+npx supabase secrets set CRON_SECRET=<valor nuevo>
+```
+```sql
+update vault.secrets set secret = '<valor nuevo>' where name = 'convia_cron_secret';
+```
+
+Sin esos secretos el envío programado no hace nada; las alertas siguen visibles en la app y se envían al publicar desde la app.
+
 ## Pruebas
 
 - `npx supabase db query --linked -f supabase/tests/security_audit_test.sql`: privacidad, organizaciones, chat, calificaciones, planes y prioridad. Corre dentro de una transacción que se deshace; el error final es el reporte (debe decir `0 failing`).
+- `npx supabase db query --linked -f supabase/tests/plan_capabilities_test.sql`: planes, capacidades y modo beta.
+- `npx supabase db query --linked -f supabase/tests/planned_features_test.sql`: viajes recurrentes, alertas, rutas, preferencias, estadísticas, repetir viaje y varios vehículos (propiedad, organización y privacidad incluidas).
 - `node --env-file=.env supabase/tests/auth_e2e.mjs`: registro, perfil, notificaciones, sesión, contraseña y privacidad, con una cuenta temporal que se elimina al final.
 
 ## Conectar la app

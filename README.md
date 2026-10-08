@@ -59,24 +59,9 @@ supabase/            SQL migrations (apply in order) and Edge Functions (notify,
 
 Screens never call Supabase directly; they go through `src/services`. User-facing errors go through `errorMessage()` in `src/utils/format.ts` so users never see raw technical text.
 
-## Plans: FREE and ConVía+
+## Plans: FREE, ConVía+ and beta mode
 
-The plan always comes from the backend; the app only reads it.
-
-- **Database (source of truth):** `plans` holds what each tier includes (`limits` such as `{"vehicles": 1}`, where a missing key means unlimited, and `features` such as `{google_maps,map_traffic}`). `subscriptions` holds each user's tier, status, optional `current_period_end` and payment-provider ids; no row means FREE. Users can read their own row but never write it. Limits are enforced by triggers (`LIMITE_PLAN:<key>:<limit>` errors), so a modified client cannot bypass them.
-- **App:** `src/subscription/plans.ts` lists the limit/feature keys, fallback values (mirror of the DB seed) and the copy that explains each feature. `usePlan()` gives `isPlus`, `has(feature)`, `limit(key)` and `atLimit(key, used)`. `<SubscriptionSync />` (root layout) loads the plan when the user changes.
-- **Upsell:** call `requirePlus({ feature })` or `requirePlus({ limit })` to explain a ConVía+ feature; it opens one shared dialog that links to `/plus`. Never hide features silently or block unrelated actions.
-
-Adding a premium feature: add the key to `PlanFeature` + `FEATURE_INFO`, add it to `plans.features` for `plus` in the database, and check it with `usePlan().has(...)`. Adding a new limit: add the key to `PlanLimit` + `LIMIT_INFO`, set it in `plans.limits`, and enforce it with a trigger that calls `private.plan_limit(user, '<key>')`.
-
-Granting ConVía+ by hand (until a payment provider is connected), in the Supabase SQL editor:
-
-```sql
-insert into public.subscriptions (user_id, tier, status, provider, current_period_end)
-select id, 'plus', 'active', 'manual', null from public.profiles where email = 'someone@unisabana.edu.co'
-on conflict (user_id) do update set tier = 'plus', status = 'active', provider = 'manual', current_period_end = null;
--- Back to FREE: update public.subscriptions set status = 'canceled' where user_id = '<uuid>';
-```
+See **[docs/PLANES.md](docs/PLANES.md)**: where capabilities and limits are defined (`plan_capabilities`, `plans.limits` and their mirror in `src/subscription/plans.ts`), how the beta works (`app_config.beta_mode`), how to end it with one SQL line, what the server enforces and how to add a ConVía+ feature. Screens ask `usePlan().can(...)` / `usePlan().limit(...)`, never the tier, for permissions.
 
 ## Maps
 
@@ -104,6 +89,12 @@ The Google provider module is loaded with a lazy `require` the first time a ConV
 Without a typed destination, suggestions come only from the passenger's saved places. Leaving near the passenger is not enough on its own. The UI shows the level and plain reasons ("Va a tu destino", "Pasa a 600 m de ti"), never raw scores.
 
 Data comes from `available_trips` / `driver_trip_requests`, which RLS already limits to the user's organization; matching only filters and orders it. Tests: `npm test` (`src/services/tripMatching.test.ts`, Node's built-in runner).
+
+Built on top of it, never instead of it:
+
+- **Advanced filters** (`src/services/tripFilters.ts`): departure window, seats, price, walking distance at pickup and drop-off, favorite drivers and order. They only narrow the compatible results; the compatibility level always comes first.
+- **Route alerts:** the database compares each new or changed trip with the passengers' saved routes using `private.request_match` (the server mirror of this module) and alerts only for "Compatible" or better (`ALERT_MIN_LEVEL`), once per user and trip, at most 3 notifications a day.
+- **Recurring trips:** weekly schedules published by the server 7 days ahead; each generated trip is a normal trip for matching.
 
 ## External services and limits
 

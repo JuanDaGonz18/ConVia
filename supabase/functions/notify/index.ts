@@ -9,6 +9,8 @@ const headers = {
 };
 
 type NotifyEvent = 'request_created' | 'request_responded' | 'request_cancelled' | 'message' | 'trip_updated';
+/** Alerts and schedule notices, built and rate-limited by the database (claim_* functions). */
+type ServerEvent = 'trip_published' | 'recurring_saved' | 'sweep';
 type Push = { recipients: string[]; title: string; body: string; data: Record<string, string> };
 
 function response(body: unknown, status = 200) {
@@ -123,46 +125,103 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
   return null;
 }
 
+/**
+ * Pending trip alerts and weekly-schedule notices. The database decides who
+ * gets what (compatibility, organization, preferences, at most 3 alerts a day)
+ * and marks each one as handled, so a notice is never sent twice.
+ */
+async function serverPushes(event: ServerEvent, id: string | null, callerId: string | null): Promise<Push[]> {
+  if (event === 'trip_published') {
+    // Only the trip's driver can ask to deliver its alerts.
+    const { data: trip } = await admin.from('trips').select('driver_id').eq('id', id).maybeSingle();
+    if (!trip || trip.driver_id !== callerId) return [];
+  }
+  if (event === 'recurring_saved') {
+    const { data: schedule } = await admin.from('recurring_trips').select('driver_id').eq('id', id).maybeSingle();
+    if (!schedule || schedule.driver_id !== callerId) return [];
+  }
+  const { data: alerts, error } = await admin.rpc('claim_alert_pushes', {
+    p_trip_id: event === 'trip_published' ? id : null,
+    p_schedule_id: event === 'recurring_saved' ? id : null,
+  });
+  if (error) throw error;
+  const pushes: Push[] = ((alerts ?? []) as { user_id: string; title: string; body: string; trip_id: string }[]).map((row) => ({
+    recipients: [row.user_id], title: row.title, body: row.body, data: { type: 'trip_alert', tripId: row.trip_id },
+  }));
+  if (event === 'sweep') {
+    const { data: schedules, error: scheduleError } = await admin.rpc('claim_recurring_pushes');
+    if (scheduleError) throw scheduleError;
+    for (const row of (schedules ?? []) as { user_id: string; title: string; body: string }[]) {
+      pushes.push({ recipients: [row.user_id], title: row.title, body: row.body, data: { type: 'recurring_published' } });
+    }
+  }
+  return pushes;
+}
+
+async function send(pushes: Push[]) {
+  const recipients = [...new Set(pushes.flatMap((push) => push.recipients))];
+  if (!recipients.length) return 0;
+  const { data: profiles, error } = await admin
+    .from('profiles')
+    .select('id, expo_push_token')
+    .in('id', recipients)
+    .eq('notifications_enabled', true)
+    .not('expo_push_token', 'is', null);
+  if (error) throw error;
+  const tokens = new Map((profiles ?? []).map((profile) => [profile.id as string, profile.expo_push_token as string]));
+  const messages = pushes.flatMap((push) => push.recipients
+    .filter((userId) => tokens.has(userId))
+    .map((userId) => ({
+      to: tokens.get(userId),
+      title: push.title,
+      body: push.body,
+      data: push.data,
+      sound: 'default',
+      channelId: 'default',
+    })));
+  // Expo accepts up to 100 messages per request.
+  for (let start = 0; start < messages.length; start += 100) {
+    const expoResponse = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(messages.slice(start, start + 100)),
+    });
+    if (!expoResponse.ok) {
+      console.error('[notify] Expo push failed', expoResponse.status, await expoResponse.text());
+      throw new Error('PUSH_FAILED');
+    }
+  }
+  return messages.length;
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
   if (request.method !== 'POST') return response({ error: 'METHOD_NOT_ALLOWED' }, 405);
 
-  const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
-  if (!token) return response({ error: 'AUTH_REQUIRED' }, 401);
-  const { data: authData, error: authError } = await admin.auth.getUser(token);
-  if (authError || !authData.user) return response({ error: 'AUTH_REQUIRED' }, 401);
+  const body = await request.json().catch(() => null) as { event?: NotifyEvent | ServerEvent; id?: string } | null;
+  if (!body?.event) return response({ error: 'EVENT_REQUIRED' }, 400);
 
-  const body = await request.json().catch(() => null) as { event?: NotifyEvent; id?: string } | null;
-  if (!body?.event || !body.id) return response({ error: 'EVENT_REQUIRED' }, 400);
+  try {
+    // The database's scheduled job (pg_cron + pg_net), authenticated with a shared secret.
+    if (body.event === 'sweep') {
+      const secret = Deno.env.get('CRON_SECRET');
+      if (!secret || request.headers.get('x-convia-cron') !== secret) return response({ error: 'AUTH_REQUIRED' }, 401);
+      return response({ sent: await send(await serverPushes('sweep', null, null)) });
+    }
 
-  const push = await buildPush(body.event, body.id, authData.user.id);
-  if (!push?.recipients.length) return response({ sent: 0 });
+    const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
+    if (!token) return response({ error: 'AUTH_REQUIRED' }, 401);
+    const { data: authData, error: authError } = await admin.auth.getUser(token);
+    if (authError || !authData.user) return response({ error: 'AUTH_REQUIRED' }, 401);
+    if (!body.id) return response({ error: 'EVENT_REQUIRED' }, 400);
 
-  const { data: profiles, error } = await admin
-    .from('profiles')
-    .select('expo_push_token')
-    .in('id', push.recipients)
-    .eq('notifications_enabled', true)
-    .not('expo_push_token', 'is', null);
-  if (error) return response({ error: 'NOTIFY_FAILED' }, 500);
-  const messages = (profiles ?? []).map((profile) => ({
-    to: profile.expo_push_token,
-    title: push.title,
-    body: push.body,
-    data: push.data,
-    sound: 'default',
-    channelId: 'default',
-  }));
-  if (!messages.length) return response({ sent: 0 });
-
-  const expoResponse = await fetch('https://exp.host/--/api/v2/push/send', {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify(messages),
-  });
-  if (!expoResponse.ok) {
-    console.error('[notify] Expo push failed', expoResponse.status, await expoResponse.text());
-    return response({ error: 'PUSH_FAILED' }, 502);
+    if (body.event === 'trip_published' || body.event === 'recurring_saved') {
+      return response({ sent: await send(await serverPushes(body.event, body.id, authData.user.id)) });
+    }
+    const push = await buildPush(body.event, body.id, authData.user.id);
+    return response({ sent: push ? await send([push]) : 0 });
+  } catch (error) {
+    console.error('[notify]', error);
+    return response({ error: 'NOTIFY_FAILED' }, 500);
   }
-  return response({ sent: messages.length });
 });

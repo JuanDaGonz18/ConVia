@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_config: {
+        Row: {
+          beta_mode: boolean
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          beta_mode?: boolean
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          beta_mode?: boolean
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assistant_messages: {
         Row: {
           autor: Database["public"]["Enums"]["message_author"]
@@ -278,6 +296,27 @@ export type Database = {
           },
         ]
       }
+      plan_capabilities: {
+        Row: {
+          beta_unlocked: boolean
+          description: string
+          key: string
+          tier: string
+        }
+        Insert: {
+          beta_unlocked?: boolean
+          description: string
+          key: string
+          tier: string
+        }
+        Update: {
+          beta_unlocked?: boolean
+          description?: string
+          key?: string
+          tier?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           features: string[]
@@ -469,6 +508,103 @@ export type Database = {
           },
         ]
       }
+      recurring_trips: {
+        Row: {
+          activo: boolean
+          avisado_at: string
+          created_at: string
+          cupos_totales: number
+          descripcion: string | null
+          destino_lat: number
+          destino_lng: number
+          destino_nombre: string
+          dias: number[]
+          driver_id: string
+          fecha_fin: string | null
+          fecha_inicio: string
+          hora: string
+          id: string
+          institution_id: string | null
+          origen_lat: number
+          origen_lng: number
+          origen_nombre: string
+          precio: number
+          ruta: Json | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          activo?: boolean
+          avisado_at?: string
+          created_at?: string
+          cupos_totales: number
+          descripcion?: string | null
+          destino_lat: number
+          destino_lng: number
+          destino_nombre: string
+          dias: number[]
+          driver_id: string
+          fecha_fin?: string | null
+          fecha_inicio: string
+          hora: string
+          id?: string
+          institution_id?: string | null
+          origen_lat: number
+          origen_lng: number
+          origen_nombre: string
+          precio: number
+          ruta?: Json | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          activo?: boolean
+          avisado_at?: string
+          created_at?: string
+          cupos_totales?: number
+          descripcion?: string | null
+          destino_lat?: number
+          destino_lng?: number
+          destino_nombre?: string
+          dias?: number[]
+          driver_id?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string
+          hora?: string
+          id?: string
+          institution_id?: string | null
+          origen_lat?: number
+          origen_lng?: number
+          origen_nombre?: string
+          precio?: number
+          ruta?: Json | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_trips_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_trips_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_trips_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_places: {
         Row: {
           address: string
@@ -506,6 +642,78 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "saved_places_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_routes: {
+        Row: {
+          alerta: boolean
+          created_at: string
+          destino_lat: number
+          destino_lng: number
+          destino_nombre: string
+          dias: number[]
+          hora_desde: string | null
+          hora_hasta: string | null
+          id: string
+          institution_id: string | null
+          nombre: string
+          origen_lat: number
+          origen_lng: number
+          origen_nombre: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alerta?: boolean
+          created_at?: string
+          destino_lat: number
+          destino_lng: number
+          destino_nombre: string
+          dias?: number[]
+          hora_desde?: string | null
+          hora_hasta?: string | null
+          id?: string
+          institution_id?: string | null
+          nombre: string
+          origen_lat: number
+          origen_lng: number
+          origen_nombre: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alerta?: boolean
+          created_at?: string
+          destino_lat?: number
+          destino_lng?: number
+          destino_nombre?: string
+          dias?: number[]
+          hora_desde?: string | null
+          hora_hasta?: string | null
+          id?: string
+          institution_id?: string | null
+          nombre?: string
+          origen_lat?: number
+          origen_lng?: number
+          origen_nombre?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_routes_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_routes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -559,6 +767,61 @@ export type Database = {
             foreignKeyName: "subscriptions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_alert_hits: {
+        Row: {
+          created_at: string
+          level: string
+          push_sent: boolean | null
+          pushed_at: string | null
+          route_id: string | null
+          score: number
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          level: string
+          push_sent?: boolean | null
+          pushed_at?: string | null
+          route_id?: string | null
+          score: number
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          level?: string
+          push_sent?: boolean | null
+          pushed_at?: string | null
+          route_id?: string | null
+          score?: number
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_alert_hits_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "saved_routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_alert_hits_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_alert_hits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -739,6 +1002,8 @@ export type Database = {
           origen_lng: number | null
           origen_nombre: string
           precio: number
+          recurring_slot: string | null
+          recurring_trip_id: string | null
           ruta: Json | null
           salida_at: string
           sector: string | null
@@ -762,6 +1027,8 @@ export type Database = {
           origen_lng?: number | null
           origen_nombre: string
           precio: number
+          recurring_slot?: string | null
+          recurring_trip_id?: string | null
           ruta?: Json | null
           salida_at: string
           sector?: string | null
@@ -785,6 +1052,8 @@ export type Database = {
           origen_lng?: number | null
           origen_nombre?: string
           precio?: number
+          recurring_slot?: string | null
+          recurring_trip_id?: string | null
           ruta?: Json | null
           salida_at?: string
           sector?: string | null
@@ -808,10 +1077,68 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "trips_recurring_trip_id_fkey"
+            columns: ["recurring_trip_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_trips"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "trips_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_preferences: {
+        Row: {
+          avisar_alertas: boolean
+          avisar_recurrentes: boolean
+          horario: string
+          max_bajada_km: number | null
+          max_recogida_km: number | null
+          orden: string
+          recogida_place_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avisar_alertas?: boolean
+          avisar_recurrentes?: boolean
+          horario?: string
+          max_bajada_km?: number | null
+          max_recogida_km?: number | null
+          orden?: string
+          recogida_place_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avisar_alertas?: boolean
+          avisar_recurrentes?: boolean
+          horario?: string
+          max_bajada_km?: number | null
+          max_recogida_km?: number | null
+          orden?: string
+          recogida_place_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_recogida_place_id_fkey"
+            columns: ["recogida_place_id"]
+            isOneToOne: false
+            referencedRelation: "saved_places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -971,6 +1298,24 @@ export type Database = {
           tipo: Database["public"]["Enums"]["community_type"]
         }[]
       }
+      claim_alert_pushes: {
+        Args: { p_schedule_id?: string; p_trip_id?: string }
+        Returns: {
+          body: string
+          title: string
+          trip_id: string
+          user_id: string
+        }[]
+      }
+      claim_recurring_pushes: {
+        Args: never
+        Returns: {
+          body: string
+          title: string
+          user_id: string
+        }[]
+      }
+      delete_recurring_trip: { Args: { p_id: string }; Returns: Json }
       driver_trip_requests: {
         Args: never
         Returns: {
@@ -998,10 +1343,13 @@ export type Database = {
       get_my_plan: {
         Args: never
         Returns: {
+          beta_mode: boolean
+          capabilities: string[]
           current_period_end: string
           features: string[]
           limits: Json
           name: string
+          plan_limits: Json
           status: string
           tier: string
         }[]
@@ -1037,6 +1385,7 @@ export type Database = {
           trip_id: string
         }[]
       }
+      my_trip_stats: { Args: never; Returns: Json }
       passenger_trip_history: {
         Args: never
         Returns: {
@@ -1094,9 +1443,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      save_recurring_trip: {
+        Args: {
+          p_cupos_totales: number
+          p_descripcion: string
+          p_destino_lat: number
+          p_destino_lng: number
+          p_destino_nombre: string
+          p_dias: number[]
+          p_fecha_fin: string
+          p_fecha_inicio: string
+          p_hora: string
+          p_id: string
+          p_origen_lat: number
+          p_origen_lng: number
+          p_origen_nombre: string
+          p_precio: number
+          p_ruta: Json
+          p_vehicle_id: string
+        }
+        Returns: Json
+      }
       set_passenger_payment: {
         Args: { p_paid: boolean; p_request_id: string }
         Returns: undefined
+      }
+      set_recurring_trip_active: {
+        Args: { p_active: boolean; p_id: string }
+        Returns: Json
       }
       set_verification_result: {
         Args: {
@@ -1125,6 +1499,8 @@ export type Database = {
           origen_lng: number | null
           origen_nombre: string
           precio: number
+          recurring_slot: string | null
+          recurring_trip_id: string | null
           ruta: Json | null
           salida_at: string
           sector: string | null

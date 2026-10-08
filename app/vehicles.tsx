@@ -31,7 +31,8 @@ export default function VehiclesScreen() {
   const [error, setError] = useState<string | null>(null);
   const [toRemove, setToRemove] = useState<Vehicle | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const { isPlus, limit, atLimit } = usePlan();
+  const { isPlus, limit, planLimit, atLimit, isBetaPerk } = usePlan();
+  const betaVehicles = isBetaPerk('multiple_vehicles');
   const vehicleLimit = limit('vehicles');
   const full = atLimit('vehicles', vehicles.length);
 
@@ -133,11 +134,13 @@ export default function VehiclesScreen() {
 
         {!loading && vehicleLimit !== null ? (
           <View style={styles.planRow}>
-            {isPlus ? <PlusBadge /> : null}
+            {isPlus || betaVehicles ? <PlusBadge /> : null}
             <Text style={styles.planText}>
               {isPlus
                 ? `Usas ${vehicles.length} de ${vehicleLimit} vehículos de tu plan.`
-                : vehicles.length > vehicleLimit
+                : betaVehicles
+                  ? `Durante la beta puedes registrar hasta ${vehicleLimit} vehículos. Después, el plan gratis permitirá ${planLimit('vehicles') ?? 1} y varios vehículos serán de ConVía+.`
+                  : vehicles.length > vehicleLimit
                   ? `${LIMIT_INFO.vehicles.freeText(vehicleLimit)} Puedes seguir usando los que ya tienes, pero para agregar otro necesitas ConVía+.`
                   : LIMIT_INFO.vehicles.freeText(vehicleLimit)}
             </Text>
