@@ -80,6 +80,7 @@ export default function TripsScreen() {
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
+  const viewerId = useAppStore((state) => state.currentUser?.id ?? null);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [driverTrips, setDriverTrips] = useState<DriverTripRecord[]>([]);
   const [history, setHistory] = useState<PassengerTripRecord[]>([]);
@@ -131,8 +132,8 @@ export default function TripsScreen() {
   // "Para ti": trips compatible with the passenger's saved places (same matching as Inicio).
   // "Otros viajes": everything else, soonest first, so the full list is still browsable.
   const suggested = useMemo(
-    () => suggestTrips(trips, { places: savedPlaces, favoriteDriverIds: new Set(favoriteDriverIds) }),
-    [favoriteDriverIds, savedPlaces, trips],
+    () => suggestTrips(trips, { places: savedPlaces, favoriteDriverIds: new Set(favoriteDriverIds), viewerId }),
+    [favoriteDriverIds, savedPlaces, trips, viewerId],
   );
   const suggestedIds = new Set(suggested.map((entry) => entry.item.id));
   const others = trips

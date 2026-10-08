@@ -44,6 +44,7 @@ export default function MapScreen() {
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
   const searchTime = useAppStore((state) => state.tripSearch.time);
+  const viewerId = useAppStore((state) => state.currentUser?.id ?? null);
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
   const mapRef = useRef<MapHandle>(null);
   const { has } = usePlan();
@@ -125,9 +126,9 @@ export default function MapScreen() {
   const shownTrips = useMemo(() => {
     if (isDriver) return [];
     return selected
-      ? rankTripsForJourney(trips, { origin: me, destination: selected, time: searchTime, favoriteDriverIds: favorites })
-      : suggestTrips(trips, { origin: me, places: savedPlaces, favoriteDriverIds: favorites, time: searchTime });
-  }, [favorites, isDriver, me, savedPlaces, searchTime, selected, trips]);
+      ? rankTripsForJourney(trips, { origin: me, destination: selected, time: searchTime, favoriteDriverIds: favorites, viewerId })
+      : suggestTrips(trips, { origin: me, places: savedPlaces, favoriteDriverIds: favorites, time: searchTime, viewerId });
+  }, [favorites, isDriver, me, savedPlaces, searchTime, selected, trips, viewerId]);
   const suggestions = selected ? [] : shownTrips;
   const highlighted = new Set(shownTrips.map((entry) => entry.item.id));
   const focusedTrip = driverTrips.find((trip) => trip.id === focusedTripId) ?? null;

@@ -71,8 +71,8 @@ export default function TripDetailsScreen() {
   const isFavorite = favoriteDriverIds.includes(trip.driver.id);
   // Why this trip suits the passenger: their current search, else their saved places.
   const match = searchDestination
-    ? matchTrip(trip, { destination: searchDestination, favoriteDriverIds: new Set(favoriteDriverIds) })
-    : suggestTrips([trip], { places: savedPlaces, favoriteDriverIds: new Set(favoriteDriverIds) })[0]?.match ?? null;
+    ? matchTrip(trip, { destination: searchDestination, favoriteDriverIds: new Set(favoriteDriverIds), viewerId: userId })
+    : suggestTrips([trip], { places: savedPlaces, favoriteDriverIds: new Set(favoriteDriverIds), viewerId: userId })[0]?.match ?? null;
 
   const toggleFavorite = async (driverId: string) => {
     setFavoriteBusy(true);

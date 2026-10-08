@@ -82,7 +82,7 @@ export type MatchReason =
   | { kind: 'pickup_on_route'; km: number }
   | { kind: 'dropoff_on_route'; km: number };
 
-export type ExclusionReason = 'unavailable' | 'full' | 'departed' | 'time' | 'no_location' | 'origin' | 'destination' | 'direction' | 'detour';
+export type ExclusionReason = 'own_trip' | 'unavailable' | 'full' | 'departed' | 'time' | 'no_location' | 'origin' | 'destination' | 'direction' | 'detour';
 
 export type TripMatch = {
   /** 0–100, without ConVía+ (which only breaks ties). */
@@ -109,6 +109,8 @@ export type PassengerQuery = {
   time?: TimePreference;
   now?: Date;
   favoriteDriverIds?: ReadonlySet<string>;
+  /** The signed-in user: their own trips are never recommended to them. */
+  viewerId?: string | null;
 };
 
 // ─── Geometry ────────────────────────────────────────────────────────────────
@@ -290,7 +292,9 @@ function fitRoute(source: RouteSource, origin: GeoPoint | null | undefined, dest
   if (dropoff.alongKm < pickupAlong - C.backtrackToleranceKm) return fail('direction');
 
   const rideKm = Math.max(0, dropoff.alongKm - pickupAlong);
-  const journeyKm = origin ? distanceKm(origin, destination) : Math.max(rideKm, 0.1);
+  // Without a known origin the passenger boards where the trip starts.
+  const journeyKm = distanceKm(origin ?? source.origin, destination);
+  if (!origin && journeyKm < C.sameDestinationKm) return fail('direction');
   const detourKm = (pickup?.km ?? 0) + dropoff.km;
   const detourLimit = Math.max(C.detourMinLimitKm, C.detourMaxRatio * journeyKm);
   if (detourKm > detourLimit) return fail('detour');
@@ -322,6 +326,7 @@ function combine(fit: RouteFit, time: number, other: number) {
 /** Compatibility of one available trip with what the passenger asked for. */
 export function matchTrip(trip: Trip, query: PassengerQuery): TripMatch {
   const now = query.now ?? new Date();
+  if (query.viewerId && trip.driver.id === query.viewerId) return excluded('own_trip');
   if (trip.status !== 'pending') return excluded('unavailable');
   if (trip.seatsAvailable <= 0) return excluded('full');
 
@@ -389,7 +394,7 @@ export function rankTripsForJourney(trips: Trip[], query: PassengerQuery): Ranke
  */
 export function suggestTrips(
   trips: Trip[],
-  options: { origin?: GeoPoint | null; places: SavedPlace[]; favoriteDriverIds?: ReadonlySet<string>; time?: TimePreference; now?: Date },
+  options: { origin?: GeoPoint | null; places: SavedPlace[]; favoriteDriverIds?: ReadonlySet<string>; time?: TimePreference; now?: Date; viewerId?: string | null },
 ): RankedMatch<Trip>[] {
   if (!options.places.length) return [];
   const ranked: RankedMatch<Trip>[] = [];

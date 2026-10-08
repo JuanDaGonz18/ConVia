@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 
+import { drawableLine } from '@/maps/geometry';
 import { freeMapProvider } from '@/maps/providers/free';
 import type { AppMapProps, MapLineProps, MapMarkerProps, MapProvider, MapProviderId } from '@/maps/types';
 import { usePlan } from '@/subscription/usePlan';
@@ -49,5 +50,7 @@ export function MapMarker(props: MapMarkerProps) {
 
 export function MapLine(props: MapLineProps) {
   const { Line } = useContext(ProviderContext);
-  return <Line {...props} />;
+  const coordinates = drawableLine(props.coordinates);
+  if (!coordinates.length) return null;
+  return <Line {...props} coordinates={coordinates} />;
 }

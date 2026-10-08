@@ -208,10 +208,13 @@ export const tripService = {
   async getAvailableTrips(): Promise<Trip[]> {
     if (useSupabase) {
       ensureSupabaseConfigured();
-      const { data, error } = await supabase
-        .from('available_trips')
-        .select('*')
-        .order('salida_at');
+      // One's own trips can't be requested, so they never appear as available
+      // (recommendations, lists, map or trip details).
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session.session?.user.id;
+      let query = supabase.from('available_trips').select('*').order('salida_at');
+      if (userId) query = query.neq('driver_id', userId);
+      const { data, error } = await query;
       if (error) throw error;
       return data.map(mapAvailableTrip).filter((trip): trip is Trip => trip !== null);
     }

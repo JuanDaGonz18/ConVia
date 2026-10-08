@@ -229,6 +229,29 @@ describe('edge cases', () => {
   });
 });
 
+describe('found on a real device', () => {
+  const home: SavedPlace = { id: 'home', kind: 'home', label: 'Casa', address: 'Casa', ...COTA };
+  const university: SavedPlace = { id: 'uni', kind: 'university', label: 'Universidad', address: 'Universidad', ...UNIVERSITY };
+
+  test('a trip that STARTS at a saved place is not "going there" (no known origin)', () => {
+    // Device: a Casa → Universidad trip was shown as "Muy compatible · Va a Casa".
+    const trip = makeTrip({ from: COTA, to: UNIVERSITY });
+    const suggested = suggestTrips([trip], { places: [home, university], now: NOW });
+    assert.equal(suggested.length, 1);
+    assert.deepEqual(suggested[0].match.reasons[0], { kind: 'saved_place', label: 'Universidad', km: 0 });
+    assert.equal(matchTrip(trip, { destination: COTA, now: NOW }).excludedBy, 'direction');
+  });
+
+  test("the user's own trips are never recommended to them", () => {
+    const own = makeTrip({ from: UNIVERSITY, to: COTA, driverId: 'me' });
+    assert.equal(matchTrip(own, { ...journey, viewerId: 'me' }).excludedBy, 'own_trip');
+    assert.equal(rankTripsForJourney([own], { ...journey, viewerId: 'me' }).length, 0);
+    assert.equal(suggestTrips([own], { places: [home], viewerId: 'me', now: NOW }).length, 0);
+    // Other users still see it.
+    assert.equal(rankTripsForJourney([own], { ...journey, viewerId: 'someone-else' }).length, 1);
+  });
+});
+
 describe('driver requests (scored by the server)', () => {
   test('server results become UI matches with driver-side reasons', () => {
     const match = matchFromServer({ score: 88, level: 'excellent', pickupKm: 0.3, dropoffKm: 0 });

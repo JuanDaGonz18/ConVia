@@ -18,6 +18,13 @@ async function requireUserId() {
   return data.user.id;
 }
 
+/** True when a session exists; reads return nothing without one instead of failing. */
+async function hasSession() {
+  ensureSupabaseConfigured();
+  const { data } = await supabase.auth.getSession();
+  return !!data.session;
+}
+
 type PlaceRow = { id: string; kind: string; label: string; address: string; lat: number; lng: number };
 
 function mapPlace(row: PlaceRow): SavedPlace {
@@ -37,8 +44,8 @@ function mapPlace(row: PlaceRow): SavedPlace {
  */
 export const personalizationService = {
   async getSavedPlaces(): Promise<SavedPlace[]> {
-    if (!isSupabaseEnabled) return [];
-    await requireUserId();
+    // The session can disappear while the app starts (expired or signing out).
+    if (!isSupabaseEnabled || !(await hasSession())) return [];
     const { data, error } = await supabase
       .from('saved_places')
       .select('id, kind, label, address, lat, lng')
@@ -74,8 +81,7 @@ export const personalizationService = {
   },
 
   async getFavoriteDrivers(): Promise<FavoriteDriver[]> {
-    if (!isSupabaseEnabled) return [];
-    await requireUserId();
+    if (!isSupabaseEnabled || !(await hasSession())) return [];
     const { data, error } = await supabase
       .from('favorite_drivers')
       .select('driver_id, created_at, driver:profiles!favorite_drivers_driver_id_fkey(nombre, avatar_url)')

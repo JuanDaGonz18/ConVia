@@ -89,6 +89,7 @@ function PassengerHome() {
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
   const { destination, time } = useAppStore((state) => state.tripSearch);
   const setTripSearch = useAppStore((state) => state.setTripSearch);
+  const viewerId = useAppStore((state) => state.currentUser?.id ?? null);
   const [gpsOrigin, setGpsOrigin] = useState<Location | null>(null);
   // 'gps' = where the phone is; the passenger can pick another starting point.
   const [originChoice, setOriginChoice] = useState<Location | null | 'gps'>('gps');
@@ -135,9 +136,9 @@ function PassengerHome() {
   const favorites = useMemo(() => new Set(favoriteDriverIds), [favoriteDriverIds]);
   const results = useMemo(
     () => (destination
-      ? rankTripsForJourney(trips, { origin, destination, time, favoriteDriverIds: favorites })
-      : suggestTrips(trips, { origin, places: savedPlaces, favoriteDriverIds: favorites, time })),
-    [destination, favorites, origin, savedPlaces, time, trips],
+      ? rankTripsForJourney(trips, { origin, destination, time, favoriteDriverIds: favorites, viewerId })
+      : suggestTrips(trips, { origin, places: savedPlaces, favoriteDriverIds: favorites, time, viewerId })),
+    [destination, favorites, origin, savedPlaces, time, trips, viewerId],
   );
   const shown = expanded ? results : results.slice(0, INITIAL_RESULTS);
 

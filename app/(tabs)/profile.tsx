@@ -113,7 +113,7 @@ export default function ProfileScreen() {
         <View style={styles.headerCard}>
           <Avatar imageUrl={currentUser?.avatarUrl} name={userName} size={72} />
           <Text style={styles.name}>{userName}</Text>
-          <Text style={styles.email}>{userEmail}</Text>
+          <Text selectable style={styles.email}>{userEmail}</Text>
           {isPlus ? <PlusBadge /> : null}
 
           {isVerified ? (
@@ -303,13 +303,19 @@ const styles = StyleSheet.create({
     gap: spacing[8],
     padding: spacing[24],
   },
+  // Full width + centered text: with a shrink-to-fit width, some Android fonts
+  // (HyperOS at 0.9 font scale) draw wider than measured and the last line is clipped.
   name: {
     ...typography.headingM,
+    alignSelf: 'stretch',
     color: colors.text,
+    textAlign: 'center',
   },
   email: {
     ...typography.bodySmall,
+    alignSelf: 'stretch',
     color: colors.textSecondary,
+    textAlign: 'center',
   },
   verificationRow: {
     alignItems: 'center',
