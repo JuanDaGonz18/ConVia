@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,7 +6,12 @@ import { router, useFocusEffect } from 'expo-router';
 
 import { Notice } from '@/components/ui/Notice';
 import { toast } from '@/components/ui/Toast';
+import { PlusBadge } from '@/components/subscription/PlusBadge';
+import { RateDriverBanner } from '@/components/trip/RateDriverBanner';
+import { RateDriverModal, RateDriverTarget } from '@/components/trip/RateDriverModal';
 import { TripCard } from '@/components/trip/TripCard';
+import { Avatar } from '@/components/ui/Avatar';
+import { StarRating } from '@/components/ui/StarRating';
 import { DriverApprovalNotice } from '@/components/profile/DriverApprovalNotice';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -18,11 +23,11 @@ import { dimensions } from '@/constants/dimensions';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { radius } from '@/constants/radius';
-import { DriverTripRecord, DriverTripStatus, tripService } from '@/services/tripService';
+import { suggestTrips, TripMatch } from '@/services/tripMatching';
+import { DriverTripRecord, DriverTripStatus, needsDriverRating, PassengerTripRecord, tripService } from '@/services/tripService';
 import { Trip } from '@/types';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
-import { rankTrips } from '@/utils/tripRanking';
 
 const DRIVER_STATUS_LABELS: Record<DriverTripStatus, string> = {
   por_empezar: 'Por empezar',
@@ -31,6 +36,17 @@ const DRIVER_STATUS_LABELS: Record<DriverTripStatus, string> = {
   cancelado: 'Cancelado',
   no_iniciado: 'No iniciado',
 };
+
+/** How a passenger sees each trip of their history. */
+const PASSENGER_STATUS_LABELS: Record<DriverTripStatus, string> = {
+  por_empezar: 'Próximo',
+  en_curso: 'En curso',
+  finalizado: 'Finalizado',
+  cancelado: 'Cancelado',
+  no_iniciado: 'No se realizó',
+};
+
+type PassengerTab = 'available' | 'mine';
 
 type DriverTab = 'upcoming' | 'completed' | 'cancelled';
 
@@ -66,6 +82,9 @@ export default function TripsScreen() {
   const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [driverTrips, setDriverTrips] = useState<DriverTripRecord[]>([]);
+  const [history, setHistory] = useState<PassengerTripRecord[]>([]);
+  const [passengerTab, setPassengerTab] = useState<PassengerTab>('available');
+  const [rateTarget, setRateTarget] = useState<RateDriverTarget | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -77,7 +96,11 @@ export default function TripsScreen() {
     setError(null);
     try {
       if (isDriver) setDriverTrips(await tripService.getDriverTrips());
-      else setTrips(await tripService.getAvailableTrips());
+      else {
+        const [available, mine] = await Promise.all([tripService.getAvailableTrips(), tripService.getPassengerHistory()]);
+        setTrips(available);
+        setHistory(mine);
+      }
     } catch (loadError) {
       setError(errorMessage(loadError, 'No se pudieron cargar los viajes.'));
     } finally {
@@ -105,9 +128,17 @@ export default function TripsScreen() {
     // Upcoming: soonest first. History: most recent first (as loaded).
     .sort((a, b) => (tab === 'upcoming' ? new Date(a.departureAt).getTime() - new Date(b.departureAt).getTime() : 0));
 
-  const ranked = rankTrips(trips, savedPlaces, favoriteDriverIds);
-  const suggested = ranked.filter((item) => item.relevant);
-  const others = ranked.filter((item) => !item.relevant);
+  // "Para ti": trips compatible with the passenger's saved places (same matching as Inicio).
+  // "Otros viajes": everything else, soonest first, so the full list is still browsable.
+  const suggested = useMemo(
+    () => suggestTrips(trips, { places: savedPlaces, favoriteDriverIds: new Set(favoriteDriverIds) }),
+    [favoriteDriverIds, savedPlaces, trips],
+  );
+  const suggestedIds = new Set(suggested.map((entry) => entry.item.id));
+  const others = trips
+    .filter((trip) => !suggestedIds.has(trip.id))
+    .sort((a, b) => new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime())
+    .map((trip) => ({ item: trip, match: null as TripMatch | null }));
 
   const runTripAction = async (tripId: string, action: () => Promise<unknown>, fallback: string) => {
     setBusyId(tripId);
@@ -144,6 +175,30 @@ export default function TripsScreen() {
         {error ? <Notice tone="error">{error}</Notice> : null}
         {loading ? <TripListSkeleton count={3} /> : null}
 
+        {!isDriver ? <RateDriverBanner /> : null}
+
+        {!isDriver ? (
+          <View accessibilityRole="tablist" style={styles.tabs}>
+            {([
+              { key: 'available', label: 'Disponibles' },
+              { key: 'mine', label: `Mis viajes${history.length ? ` (${history.length})` : ''}` },
+            ] as const).map((item) => {
+              const active = passengerTab === item.key;
+              return (
+                <Pressable
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  key={item.key}
+                  onPress={() => setPassengerTab(item.key)}
+                  style={[styles.tab, active ? styles.tabActive : null]}
+                >
+                  <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>{item.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+
         {isDriver ? (
           <View accessibilityRole="tablist" style={styles.tabs}>
             {DRIVER_TABS.map((item) => {
@@ -176,7 +231,61 @@ export default function TripsScreen() {
             title={activeTab.emptyTitle}
           />
         ) : null}
-        {!loading && !isDriver && trips.length === 0 && !error ? (
+        {!loading && !isDriver && passengerTab === 'mine' && history.length === 0 && !error ? (
+          <EmptyState
+            action={{ label: 'Buscar un viaje', icon: 'search-outline', onPress: () => setPassengerTab('available') }}
+            icon="time-outline"
+            message="Cuando un conductor acepte tu solicitud, el viaje aparecerá aquí. Al terminar podrás calificarlo."
+            title="Aún no tienes viajes"
+          />
+        ) : null}
+        {!loading && !isDriver && passengerTab === 'mine' ? history.map((trip) => {
+          // trip-summary only opens for trips where the passenger kept their seat.
+          const canOpen = trip.requestStatus === 'aceptado' || trip.requestStatus === 'abordado';
+          return (
+            <Pressable
+              accessibilityHint={canOpen ? 'Abre el resumen del viaje' : undefined}
+              disabled={!canOpen}
+              key={trip.requestId}
+              onPress={() => router.push({ pathname: '/trip-summary', params: { tripId: trip.tripId } })}
+              style={({ pressed }) => [styles.card, pressed && canOpen ? styles.cardPressed : null]}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{trip.originName} → {trip.destinationName}</Text>
+                <Text style={[styles.badge, trip.status === 'cancelado' || trip.status === 'no_iniciado' ? styles.badgeCancelled : null]}>
+                  {PASSENGER_STATUS_LABELS[trip.status]}
+                </Text>
+              </View>
+              <Text style={styles.cardMeta}>{formatDateTime(trip.departureAt)} · {formatPrice(trip.price)}</Text>
+              <View style={styles.driverRow}>
+                <Avatar imageUrl={trip.driver.avatarUrl} name={trip.driver.name} size={28} />
+                <Text numberOfLines={1} style={styles.driverName}>{trip.driver.name}</Text>
+                {trip.driver.isPlus ? <PlusBadge /> : null}
+              </View>
+              {needsDriverRating(trip) ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setRateTarget({
+                    tripId: trip.tripId,
+                    tripLabel: `${trip.originName} → ${trip.destinationName}`,
+                    driver: { name: trip.driver.name, avatarUrl: trip.driver.avatarUrl },
+                  })}
+                  style={styles.rateButton}
+                >
+                  <Ionicons color={colors.warning} name="star" size={18} />
+                  <Text style={styles.rateText}>Calificar al conductor</Text>
+                </Pressable>
+              ) : trip.myDriverScore ? (
+                <View style={styles.ratedRow}>
+                  <Text style={styles.cardMeta}>Tu calificación</Text>
+                  <StarRating score={trip.myDriverScore} size={14} />
+                </View>
+              ) : null}
+            </Pressable>
+          );
+        }) : null}
+
+        {!loading && !isDriver && passengerTab === 'available' && trips.length === 0 && !error ? (
           <EmptyState
             action={{ label: 'Guardar mis lugares', icon: 'bookmark-outline', onPress: () => router.push('/saved-places') }}
             icon="car-outline"
@@ -265,7 +374,7 @@ export default function TripsScreen() {
                 </Pressable>
               );
             })
-          : (
+          : passengerTab === 'available' ? (
             <>
               {!loading && trips.length > 0 && savedPlaces.length === 0 && favoriteDriverIds.length === 0 ? (
                 <Pressable onPress={() => router.push('/saved-places')} style={styles.hint}>
@@ -278,24 +387,29 @@ export default function TripsScreen() {
                 section.items.length ? (
                   <View key={section.title ?? 'all'} style={styles.section}>
                     {section.title ? <Text style={styles.sectionTitle}>{section.title}</Text> : null}
-                    {section.items.map((item) => (
+                    {section.items.map(({ item, match }) => (
                       <TripCard
-                        favoriteDriver={item.favoriteDriver}
-                        key={item.trip.id}
-                        nearPlace={item.nearPlace}
+                        key={item.id}
+                        match={match}
                         onTripPress={() => {
-                          setSelectedTrip(item.trip);
+                          setSelectedTrip(item);
                           router.push('/trip-details');
                         }}
-                        trip={item.trip}
+                        trip={item}
                       />
                     ))}
                   </View>
                 ) : null
               ))}
             </>
-          )}
+          ) : null}
       </ScrollView>
+
+      <RateDriverModal
+        onClose={() => setRateTarget(null)}
+        onRated={(tripId, score) => setHistory((items) => items.map((item) => (item.tripId === tripId ? { ...item, myDriverScore: score } : item)))}
+        target={rateTarget}
+      />
 
       <ConfirmDialog
         cancelLabel="Volver"
@@ -431,6 +545,20 @@ const styles = StyleSheet.create({
   },
   repeatText: { ...typography.bodySmall, color: colors.primary, fontWeight: '700' },
   section: { gap: spacing[12] },
+  driverRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
+  driverName: { ...typography.bodySmall, color: colors.text, flexShrink: 1, fontWeight: '600' },
+  rateButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFF8EB',
+    borderRadius: radius.radiusFull,
+    flexDirection: 'row',
+    gap: spacing[4],
+    paddingHorizontal: spacing[12],
+    paddingVertical: spacing[8],
+  },
+  rateText: { ...typography.bodySmall, color: colors.text, fontWeight: '700' },
+  ratedRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
   sectionTitle: { ...typography.headingM, color: colors.text },
   hint: {
     alignItems: 'center',

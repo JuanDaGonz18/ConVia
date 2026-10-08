@@ -9,6 +9,7 @@ import { requirePlus } from '@/components/subscription/PlusGate';
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { toast } from '@/components/ui/Toast';
+import { FieldError } from '@/components/forms/FieldError';
 import { TextField } from '@/components/forms/TextField';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
@@ -24,6 +25,9 @@ import { errorMessage, rawErrorMessage } from '@/utils/format';
 
 type Photo = { uri: string; mimeType: string };
 
+/** Problems found in the form, shown under each field. */
+type FieldErrors = Partial<Record<'photo' | 'plate' | 'brand' | 'color', string>>;
+
 /** Add a vehicle, or edit the one in `?id=`. Every vehicle needs a photo. */
 export default function VehicleScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -36,6 +40,7 @@ export default function VehicleScreen() {
   const [savedPhotoUrl, setSavedPhotoUrl] = useState<string | undefined>();
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [cameraBlocked, setCameraBlocked] = useState(false);
   const [saving, setSaving] = useState(false);
   // The server rejected a new vehicle because the plan's limit was reached.
@@ -73,24 +78,30 @@ export default function VehicleScreen() {
       const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 0.7 };
       const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
       const asset = result.canceled ? null : result.assets?.[0];
-      if (asset?.uri) setPhoto({ uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' });
+      if (asset?.uri) {
+        setPhoto({ uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' });
+        clearFieldError('photo');
+      }
     } catch (pickError) {
       setError(errorMessage(pickError, 'No se pudo abrir la cámara o la galería.'));
     }
   };
 
+  const clearFieldError = (key: keyof FieldErrors) => {
+    setFieldErrors((current) => (current[key] ? { ...current, [key]: undefined } : current));
+  };
+
   const save = async () => {
     const parsedSeats = Number(seats);
-    if (!plate.trim() || !brand.trim() || !color.trim()) {
-      setError('Completa la placa, marca y color.');
-      return;
-    }
-    if (!isValidPlate(plate)) {
-      setError('La placa debe tener el formato ABC123 (carro) o ABC12D (moto).');
-      return;
-    }
-    if (!photo && !savedPhotoUrl) {
-      setError('Agrega una foto del vehículo. Los pasajeros la verán antes de pedir un cupo.');
+    const found: FieldErrors = {};
+    if (!photo && !savedPhotoUrl) found.photo = 'Agrega una foto del vehículo. Los pasajeros la verán antes de pedir un cupo.';
+    if (!plate.trim()) found.plate = 'Escribe la placa.';
+    else if (!isValidPlate(plate)) found.plate = 'La placa debe tener 3 letras y 3 números (carro) o 3 letras, 2 números y 1 letra (moto).';
+    if (!brand.trim()) found.brand = 'Escribe la marca y el modelo.';
+    if (!color.trim()) found.color = 'Escribe el color.';
+    setFieldErrors(found);
+    if (Object.values(found).some(Boolean)) {
+      setError(null);
       return;
     }
     setError(null);
@@ -137,9 +148,10 @@ export default function VehicleScreen() {
             ) : (
               <View style={[styles.photo, styles.photoEmpty]}>
                 <Ionicons color={colors.textSecondary} name="car-outline" size={48} />
-                <Text style={styles.photoHint}>Toma la foto de lado o de frente, con la placa visible y buena luz.</Text>
+                <Text style={styles.photoHint}>Toma la foto de lado, con buena luz. No hace falta que se vea la placa: los pasajeros la ven completa solo cuando los aceptas.</Text>
               </View>
             )}
+            <FieldError message={fieldErrors.photo} />
             <View style={styles.photoActions}>
               <View style={styles.flex}>
                 <ButtonSecondary onPress={() => void pickPhoto('camera')} title={previewUri ? 'Tomar otra' : 'Tomar foto'} />
@@ -149,9 +161,39 @@ export default function VehicleScreen() {
               </View>
             </View>
 
-            <TextField autoCapitalize="characters" label="Placa" maxLength={7} onChangeText={setPlate} placeholder="ABC123" value={plate} />
-            <TextField label="Marca y modelo" onChangeText={setBrand} placeholder="Ej. Mazda 3" value={brand} />
-            <TextField label="Color" onChangeText={setColor} placeholder="Ej. Blanco" value={color} />
+            <TextField
+              autoCapitalize="characters"
+              error={fieldErrors.plate}
+              hint="Carro: 3 letras y 3 números. Moto: 3 letras, 2 números y 1 letra."
+              label="Placa"
+              maxLength={7}
+              onChangeText={(text) => {
+                setPlate(text);
+                clearFieldError('plate');
+              }}
+              placeholder="Placa del vehículo"
+              value={plate}
+            />
+            <TextField
+              error={fieldErrors.brand}
+              label="Marca y modelo"
+              onChangeText={(text) => {
+                setBrand(text);
+                clearFieldError('brand');
+              }}
+              placeholder="Marca y modelo del vehículo"
+              value={brand}
+            />
+            <TextField
+              error={fieldErrors.color}
+              label="Color"
+              onChangeText={(text) => {
+                setColor(text);
+                clearFieldError('color');
+              }}
+              placeholder="Color del vehículo"
+              value={color}
+            />
 
             <Text style={styles.label}>Puestos para pasajeros</Text>
             <View accessibilityRole="radiogroup" style={styles.seatRow}>

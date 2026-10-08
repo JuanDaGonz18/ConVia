@@ -42,13 +42,13 @@ export function BottomNavigation({ items, activeKey, onPress }: BottomNavigation
             onPress={() => onPress(item.key)}
             style={styles.item}
           >
-            <View style={[styles.iconPill, isActive ? styles.iconPillActive : null]}>
-              <Ionicons
-                color={isActive ? colors.primary : colors.textSecondary}
-                name={isActive ? filledIcon(item.icon) : item.icon}
-                size={22}
-              />
-            </View>
+            {/* Selected: a short bar on top, filled icon and bold label; no background. */}
+            <View style={[styles.indicator, isActive ? styles.indicatorActive : null]} />
+            <Ionicons
+              color={isActive ? colors.primary : colors.textSecondary}
+              name={isActive ? filledIcon(item.icon) : item.icon}
+              size={24}
+            />
             <Text style={[styles.label, isActive ? styles.activeLabel : null]}>{item.label}</Text>
           </Pressable>
         );
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     minHeight: dimensions.bottomNavigationHeight,
     paddingHorizontal: spacing[8],
-    paddingTop: 6,
+    paddingTop: 0,
     position: 'absolute',
     shadowColor: '#000',
     shadowOffset: { height: -2, width: 0 },
@@ -76,9 +76,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     width: '100%',
   },
-  item: { alignItems: 'center', flex: 1, gap: 2, justifyContent: 'center', minHeight: 56 },
-  iconPill: { alignItems: 'center', borderRadius: radius.radiusFull, height: 32, justifyContent: 'center', width: 56 },
-  iconPillActive: { backgroundColor: colors.primaryLight },
+  // outlineWidth: 0 removes the browser's focus box on the web version.
+  item: { alignItems: 'center', flex: 1, gap: 3, justifyContent: 'flex-start', minHeight: 56, outlineWidth: 0 },
+  indicator: { borderRadius: radius.radiusFull, height: 3, marginBottom: 5, width: 28 },
+  indicatorActive: { backgroundColor: colors.primary },
   label: { ...typography.caption, color: colors.textSecondary },
   activeLabel: { color: colors.primary, fontWeight: '700' },
 });

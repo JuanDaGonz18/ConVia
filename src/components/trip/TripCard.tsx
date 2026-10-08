@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Avatar } from '@/components/ui/Avatar';
 import { Rating } from '@/components/ui/Rating';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -10,49 +11,30 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { Trip } from '@/types';
 import { formatDateTime, formatPrice } from '@/utils/format';
-import { describeNearPlace, describePickup, Pickup } from '@/utils/tripRanking';
+import { MatchSummary } from '@/components/trip/MatchSummary';
+import type { TripMatch } from '@/services/tripMatching';
 
 type TripCardProps = {
   trip: Trip;
   onChatPress?: () => void;
   onTripPress?: () => void;
-  /** Why this trip is suggested to the user, when it is. */
-  nearPlace?: { label: string; km: number } | null;
-  pickup?: Pickup | null;
-  favoriteDriver?: boolean;
+  /** How well the trip fits what the passenger is looking for, when known. */
+  match?: TripMatch | null;
 };
 
-export function TripCard({ trip, onChatPress, onTripPress, nearPlace, pickup, favoriteDriver }: TripCardProps) {
-  const highlighted = !!(nearPlace || pickup || favoriteDriver);
+export function TripCard({ trip, onChatPress, onTripPress, match }: TripCardProps) {
+  const highlighted = !!match && (match.level === 'excellent' || match.level === 'good');
   return (
     <Pressable disabled={!onTripPress} onPress={onTripPress} style={[styles.card, highlighted ? styles.cardHighlighted : null]}>
-      {highlighted ? (
-        <View style={styles.reasons}>
-          {pickup ? (
-            <View style={styles.reasonChip}>
-              <Ionicons color={colors.primary} name="walk-outline" size={14} />
-              <Text style={[styles.reasonText, styles.reasonPickup]}>{describePickup(pickup)}</Text>
-            </View>
-          ) : null}
-          {nearPlace ? (
-            <View style={styles.reasonChip}>
-              <Ionicons color={colors.success} name="navigate-circle-outline" size={14} />
-              <Text style={[styles.reasonText, styles.reasonPlace]}>{describeNearPlace(nearPlace)}</Text>
-            </View>
-          ) : null}
-          {favoriteDriver ? (
-            <View style={styles.reasonChip}>
-              <Ionicons color={colors.warning} name="star" size={14} />
-              <Text style={[styles.reasonText, styles.reasonFavorite]}>Conductor favorito</Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
+      {match ? <MatchSummary match={match} /> : null}
       <View style={styles.header}>
         <View style={styles.driver}>
           <Avatar imageUrl={trip.driver.avatarUrl} name={trip.driver.name} size={44} />
-          <View>
-            <Text style={styles.driverName}>{trip.driver.name}</Text>
+          <View style={styles.driverInfo}>
+            <View style={styles.nameRow}>
+              <Text numberOfLines={1} style={styles.driverName}>{trip.driver.name}</Text>
+              {trip.driver.isPlus ? <PlusBadge /> : null}
+            </View>
             <Rating score={trip.driver.rating.score} />
           </View>
         </View>
@@ -113,12 +95,6 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
   },
   cardHighlighted: { borderColor: colors.primary },
-  reasons: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8], marginBottom: -spacing[8] },
-  reasonChip: { alignItems: 'center', flexDirection: 'row', gap: 4 },
-  reasonText: { ...typography.caption, fontWeight: '600' },
-  reasonPlace: { color: colors.success },
-  reasonPickup: { color: colors.primary },
-  reasonFavorite: { color: colors.text },
   header: {
     alignItems: 'flex-start',
     flexDirection: 'row',
@@ -127,8 +103,11 @@ const styles = StyleSheet.create({
   driver: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexShrink: 1,
     gap: spacing[12],
   },
+  driverInfo: { flexShrink: 1 },
+  nameRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   driverName: {
     ...typography.bodyMedium,
     color: colors.text,

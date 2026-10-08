@@ -21,7 +21,7 @@ import { isSupabaseEnabled } from '@/lib/supabase';
 import { profileService } from '@/services/profileService';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
-import { passwordProblems } from '@/utils/password';
+import { passwordFieldErrors } from '@/utils/password';
 
 const PHONE_PATTERN = /^\+?[\d\s-]{7,20}$/;
 
@@ -41,7 +41,7 @@ export default function ProfileEditScreen() {
   const [profileErrors, setProfileErrors] = useState<{ name?: string; phone?: string }>({});
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [passwordIssues, setPasswordIssues] = useState<string[]>([]);
+  const [passwordErrors, setPasswordErrors] = useState<{ password?: string; confirm?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(!isSupabaseEnabled);
   const [saving, setSaving] = useState<'profile' | 'password' | null>(null);
@@ -84,7 +84,7 @@ export default function ProfileEditScreen() {
   const saveProfile = async () => {
     const errors: { name?: string; phone?: string } = {};
     if (name.trim().length < 3) errors.name = 'Escribe tu nombre y apellido.';
-    if (phone.trim() && !PHONE_PATTERN.test(phone.trim())) errors.phone = 'Escribe un número válido, por ejemplo 300 123 4567.';
+    if (phone.trim() && !PHONE_PATTERN.test(phone.trim())) errors.phone = 'Escribe un número de teléfono válido, solo con números.';
     setProfileErrors(errors);
     if (Object.keys(errors).length || !currentUser) return;
     setError(null);
@@ -101,9 +101,9 @@ export default function ProfileEditScreen() {
   };
 
   const changePassword = async () => {
-    const issues = passwordProblems(password, confirm);
-    setPasswordIssues(issues);
-    if (issues.length) return;
+    const errors = passwordFieldErrors(password, confirm);
+    setPasswordErrors(errors);
+    if (errors.password || errors.confirm) return;
     setError(null);
     setSaving('password');
     try {
@@ -151,7 +151,7 @@ export default function ProfileEditScreen() {
                 setPhone(text);
                 if (profileErrors.phone) setProfileErrors((current) => ({ ...current, phone: undefined }));
               }}
-              placeholder="300 123 4567"
+              placeholder="Tu número de celular"
               value={phone}
             />
             <ButtonPrimary
@@ -166,19 +166,14 @@ export default function ProfileEditScreen() {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Cambiar contraseña</Text>
             <Text style={styles.sectionHint}>Escribe la nueva contraseña dos veces. La usarás la próxima vez que inicies sesión.</Text>
-            {passwordIssues.length ? (
-              <Notice title="Revisa tu nueva contraseña" tone="warning">
-                <View style={styles.issueList}>
-                  {passwordIssues.map((issue) => <Text key={issue} style={styles.issue}>• {issue}</Text>)}
-                </View>
-              </Notice>
-            ) : null}
             <PasswordField
               autoComplete="new-password"
+              error={passwordErrors?.password}
               label="Nueva contraseña"
               onChangeText={(text) => {
                 setPassword(text);
-                if (passwordIssues.length) setPasswordIssues(passwordProblems(text, confirm));
+                // After the first attempt, errors update (and disappear) as the user types.
+                if (passwordErrors) setPasswordErrors(passwordFieldErrors(text, confirm));
               }}
               placeholder="Crea una contraseña"
               textContentType="newPassword"
@@ -186,12 +181,13 @@ export default function ProfileEditScreen() {
             />
             <PasswordField
               autoComplete="new-password"
+              error={passwordErrors?.confirm}
               label="Confirma la nueva contraseña"
               onChangeText={(text) => {
                 setConfirm(text);
-                if (passwordIssues.length) setPasswordIssues(passwordProblems(password, text));
+                if (passwordErrors) setPasswordErrors(passwordFieldErrors(password, text));
               }}
-              placeholder="Escríbela de nuevo"
+              placeholder="Escribe la contraseña otra vez"
               textContentType="newPassword"
               value={confirm}
             />
@@ -226,6 +222,4 @@ const styles = StyleSheet.create({
   avatarRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[16] },
   sectionTitle: { ...typography.headingM, color: colors.text },
   sectionHint: { ...typography.bodySmall, color: colors.textSecondary, marginTop: -spacing[8] },
-  issueList: { gap: 2 },
-  issue: { ...typography.bodySmall, color: '#B54708' },
 });

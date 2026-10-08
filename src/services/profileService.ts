@@ -19,12 +19,15 @@ export const profileService = {
   async getProfile(userId: string): Promise<ProfileDetails> {
     if (!isSupabaseEnabled) throw new Error('SUPABASE_REQUIRED');
     ensureSupabaseConfigured();
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('nombre, telefono, avatar_url, verification_status, verified_at, notifications_enabled')
-      .eq('id', userId)
-      .single();
+    // Own private fields (phone, notification setting) via the server: the
+    // profiles table no longer exposes them, not even for one's own row.
+    const { data: profile, error } = await supabase.rpc('get_my_profile');
     if (error) throw error;
+    const data = profile as {
+      id: string; nombre: string; telefono: string | null; avatar_url: string | null;
+      verification_status: string; verified_at: string | null; notifications_enabled: boolean;
+    } | null;
+    if (!data || data.id !== userId) throw new Error('PERFIL_NO_ENCONTRADO');
     return {
       name: data.nombre,
       phone: data.telefono ?? '',

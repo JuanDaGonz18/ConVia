@@ -20,7 +20,6 @@ import { MAX_SAVED_PLACES, PLACE_KIND_LABELS, personalizationService } from '@/s
 import { useAppStore } from '@/store/appStore';
 import { Location, SavedPlace, SavedPlaceKind } from '@/types';
 import { errorMessage } from '@/utils/format';
-import { PLACE_MATCH_KM } from '@/utils/tripRanking';
 
 const FIXED_KINDS: SavedPlaceKind[] = ['home', 'work', 'university'];
 
@@ -39,6 +38,7 @@ export default function SavedPlacesScreen() {
   const setSavedPlaces = useAppStore((state) => state.setSavedPlaces);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [newOtherName, setNewOtherName] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<SavedPlace | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +122,7 @@ export default function SavedPlacesScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <ScreenHeader kicker="PERSONALIZACIÓN" title="Mis lugares" />
         <Text style={styles.subtitle}>
-          Opcional. Te mostraremos primero los viajes que llegan a {PLACE_MATCH_KM} km o menos de estos lugares. Solo tú puedes verlos.
+          Opcional. Te recomendaremos los viajes que van hacia estos lugares o pasan cerca en su ruta. Solo tú puedes verlos.
         </Text>
 
         {error ? <Notice tone="error">{error}</Notice> : null}
@@ -137,18 +137,33 @@ export default function SavedPlacesScreen() {
           <View style={styles.newOther}>
             <TextField
               autoFocus
+              error={nameError}
               label="Nombre del lugar"
               maxLength={40}
-              onChangeText={setNewOtherName}
-              placeholder="Ej. Gimnasio, casa de mis papás"
+              onChangeText={(text) => {
+                setNewOtherName(text);
+                setNameError(null);
+              }}
+              placeholder="Cómo quieres llamar este lugar"
               value={newOtherName}
             />
             <ButtonPrimary
-              disabled={!newOtherName.trim()}
-              onPress={() => setEditing({ kind: 'other', label: newOtherName.trim() })}
+              onPress={() => {
+                if (!newOtherName.trim()) {
+                  setNameError('Escribe un nombre para el lugar.');
+                  return;
+                }
+                setEditing({ kind: 'other', label: newOtherName.trim() });
+              }}
               title="Elegir en el mapa"
             />
-            <ButtonSecondary onPress={() => setNewOtherName(null)} title="Cancelar" />
+            <ButtonSecondary
+              onPress={() => {
+                setNewOtherName(null);
+                setNameError(null);
+              }}
+              title="Cancelar"
+            />
           </View>
         ) : (
           <ButtonSecondary disabled={busy || full} onPress={() => setNewOtherName('')} title="Agregar otro lugar" />

@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { MatchSummary } from '@/components/trip/MatchSummary';
+import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Notice } from '@/components/ui/Notice';
 import { toast } from '@/components/ui/Toast';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
@@ -60,6 +62,7 @@ export default function RequestsScreen() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isDriver = role === 'driver';
+
 
   const load = useCallback(async () => {
     setError(null);
@@ -139,19 +142,28 @@ export default function RequestsScreen() {
             title={isDriver ? 'Aún no hay solicitudes' : 'Todavía no has pedido cupos'}
           />
         ) : null}
+        {isDriver && requests.some((request) => request.passengerIsPlus && request.estado === 'pendiente') ? (
+          <Notice tone="info">Las solicitudes de pasajeros ConVía+ aparecen primero y tienen prioridad para los cupos que quedan.</Notice>
+        ) : null}
+        {/* The server already orders them: compatibility, then ConVía+, then newest. */}
         {requests.map((request) => {
           const busy = busyId === request.id;
           return (
             <View key={request.id} style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>
-                  {isDriver ? request.passengerName || 'Pasajero' : request.tripLabel ?? 'Viaje'}
-                </Text>
+                <View style={styles.titleRow}>
+                  <Text style={styles.cardTitleText}>
+                    {isDriver ? request.passengerName || 'Pasajero' : request.tripLabel ?? 'Viaje'}
+                  </Text>
+                  {isDriver && request.passengerIsPlus ? <PlusBadge /> : null}
+                </View>
                 <Text style={[styles.badge, { backgroundColor: STATUS_COLORS[request.estado].background, color: STATUS_COLORS[request.estado].color }]}>
                   {STATUS_LABELS[request.estado]}
                 </Text>
               </View>
+              {isDriver && request.match ? <MatchSummary match={request.match} maxReasons={2} /> : null}
               <MetaRow icon="location-outline" text={`Recogida: ${request.direccion}`} />
+              {request.dropoffLabel ? <MetaRow icon="flag-outline" text={`Se baja en: ${request.dropoffLabel}`} /> : null}
               {isDriver && request.tripLabel ? <MetaRow icon="navigate-outline" text={request.tripLabel} /> : null}
               {request.tripDepartureAt ? <MetaRow icon="time-outline" text={formatDateTime(request.tripDepartureAt)} /> : null}
               {!isDriver && request.lastUpdate ? (
@@ -251,7 +263,8 @@ const styles = StyleSheet.create({
   error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
   card: { backgroundColor: colors.white, borderColor: colors.lightGray, borderRadius: radius.radiusLarge, borderWidth: 1, gap: spacing[8], padding: spacing[16] },
   cardHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[8], justifyContent: 'space-between' },
-  cardTitle: { ...typography.bodyMedium, color: colors.text, flex: 1, fontWeight: '700' },
+  titleRow: { alignItems: 'center', flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8] },
+  cardTitleText: { ...typography.bodyMedium, color: colors.text, flexShrink: 1, fontWeight: '700' },
   badge: { ...typography.caption, backgroundColor: colors.primaryLight, borderRadius: radius.radiusFull, color: colors.primary, fontWeight: '600', overflow: 'hidden', paddingHorizontal: spacing[8], paddingVertical: spacing[4] },
   cardMeta: { ...typography.bodySmall, color: colors.textSecondary, flex: 1 },
   metaRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing[8] },

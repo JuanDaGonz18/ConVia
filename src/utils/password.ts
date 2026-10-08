@@ -28,3 +28,16 @@ export function passwordProblems(password: string, confirm: string): string[] {
   else if (password && confirm !== password) problems.push('Las dos contraseñas no coinciden.');
   return problems;
 }
+
+/** The same checks, split by field so each message shows under its own field. */
+export function passwordFieldErrors(password: string, confirm: string): { password?: string; confirm?: string } {
+  const errors: { password?: string; confirm?: string } = {};
+  if (!password) errors.password = 'Escribe una contraseña.';
+  else {
+    const failing = PASSWORD_RULES.filter((rule) => !rule.test(password)).map((rule) => rule.label.toLowerCase());
+    if (failing.length) errors.password = `Le falta: ${failing.join(', ')}.`;
+  }
+  if (!confirm) errors.confirm = 'Escribe la contraseña de nuevo para confirmarla.';
+  else if (password && confirm !== password) errors.confirm = 'Las dos contraseñas no coinciden.';
+  return errors;
+}

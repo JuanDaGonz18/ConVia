@@ -1,6 +1,7 @@
 import { mockTrips } from '@/data/mock/trips';
 import { ensureSupabaseConfigured, isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { notificationService } from '@/services/notificationService';
+import { matchFromServer, TripMatch } from '@/services/tripMatching';
 import type { Json } from '@/lib/database.types';
 import { Location, Trip, TripRoute, TripStatus } from '@/types';
 
@@ -71,10 +72,16 @@ export type TripRequestRecord = {
   created_at: string;
   responded_at: string | null;
   passengerName: string | null;
+  /** The passenger has ConVía+: their requests have priority (enforced by the server). */
+  passengerIsPlus: boolean;
   tripLabel: string | null;
   tripDepartureAt: string | null;
   /** Latest change the driver made to the trip, shown to the passenger. */
   lastUpdate: { changes: string[]; at: string } | null;
+  /** Where the passenger gets off, when they said (exact only once accepted). */
+  dropoffLabel: string | null;
+  /** Driver view: how well the request fits the trip, computed by the server. */
+  match: TripMatch | null;
 };
 
 export type DriverTripStatus = 'por_empezar' | 'en_curso' | 'finalizado' | 'cancelado' | 'no_iniciado';
@@ -107,27 +114,6 @@ export type DriverTripRecord = {
   totalSeats: number;
   status: DriverTripStatus;
 };
-
-const REQUEST_COLUMNS =
-  'id, trip_id, passenger_id, direccion, estado, qr_token, created_at, responded_at, ' +
-  'passenger:profiles!trip_requests_passenger_id_fkey(nombre), ' +
-  'trip:trips!trip_requests_trip_id_fkey(origen_nombre, destino_nombre, salida_at)';
-
-type RequestRow = Omit<TripRequestRecord, 'passengerName' | 'tripLabel' | 'tripDepartureAt' | 'lastUpdate'> & {
-  passenger: { nombre: string } | null;
-  trip: { origen_nombre: string; destino_nombre: string; salida_at: string } | null;
-};
-
-function mapRequest(row: RequestRow): TripRequestRecord {
-  const { passenger, trip, ...rest } = row;
-  return {
-    ...rest,
-    passengerName: passenger?.nombre || null,
-    tripLabel: trip ? `${trip.origen_nombre} → ${trip.destino_nombre}` : null,
-    tripDepartureAt: trip?.salida_at ?? null,
-    lastUpdate: null,
-  };
-}
 
 async function requireUserId() {
   ensureSupabaseConfigured();
@@ -168,6 +154,7 @@ function mapAvailableTrip(row: {
   vehicle_placa: string | null;
   vehicle_foto_url: string | null;
   ruta: Json | null;
+  driver_is_plus: boolean | null;
 }): Trip | null {
   if (!row.id || !row.driver_id || !row.origen_nombre || !row.destino_nombre || !row.salida_at) {
     return null;
@@ -200,6 +187,7 @@ function mapAvailableTrip(row: {
       avatarUrl: row.driver_avatar_url ?? undefined,
       rating: { score: Number(row.driver_rating ?? 0) },
       vehicleId: row.vehicle_id ?? '',
+      isPlus: row.driver_is_plus === true,
     },
     vehicle: row.vehicle_placa
       ? {
@@ -255,7 +243,8 @@ export const tripService = {
     if (error) throw error;
     return data;
   },
-  async requestPickup(tripId: string, address: string, lat?: number, lng?: number) {
+  /** `dropoff`: where the passenger wants to get off (optional), so the driver can judge the fit. */
+  async requestPickup(tripId: string, address: string, lat?: number, lng?: number, dropoff?: Location | null) {
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     const userId = await requireUserId();
     const { data, error } = await supabase
@@ -266,58 +255,104 @@ export const tripService = {
         direccion: address,
         lat,
         lng,
+        destino_nombre: dropoff?.label ?? null,
+        destino_lat: dropoff?.latitude ?? null,
+        destino_lng: dropoff?.longitude ?? null,
       })
       .select('id')
       .single();
     if (error) throw error;
     notificationService.notify('request_created', data.id);
   },
+  /**
+   * The passenger's own requests, newest first, with the driver's latest change
+   * to each active one. The server returns trip places without house numbers.
+   */
   async getPassengerRequests(): Promise<TripRequestRecord[]> {
     if (!useSupabase) return [];
     const userId = await requireUserId();
-    const { data, error } = await supabase
-      .from('trip_requests')
-      .select(REQUEST_COLUMNS)
-      .eq('passenger_id', userId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.rpc('my_trip_requests');
     if (error) throw error;
-    const requests = (data as unknown as RequestRow[]).map(mapRequest);
-
-    // Attach the driver's latest change to each active request's trip.
-    const activeTripIds = [...new Set(requests
-      .filter((request) => request.estado === 'pendiente' || request.estado === 'aceptado')
-      .map((request) => request.trip_id))];
-    if (!activeTripIds.length) return requests;
-    const { data: updates, error: updatesError } = await supabase
-      .from('trip_updates')
-      .select('trip_id, changes, created_at')
-      .in('trip_id', activeTripIds)
-      .order('created_at', { ascending: false });
-    if (updatesError) return requests; // The list still works without the change log.
-    const latest = new Map<string, { changes: string[]; at: string }>();
-    for (const update of updates) {
-      if (!latest.has(update.trip_id)) latest.set(update.trip_id, { changes: update.changes, at: update.created_at });
-    }
-    return requests.map((request) => ({ ...request, lastUpdate: latest.get(request.trip_id) ?? null }));
+    return data.map((row) => ({
+      id: row.id,
+      trip_id: row.trip_id,
+      passenger_id: userId,
+      direccion: row.direccion,
+      estado: row.estado,
+      qr_token: row.qr_token,
+      created_at: row.created_at,
+      responded_at: row.responded_at,
+      passengerName: null,
+      passengerIsPlus: false,
+      tripLabel: `${row.origen_viaje} → ${row.destino_viaje}`,
+      tripDepartureAt: row.salida_at,
+      lastUpdate: row.last_changes?.length ? { changes: row.last_changes, at: row.last_change_at } : null,
+      dropoffLabel: row.destino_nombre || null,
+      match: null,
+    }));
   },
+  /**
+   * Requests for the driver's active trips, already ordered by the server:
+   * compatibility first, ConVía+ as tie-breaker, then the newest. Pickup and
+   * drop-off are exact only for accepted passengers.
+   */
   async getDriverRequests(): Promise<TripRequestRecord[]> {
     if (!useSupabase) return [];
-    const userId = await requireUserId();
-    const { data: trips, error: tripsError } = await supabase
-      .from('trips')
-      .select('id')
-      .eq('driver_id', userId)
-      .in('estado', ['por_empezar', 'en_curso']);
-    if (tripsError) throw tripsError;
-    const tripIds = trips.map((trip) => trip.id);
-    if (!tripIds.length) return [];
-    const { data, error } = await supabase
-      .from('trip_requests')
-      .select(REQUEST_COLUMNS)
-      .in('trip_id', tripIds)
-      .order('created_at', { ascending: false });
+    ensureSupabaseConfigured();
+    const { data, error } = await supabase.rpc('driver_trip_requests');
     if (error) throw error;
-    return (data as unknown as RequestRow[]).map(mapRequest);
+    return data.map((row) => ({
+      id: row.id,
+      trip_id: row.trip_id,
+      passenger_id: row.passenger_id,
+      direccion: row.direccion,
+      estado: row.estado,
+      qr_token: row.qr_token,
+      created_at: row.created_at,
+      responded_at: row.responded_at,
+      passengerName: row.passenger_nombre || null,
+      passengerIsPlus: row.passenger_is_plus === true,
+      tripLabel: `${row.origen_nombre} → ${row.destino_viaje}`,
+      tripDepartureAt: row.salida_at,
+      lastUpdate: null,
+      dropoffLabel: row.destino_nombre || null,
+      match: matchFromServer({ score: row.match_score, level: row.match_level, pickupKm: row.pickup_km, dropoffKm: row.dropoff_km }),
+    }));
+  },
+
+  /** Every trip the passenger had a seat on (or that was cancelled on them), newest first. */
+  async getPassengerHistory(): Promise<PassengerTripRecord[]> {
+    if (!useSupabase) return [];
+    ensureSupabaseConfigured();
+    const { data, error } = await supabase.rpc('passenger_trip_history');
+    if (error) throw error;
+    return data.map((row) => ({
+      tripId: row.trip_id,
+      requestId: row.request_id,
+      requestStatus: row.request_estado,
+      status: row.estado,
+      originName: row.origen_nombre,
+      destinationName: row.destino_nombre,
+      departureAt: row.salida_at,
+      finishedAt: row.finished_at,
+      price: Number(row.precio),
+      driver: {
+        id: row.driver_id,
+        name: row.driver_nombre,
+        avatarUrl: row.driver_avatar_url ?? undefined,
+        rating: Number(row.driver_rating ?? 0),
+        isPlus: row.driver_is_plus === true,
+      },
+      myDriverScore: row.my_driver_score,
+    }));
+  },
+
+  /** The passenger rates the driver of a finished trip (once; the server rejects repeats). */
+  async rateDriver(tripId: string, score: number, comment: string | null) {
+    if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
+    ensureSupabaseConfigured();
+    const { error } = await supabase.rpc('rate_trip_driver', { p_trip_id: tripId, p_score: score, p_comment: comment ?? undefined });
+    if (error) throw error;
   },
   async getDriverTrips(): Promise<DriverTripRecord[]> {
     if (!useSupabase) return [];
@@ -490,6 +525,27 @@ function notifyAffected(result: unknown) {
   if (updateId && notified) notificationService.notify('trip_updated', updateId);
 }
 
+export type PassengerTripRecord = {
+  tripId: string;
+  requestId: string;
+  requestStatus: TripRequestStatus;
+  status: DriverTripStatus;
+  originName: string;
+  destinationName: string;
+  departureAt: string;
+  finishedAt: string | null;
+  price: number;
+  driver: { id: string; name: string; avatarUrl?: string; rating: number; isPlus: boolean };
+  /** The score this passenger gave the driver; null when not rated yet. */
+  myDriverScore: number | null;
+};
+
+/** A finished trip whose driver the passenger has not rated yet. */
+export function needsDriverRating(trip: PassengerTripRecord) {
+  return trip.status === 'finalizado' && trip.myDriverScore === null
+    && (trip.requestStatus === 'aceptado' || trip.requestStatus === 'abordado');
+}
+
 export type TripMember = {
   requestId: string;
   id: string;
@@ -497,6 +553,7 @@ export type TripMember = {
   avatarUrl?: string;
   rating: number;
   ratingCount: number;
+  isPlus: boolean;
   status: TripRequestStatus;
   isMe: boolean;
   /** Only visible to the driver (and to the passenger themself). */
@@ -522,7 +579,9 @@ export type TripMembers = {
     route?: TripRoute;
     vehicle: { brand: string; color: string; plate: string; photoUrl?: string } | null;
   };
-  driver: { id: string; name: string; avatarUrl?: string; rating: number; ratingCount: number };
+  driver: { id: string; name: string; avatarUrl?: string; rating: number; ratingCount: number; isPlus: boolean };
+  /** Passenger viewer only: the rating they gave the driver, if any. */
+  myDriverRating: { score: number; comment: string | null } | null;
   passengers: TripMember[];
 };
 
@@ -537,10 +596,11 @@ type MembersRow = {
     ruta: unknown;
     vehicle: { marca: string; color: string; placa: string; foto_url: string | null } | null;
   };
-  driver: { id: string; nombre: string; avatar_url: string | null; rating: number | null; rating_count: number | null };
+  driver: { id: string; nombre: string; avatar_url: string | null; rating: number | null; rating_count: number | null; is_plus?: boolean };
+  mi_calificacion_conductor?: { score: number; comentario: string | null } | null;
   passengers: {
     request_id: string; id: string; nombre: string; avatar_url: string | null;
-    rating: number | null; rating_count: number | null; estado: TripRequestStatus; es_yo: boolean;
+    rating: number | null; rating_count: number | null; is_plus?: boolean; estado: TripRequestStatus; es_yo: boolean;
     direccion: string | null; pago: 'pagado' | 'no_pagado' | null;
     mi_calificacion: { score: number; comentario: string | null } | null;
   }[];
@@ -576,7 +636,11 @@ function mapMembers(row: MembersRow): TripMembers {
       avatarUrl: driver.avatar_url ?? undefined,
       rating: Number(driver.rating ?? 0),
       ratingCount: Number(driver.rating_count ?? 0),
+      isPlus: driver.is_plus === true,
     },
+    myDriverRating: row.mi_calificacion_conductor
+      ? { score: row.mi_calificacion_conductor.score, comment: row.mi_calificacion_conductor.comentario }
+      : null,
     passengers: row.passengers.map((passenger) => ({
       requestId: passenger.request_id,
       id: passenger.id,
@@ -584,6 +648,7 @@ function mapMembers(row: MembersRow): TripMembers {
       avatarUrl: passenger.avatar_url ?? undefined,
       rating: Number(passenger.rating ?? 0),
       ratingCount: Number(passenger.rating_count ?? 0),
+      isPlus: passenger.is_plus === true,
       status: passenger.estado,
       isMe: passenger.es_yo,
       pickupAddress: passenger.direccion,

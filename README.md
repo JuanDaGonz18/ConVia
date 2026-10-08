@@ -92,6 +92,19 @@ Screens use `AppMap`, `MapMarker` and `MapLine` from `@/maps` and never import a
 
 The Google provider module is loaded with a lazy `require` the first time a ConVía+ user opens a map, so the Google Maps SDK is never initialized for FREE users. Search, routing and geocoding are already provider-independent (`src/services/locationService.ts`).
 
+## Trip matching
+
+`src/services/tripMatching.ts` decides which trips are useful for a passenger, and how well each request fits a driver's trip. Every screen uses it (Inicio, Viajes, map, trip details, driver requests); there is no other ranking logic.
+
+1. **Cheap filters:** trip status, free seats, the passenger's time window ("Lo antes posible", "Hoy", "Mañana", "Cualquier momento") and a bounding box around the route.
+2. **Route fit:** the passenger's origin and destination are projected onto the driver's route (the road route they chose, or a straight line). This gives where they would get on and off, whether the route goes their way (getting off after getting on), how much of their journey it covers, and the detour.
+3. **Score 0–100:** origin 25 %, destination 30 %, route 25 %, time 15 %, other 5 % (favorite driver, rating). Trips that go the other way, end more than 6 km from the destination, or need a big detour are excluded.
+4. **Order:** compatibility level (Muy compatible / Compatible / Algo compatible), then ConVía+ inside the same level, then score, then soonest departure. ConVía+ never lifts a worse route above a better one.
+
+Without a typed destination, suggestions come only from the passenger's saved places. Leaving near the passenger is not enough on its own. The UI shows the level and plain reasons ("Va a tu destino", "Pasa a 600 m de ti"), never raw scores.
+
+Data comes from `available_trips` / `driver_trip_requests`, which RLS already limits to the user's organization; matching only filters and orders it. Tests: `npm test` (`src/services/tripMatching.test.ts`, Node's built-in runner).
+
 ## External services and limits
 
 | Service | Used for | Cost / limits | Notes |

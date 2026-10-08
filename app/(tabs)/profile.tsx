@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Notice } from '@/components/ui/Notice';
 import { BrandLogo } from '@/components/brand/Brand';
 import { Avatar } from '@/components/ui/Avatar';
@@ -113,6 +114,7 @@ export default function ProfileScreen() {
           <Avatar imageUrl={currentUser?.avatarUrl} name={userName} size={72} />
           <Text style={styles.name}>{userName}</Text>
           <Text style={styles.email}>{userEmail}</Text>
+          {isPlus ? <PlusBadge /> : null}
 
           {isVerified ? (
             <View style={styles.verifiedBadge}>

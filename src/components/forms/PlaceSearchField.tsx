@@ -34,6 +34,8 @@ type PlaceSearchFieldProps = {
   variant?: 'default' | 'bar';
   /** Shown at the start of the bar, e.g. a back button. */
   leading?: ReactNode;
+  /** Validation message from the form: red border and the message under the field. */
+  error?: string | null;
 };
 
 const QUICK_ICONS: Record<SavedPlaceKind, keyof typeof Ionicons.glyphMap> = {
@@ -58,6 +60,7 @@ export function PlaceSearchField({
   mapLink = 'always',
   variant = 'default',
   leading,
+  error: fieldError,
 }: PlaceSearchFieldProps) {
   const bar = variant === 'bar';
   const [query, setQuery] = useState('');
@@ -124,7 +127,7 @@ export function PlaceSearchField({
       {label ? <Text style={styles.label}>{label}</Text> : null}
 
       {value ? (
-        <View style={[styles.selected, bar ? styles.barSelected : null]}>
+        <View style={[styles.selected, bar ? styles.barSelected : null, fieldError ? styles.selectedError : null]}>
           {leading}
           <Ionicons color={colors.primary} name="location" size={18} />
           <View style={styles.selectedText}>
@@ -137,7 +140,7 @@ export function PlaceSearchField({
         </View>
       ) : bar ? (
         // One rounded bar: [leading] [text field] [search]
-        <View style={styles.bar}>
+        <View style={[styles.bar, fieldError ? styles.boxError : null]}>
           {leading}
           <TextInput
             onChangeText={(text) => {
@@ -168,7 +171,7 @@ export function PlaceSearchField({
             placeholder={placeholder}
             placeholderTextColor={colors.textSecondary}
             returnKeyType="search"
-            style={styles.input}
+            style={[styles.input, fieldError ? styles.boxError : null]}
             value={query}
           />
           <Pressable
@@ -181,6 +184,13 @@ export function PlaceSearchField({
           </Pressable>
         </View>
       )}
+
+      {fieldError ? (
+        <View style={styles.errorRow}>
+          <Ionicons color={colors.error} name="alert-circle" size={14} />
+          <Text style={styles.errorText}>{fieldError}</Text>
+        </View>
+      ) : null}
 
       {!value && quickPlaces.length ? (
         <ScrollView
@@ -330,4 +340,9 @@ const styles = StyleSheet.create({
     padding: spacing[12],
   },
   error: { ...typography.caption, color: colors.error },
+  // Same invalid look as TextField.
+  boxError: { backgroundColor: '#FFFBFA', borderColor: colors.error },
+  selectedError: { borderColor: colors.error, borderWidth: 1 },
+  errorRow: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+  errorText: { ...typography.caption, color: colors.error, flex: 1 },
 });

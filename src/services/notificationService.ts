@@ -77,12 +77,9 @@ export const notificationService = {
   async register(userId: string) {
     if (!isSupabaseEnabled || !getNotifications()) return;
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('notifications_enabled')
-        .eq('id', userId)
-        .single();
-      if (error || !profile.notifications_enabled) return;
+      const { data, error } = await supabase.rpc('get_my_profile');
+      const profile = data as { id: string; notifications_enabled: boolean } | null;
+      if (error || !profile || profile.id !== userId || !profile.notifications_enabled) return;
       const token = await getPushToken();
       if (!token) return;
       await supabase.from('profiles').update({ expo_push_token: token }).eq('id', userId);

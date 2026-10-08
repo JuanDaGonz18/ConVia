@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { RateDriverBanner } from '@/components/trip/RateDriverBanner';
 import { Notice } from '@/components/ui/Notice';
 import { PlaceSearchField } from '@/components/forms/PlaceSearchField';
 import { DriverApprovalNotice } from '@/components/profile/DriverApprovalNotice';
 import { ModeSwitch } from '@/components/profile/ModeSwitch';
+import { TimePreferenceChips } from '@/components/trip/TimePreferenceChips';
 import { TripCard } from '@/components/trip/TripCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TripListSkeleton } from '@/components/ui/Skeleton';
@@ -19,14 +21,15 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { locationService } from '@/services/locationService';
+import { rankTripsForJourney, suggestTrips } from '@/services/tripMatching';
 import { DriverTripRecord, DriverTripStatus, tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
 import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
-import { PLACE_MATCH_KM, rankTrips, tripsForDestination } from '@/utils/tripRanking';
 
 /** Trips suggested on the passenger home before choosing a destination. */
-const SUGGESTED_COUNT = 3;
+/** Show the best few first; the rest behind "Ver más". */
+const INITIAL_RESULTS = 5;
 /** Past trips shown on the driver home. */
 const RECENT_COUNT = 3;
 
@@ -84,12 +87,17 @@ function PassengerHome() {
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
-  const [origin, setOrigin] = useState<Location | null>(null);
-  const [destination, setDestination] = useState<Location | null>(null);
+  const { destination, time } = useAppStore((state) => state.tripSearch);
+  const setTripSearch = useAppStore((state) => state.setTripSearch);
+  const [gpsOrigin, setGpsOrigin] = useState<Location | null>(null);
+  // 'gps' = where the phone is; the passenger can pick another starting point.
+  const [originChoice, setOriginChoice] = useState<Location | null | 'gps'>('gps');
+  const origin = originChoice === 'gps' ? gpsOrigin : originChoice;
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -104,9 +112,9 @@ function PassengerHome() {
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
-  // Only to bias the destination search toward where the user is.
+  // Where the passenger is: biases the search and is matched as the pickup point.
   useEffect(() => {
-    const timer = setTimeout(() => void locationService.getCurrentLocation().then(setOrigin).catch(() => undefined), 0);
+    const timer = setTimeout(() => void locationService.getCurrentLocation().then(setGpsOrigin).catch(() => undefined), 0);
     return () => clearTimeout(timer);
   }, []);
 
@@ -121,19 +129,17 @@ function PassengerHome() {
     router.push('/trip-details');
   };
 
-  // With a destination: trips arriving within PLACE_MATCH_KM of it, then those
-  // whose route passes close by (by coordinates, never by text).
-  // Without one: only trips that suit the user (catchable near them, going to
-  // their places, or with a favorite driver) — irrelevant ones stay in "Ver todos".
-  const forDestination = destination ? tripsForDestination(trips, destination) : null;
-  const ranked = forDestination
-    ? [
-        ...rankTrips(forDestination.arriving, savedPlaces, favoriteDriverIds, origin),
-        ...rankTrips(forDestination.passing, savedPlaces, favoriteDriverIds, origin),
-      ]
-    : rankTrips(trips, savedPlaces, favoriteDriverIds, origin).filter((item) => item.relevant);
-  const passingIds = new Set(forDestination?.passing.map((trip) => trip.id) ?? []);
-  const shown = destination ? ranked : ranked.slice(0, SUGGESTED_COUNT);
+  // With a destination: trips compatible with the whole journey (origin, destination,
+  // route and time). Without one: trips compatible with the passenger's saved places.
+  // Leaving near the passenger alone never makes a trip a recommendation.
+  const favorites = useMemo(() => new Set(favoriteDriverIds), [favoriteDriverIds]);
+  const results = useMemo(
+    () => (destination
+      ? rankTripsForJourney(trips, { origin, destination, time, favoriteDriverIds: favorites })
+      : suggestTrips(trips, { origin, places: savedPlaces, favoriteDriverIds: favorites, time })),
+    [destination, favorites, origin, savedPlaces, time, trips],
+  );
+  const shown = expanded ? results : results.slice(0, INITIAL_RESULTS);
 
   return (
     <ScrollView
@@ -141,16 +147,43 @@ function PassengerHome() {
       keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => void refresh()} refreshing={refreshing} />}
     >
+      <RateDriverBanner />
       <View style={styles.searchCard}>
         <PlaceSearchField
           label="¿A dónde vas?"
           mapLink="afterSelection"
           mapTitle="Ajusta tu destino"
           near={origin}
-          onChange={setDestination}
+          onChange={(place) => {
+            setTripSearch({ destination: place });
+            setExpanded(false);
+          }}
           placeholder="Busca un lugar o dirección"
           quickPlaces={savedPlaces}
           value={destination}
+        />
+        {destination ? (
+          <PlaceSearchField
+            allowCurrentLocation
+            label="Desde"
+            mapLink="afterSelection"
+            mapTitle="Dónde te recogen"
+            near={gpsOrigin}
+            onChange={(place) => {
+              setOriginChoice(place);
+              setExpanded(false);
+            }}
+            placeholder="Busca dónde te recogen"
+            quickPlaces={savedPlaces}
+            value={origin}
+          />
+        ) : null}
+        <TimePreferenceChips
+          onChange={(value) => {
+            setTripSearch({ time: value });
+            setExpanded(false);
+          }}
+          value={time}
         />
         {savedPlaces.length === 0 ? (
           <Pressable onPress={() => router.push('/saved-places')} style={styles.inlineLink}>
@@ -166,9 +199,9 @@ function PassengerHome() {
         <Text style={styles.sectionTitle}>
           {destination ? `Viajes hacia ${destination.label}` : 'Viajes para ti'}
         </Text>
-        {!loading ? (
+        {!loading && results.length ? (
           <Text style={styles.sectionMeta}>
-            {`${ranked.length} encontrado${ranked.length === 1 ? '' : 's'}`}
+            {`${results.length} compatible${results.length === 1 ? '' : 's'}`}
           </Text>
         ) : null}
       </View>
@@ -176,44 +209,39 @@ function PassengerHome() {
       {loading ? <TripListSkeleton count={2} /> : null}
       {error ? <Notice action={{ label: 'Reintentar', onPress: () => void refresh() }} tone="error">{error}</Notice> : null}
 
-      {!loading && !error && shown.length === 0 ? (
+      {!loading && !error && results.length === 0 ? (
         <EmptyState
           action={destination
-            ? { label: 'Buscar otro destino', icon: 'search-outline', onPress: () => setDestination(null) }
+            ? { label: 'Buscar otro destino', icon: 'search-outline', onPress: () => setTripSearch({ destination: null }) }
             : trips.length ? { label: `Ver todos los viajes (${trips.length})`, icon: 'list-outline', onPress: () => router.push('/(tabs)/trips') } : undefined}
           icon={destination ? 'navigate-outline' : 'car-outline'}
           message={!isSupabaseEnabled
             ? 'Conecta la app al servidor para ver viajes reales.'
             : destination
-              ? `Buscamos viajes que lleguen a ${PLACE_MATCH_KM} km o menos de ese lugar o que pasen cerca en su ruta. Vuelve a mirar más tarde: los conductores publican durante el día.`
-              : trips.length
-                ? 'Ningún viaje sale ni pasa cerca de ti ni va a tus lugares guardados. Busca tu destino arriba o mira todos los viajes.'
-                : 'Todavía no hay viajes publicados. Desliza hacia abajo para actualizar.'}
+              ? time === 'any'
+                ? 'Ningún viaje publicado va hacia allá ni pasa cerca en su ruta. Vuelve a mirar más tarde: los conductores publican durante el día.'
+                : 'Ningún viaje compatible sale en ese horario. Prueba con "Cualquier momento" o vuelve más tarde.'
+              : savedPlaces.length
+                ? 'Ningún viaje va hacia tus lugares guardados por ahora. Busca tu destino arriba para ver otros viajes compatibles.'
+                : 'Busca tu destino arriba y te mostraremos los viajes que realmente te sirven.'}
           title={!isSupabaseEnabled
             ? 'Modo demostración'
-            : destination ? 'Nadie va hacia allá por ahora' : 'Nada cerca de ti por ahora'}
+            : destination ? 'No encontramos viajes compatibles' : savedPlaces.length ? 'Nada hacia tus lugares por ahora' : '¿A dónde vas?'}
         />
       ) : null}
 
-      {shown.map((item) => (
-        <View key={item.trip.id} style={styles.resultItem}>
-          {passingIds.has(item.trip.id) ? (
-            <View style={styles.passingTag}>
-              <Ionicons color={colors.primary} name="git-branch-outline" size={14} />
-              <Text style={styles.passingText}>Pasa cerca de tu destino en su ruta</Text>
-            </View>
-          ) : null}
-          <TripCard
-            favoriteDriver={item.favoriteDriver}
-            nearPlace={destination ? null : item.nearPlace}
-            onTripPress={() => openTrip(item.trip)}
-            pickup={item.pickup}
-            trip={item.trip}
-          />
-        </View>
+      {shown.map(({ item, match }) => (
+        <TripCard key={item.id} match={match} onTripPress={() => openTrip(item)} trip={item} />
       ))}
 
-      {!destination && trips.length > shown.length ? (
+      {!expanded && results.length > shown.length ? (
+        <Pressable onPress={() => setExpanded(true)} style={styles.seeAll}>
+          <Text style={styles.seeAllText}>Ver más viajes compatibles ({results.length - shown.length})</Text>
+          <Ionicons color={colors.primary} name="chevron-down" size={16} />
+        </Pressable>
+      ) : null}
+      {/* With no results, the empty state already offers this. */}
+      {!destination && trips.length > 0 && results.length > 0 ? (
         <Pressable onPress={() => router.push('/(tabs)/trips')} style={styles.seeAll}>
           <Text style={styles.seeAllText}>Ver todos los viajes ({trips.length})</Text>
           <Ionicons color={colors.primary} name="arrow-forward" size={16} />
@@ -448,9 +476,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing[16],
   },
   searchCard: { ...cardBase, gap: spacing[8], padding: spacing[16] },
-  resultItem: { gap: spacing[4] },
-  passingTag: { alignItems: 'center', flexDirection: 'row', gap: 4, paddingHorizontal: spacing[4] },
-  passingText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
   inlineLink: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   inlineLinkText: { ...typography.caption, color: colors.primary, flex: 1 },
   mapCard: { ...cardBase, alignItems: 'center', flexDirection: 'row', gap: spacing[12], padding: spacing[16] },

@@ -27,7 +27,7 @@ import { typography } from '@/constants/typography';
 import { chatService } from '@/services/chatService';
 import { useAppStore } from '@/store/appStore';
 import { ChatConversation, ChatMessage } from '@/types';
-import { errorMessage } from '@/utils/format';
+import { errorMessage, rawErrorMessage } from '@/utils/format';
 
 const MAX_LENGTH = 2000;
 
@@ -39,6 +39,8 @@ export default function ChatScreen() {
   const [conversation, setConversation] = useState<ChatConversation | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // The trip ended: its chat is closed (the server no longer accepts messages).
+  const [ended, setEnded] = useState(false);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -50,7 +52,11 @@ export default function ChatScreen() {
     try {
       const found = await chatService.getConversation(tripId);
       setConversation(found);
-      if (!found) setLoadError('El chat se habilita cuando el conductor acepta tu solicitud, y se cierra cuando el viaje termina.');
+      if (!found) {
+        const reason = await chatService.getClosedReason(tripId);
+        setEnded(reason === 'ended');
+        setLoadError('El chat se habilita cuando el conductor acepta tu solicitud, y se cierra cuando el viaje termina.');
+      }
     } catch (error) {
       setLoadError(errorMessage(error, 'No se pudo cargar la conversación.'));
     } finally {
@@ -90,6 +96,11 @@ export default function ChatScreen() {
       // Keep what was typed if sending fails, so the user can retry.
       if (!fromQuickReply) setText('');
     } catch (error) {
+      // The trip may have just ended: reload to show the closed chat instead of an error.
+      if (/row-level security/i.test(rawErrorMessage(error))) {
+        void load();
+        return;
+      }
       setSendError(errorMessage(error, 'No se pudo enviar el mensaje. Inténtalo de nuevo.'));
     } finally {
       setSending(false);
@@ -141,6 +152,15 @@ export default function ChatScreen() {
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : !conversation && ended ? (
+        <View style={styles.centered}>
+          <EmptyState
+            action={{ icon: 'document-text-outline', label: 'Ver el viaje', onPress: () => router.replace({ pathname: '/trip-summary', params: { tripId } }) }}
+            icon="lock-closed-outline"
+            message="El viaje terminó, así que su chat se cerró y ya no se pueden enviar mensajes."
+            title="Este chat ya no está disponible"
+          />
         </View>
       ) : !conversation ? (
         <View style={styles.centered}>

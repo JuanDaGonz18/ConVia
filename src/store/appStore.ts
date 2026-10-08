@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-import { FaceVerificationState, SavedPlace, Trip, User } from '@/types';
+import type { TimePreference } from '@/services/tripMatching';
+import { FaceVerificationState, Location, SavedPlace, Trip, User } from '@/types';
 
 type AuthState = 'anonymous' | 'authenticated';
 
@@ -14,6 +15,9 @@ type AppStore = {
   /** Optional places used to prioritize trips (loaded after sign-in). */
   savedPlaces: SavedPlace[];
   favoriteDriverIds: string[];
+  /** The passenger's current search, reused by the map and when requesting a seat. */
+  tripSearch: { destination: Location | null; time: TimePreference };
+  setTripSearch: (search: Partial<AppStore['tripSearch']>) => void;
   setCurrentUser: (user: User | null) => void;
   setSavedPlaces: (places: SavedPlace[]) => void;
   setFavoriteDriverIds: (ids: string[]) => void;
@@ -31,6 +35,9 @@ export const useAppStore = create<AppStore>((set) => ({
   faceVerificationState: 'IDLE',
   savedPlaces: [],
   favoriteDriverIds: [],
+  tripSearch: { destination: null, time: 'any' },
+
+  setTripSearch: (search) => set((state) => ({ tripSearch: { ...state.tripSearch, ...search } })),
 
   setSavedPlaces: (savedPlaces) => set({ savedPlaces }),
   setFavoriteDriverIds: (favoriteDriverIds) => set({ favoriteDriverIds }),
@@ -66,5 +73,6 @@ export const useAppStore = create<AppStore>((set) => ({
       faceVerificationState: 'IDLE',
       savedPlaces: [],
       favoriteDriverIds: [],
+      tripSearch: { destination: null, time: 'any' },
     }),
 }));

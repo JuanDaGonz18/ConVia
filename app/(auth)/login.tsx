@@ -120,7 +120,7 @@ export default function LoginScreen() {
                 if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: undefined }));
               }}
               onSubmitEditing={() => passwordRef.current?.focus()}
-              placeholder="nombre@unisabana.edu.co"
+              placeholder="Tu correo institucional"
               returnKeyType="next"
               value={email}
             />

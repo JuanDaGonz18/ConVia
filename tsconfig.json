@@ -3,6 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "ignoreDeprecations": "6.0",
+    // Unit tests run directly in Node, which needs explicit .ts import paths.
+    "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [

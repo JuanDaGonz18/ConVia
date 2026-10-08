@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Notice } from '@/components/ui/Notice';
 import { TripRoutePreview } from '@/components/map/TripRoutePreview';
+import { PlusBadge } from '@/components/subscription/PlusBadge';
+import { RateDriverModal, RateDriverTarget } from '@/components/trip/RateDriverModal';
 import { Avatar } from '@/components/ui/Avatar';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { Rating } from '@/components/ui/Rating';
@@ -35,7 +37,8 @@ function formatTime(value: string | null) {
  * as the closing review: mark who paid, rate passengers, leave comments.
  */
 export default function TripSummaryScreen() {
-  const { tripId, finished } = useLocalSearchParams<{ tripId: string; finished?: string }>();
+  const { tripId, finished, rate } = useLocalSearchParams<{ tripId: string; finished?: string; rate?: string }>();
+  const [rateTarget, setRateTarget] = useState<RateDriverTarget | null>(null);
   const [members, setMembers] = useState<TripMembers | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +69,23 @@ export default function TripSummaryScreen() {
 
   const trip = members?.trip;
   const status = trip ? STATUS[trip.status] : null;
+  // Passenger view of a finished trip: they can rate the driver once.
+  const canRateDriver = !!members && !members.viewerIsDriver && trip?.status === 'finalizado' && !members.myDriverRating;
+  const openRating = useCallback(() => {
+    if (!members) return;
+    setRateTarget({
+      tripId: members.trip.id,
+      tripLabel: `${members.trip.origin.label} → ${members.trip.destination.label}`,
+      driver: { name: members.driver.name, avatarUrl: members.driver.avatarUrl },
+    });
+  }, [members]);
+
+  // Opened from the "trip finished" notification: go straight to the rating.
+  useEffect(() => {
+    if (rate !== '1' || !canRateDriver) return;
+    const timer = setTimeout(openRating, 300);
+    return () => clearTimeout(timer);
+  }, [canRateDriver, openRating, rate]);
   const canReview = members?.viewerIsDriver && trip?.status === 'finalizado';
   const passengers = members?.passengers ?? [];
   const paidCount = passengers.filter((item) => item.paid === true).length;
@@ -114,6 +134,33 @@ export default function TripSummaryScreen() {
               {trip.description ? <InfoRow icon="document-text-outline" label="Descripción" value={trip.description} /> : null}
             </View>
 
+            {members && !members.viewerIsDriver ? (
+              <View style={styles.passengerCard}>
+                <Text style={styles.fieldLabel}>Conductor</Text>
+                <View style={styles.passengerHeader}>
+                  <Avatar imageUrl={members.driver.avatarUrl} name={members.driver.name} size={44} />
+                  <View style={styles.flex}>
+                    <View style={styles.nameRow}>
+                      <Text numberOfLines={1} style={styles.nameText}>{members.driver.name}</Text>
+                      {members.driver.isPlus ? <PlusBadge /> : null}
+                    </View>
+                    <Rating score={members.driver.rating} />
+                  </View>
+                </View>
+                {members.myDriverRating ? (
+                  <View style={styles.myRating}>
+                    <View style={styles.ratingRow}>
+                      <Text style={styles.muted}>Tu calificación</Text>
+                      <StarRating score={members.myDriverRating.score} size={18} />
+                    </View>
+                    {members.myDriverRating.comment ? <Text style={styles.muted}>“{members.myDriverRating.comment}”</Text> : null}
+                  </View>
+                ) : canRateDriver ? (
+                  <ButtonPrimary icon="star-outline" onPress={openRating} title={`Calificar a ${members.driver.name}`} />
+                ) : null}
+              </View>
+            ) : null}
+
             <View style={styles.sectionHeader}>
               <Text style={styles.section}>{trip.status === 'cancelado' ? 'Pasajeros afectados' : 'Pasajeros'}</Text>
               {canReview && passengers.length ? (
@@ -131,7 +178,10 @@ export default function TripSummaryScreen() {
                 <View style={styles.passengerHeader}>
                   <Avatar imageUrl={passenger.avatarUrl} name={passenger.name} size={44} />
                   <View style={styles.flex}>
-                    <Text style={styles.passengerName}>{passenger.name}</Text>
+                    <View style={styles.nameRow}>
+                      <Text numberOfLines={1} style={styles.nameText}>{passenger.name}{passenger.isMe ? ' (tú)' : ''}</Text>
+                      {passenger.isPlus ? <PlusBadge /> : null}
+                    </View>
                     <Rating score={passenger.rating} />
                   </View>
                 </View>
@@ -148,6 +198,8 @@ export default function TripSummaryScreen() {
           </>
         ) : null}
       </ScrollView>
+
+      <RateDriverModal onClose={() => setRateTarget(null)} onRated={() => void load()} target={rateTarget} />
     </SafeAreaView>
   );
 }
@@ -207,7 +259,10 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
       <View style={styles.passengerHeader}>
         <Avatar imageUrl={passenger.avatarUrl} name={passenger.name} size={44} />
         <View style={styles.flex}>
-          <Text style={styles.passengerName}>{passenger.name}</Text>
+          <View style={styles.nameRow}>
+            <Text numberOfLines={1} style={styles.nameText}>{passenger.name}</Text>
+            {passenger.isPlus ? <PlusBadge /> : null}
+          </View>
           <Text style={styles.muted}>{passenger.status === 'abordado' ? 'Abordó con QR' : 'Aceptado (sin escanear QR)'}</Text>
         </View>
         <Rating score={passenger.rating} />
@@ -326,6 +381,9 @@ const styles = StyleSheet.create({
   passengerCard: { backgroundColor: colors.white, borderColor: colors.lightGray, borderRadius: radius.radiusLarge, borderWidth: 1, gap: spacing[8], padding: spacing[16] },
   passengerHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[12] },
   passengerName: { ...typography.bodyMedium, color: colors.text, fontWeight: '700' },
+  nameRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
+  nameText: { ...typography.bodyMedium, color: colors.text, flexShrink: 1, fontWeight: '700' },
+  myRating: { gap: spacing[4] },
   fieldLabel: { ...typography.label, color: colors.text, marginTop: spacing[4] },
   segment: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
   segmentOption: {

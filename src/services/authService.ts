@@ -19,7 +19,7 @@ type SupabaseProfile = {
   avatar_url: string | null;
   verification_status: string;
   verified_at: string | null;
-  driver_profiles: { status: DriverStatus } | null;
+  driver_status: DriverStatus | null;
 };
 
 const buildDemoUser = (email: string, role: UserRole, name: string, id: string): User => ({
@@ -37,7 +37,7 @@ const mapProfile = (profile: SupabaseProfile): User => ({
   avatarUrl: profile.avatar_url ?? undefined,
   faceVerified: profile.verification_status === 'verificado',
   faceVerifiedAt: profile.verified_at ?? undefined,
-  driverStatus: profile.driver_profiles?.status ?? null,
+  driverStatus: profile.driver_status ?? null,
 });
 
 const getSupabaseUser = async (): Promise<User | null> => {
@@ -46,11 +46,9 @@ const getSupabaseUser = async (): Promise<User | null> => {
   if (sessionError) throw sessionError;
   if (!sessionData.session) return null;
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, nombre, email, rol, avatar_url, verification_status, verified_at, driver_profiles(status)')
-    .eq('id', sessionData.session.user.id)
-    .maybeSingle();
+  // The user's own private fields come from a server function: other users'
+  // email and phone are not readable from the profiles table.
+  const { data, error } = await supabase.rpc('get_my_profile');
   if (error) throw error;
   if (!data) {
     // A login without its profile row can't use the app; end the session cleanly.

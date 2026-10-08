@@ -9,7 +9,7 @@ import { typography } from '@/constants/typography';
 import { AppMap, MapHandle, MapLine, MapMarker } from '@/maps';
 import { locationService, RoutePreview } from '@/services/locationService';
 import { Location, TripRoute } from '@/types';
-import { hasCoordinates } from '@/utils/tripRanking';
+import { hasCoordinates } from '@/services/tripMatching';
 
 type TripRoutePreviewProps = Readonly<{
   origin: Location;

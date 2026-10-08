@@ -3,13 +3,26 @@
 Proyecto: **ConVía** · ref `hfnsgeunskbkapjavcao` · región Canada (Central) · plan Free
 URL: `https://hfnsgeunskbkapjavcao.supabase.co`
 
-Estado: las migraciones 1–19 están aplicadas (historial reparado el 2026-09-26). La 6 añade chat persistente y referencia facial privada; la 7 añade `expo_push_token` y `notifications_enabled` en `profiles`.
+Estado: las migraciones 1–23 están aplicadas (historial reparado el 2026-09-26). La 6 añade chat persistente y referencia facial privada; la 7 añade `expo_push_token` y `notifications_enabled` en `profiles`.
 
 La 19 (`20261007000019_subscriptions.sql`, aplicada el 2026-10-07) crea los planes FREE / ConVía+: tablas `plans` y `subscriptions` (sin fila = FREE; la app solo puede leer la suya), `get_my_plan()` para la app, y triggers que limitan vehículos activos, lugares guardados y conductores favoritos según el plan (`private.plan_limit`). Para activar ConVía+ a mano ver el README principal.
 
-Edge Functions desplegadas: `notify` (push de solicitudes, respuestas y mensajes; los destinatarios se calculan en el servidor) y `delete-account` (borra archivos de Storage y el usuario con `auth.admin.deleteUser`; cascada al resto).
+La 20 (`20261007000020_ratings_chat_priority_org.sql`, aplicada el 2026-10-07): el pasajero califica al conductor con `rate_trip_driver()` (una vez por viaje; ya no hay INSERT directo en `ratings`), `passenger_trip_history()`, `driver_trip_requests()` (ConVía+ primero) y `respond_trip_request()` con prioridad ConVía+ (no se puede aceptar una solicitud FREE si deja sin cupo a solicitudes ConVía+ pendientes), chat cerrado cuando el viaje termina (`private.is_trip_active`), `available_trips.driver_is_plus` (la columna calculada `profiles.is_plus` se eliminó en la 22), y comprobaciones explícitas de organización en favoritos y solicitudes.
 
-> Registro: **solo se aceptan correos de dominios en `institutions`**. Un correo de otro dominio hace fallar `signUp` con `DOMINIO_NO_PERMITIDO`, así que valida antes con `check_email_domain`. Para crear usuarios de prueba desde el dashboard, usa correos `@unisabana.edu.co`.
+La 21 (`20261007000021_request_dropoff_matching.sql`, aplicada el 2026-10-07): `trip_requests` guarda dónde se baja el pasajero (`destino_nombre/lat/lng`, opcional), la app solo puede insertar las columnas propias de una solicitud nueva, y `driver_trip_requests()` devuelve la geometría del viaje y de la solicitud para calcular la compatibilidad en `src/services/tripMatching.ts`.
+
+La 22 (`20261007000022_privacy_matching_priority.sql`) y la 23 (`20261007000023_available_trips_invoker.sql`), aplicadas el 2026-10-07, cierran la exposición de datos personales:
+
+- `profiles` ya no deja leer correo, teléfono ni tokens; cada usuario obtiene los suyos con `get_my_profile()`.
+- `trips`, `vehicles`, `ratings` y `trip_updates` solo los leen su dueño o los involucrados; las ubicaciones de `trip_requests` solo salen por funciones del servidor.
+- Los demás reciben datos reducidos (dirección sin número de casa, coordenadas a ~450 m, ruta sin los 500 m de cada extremo, placa enmascarada) por `available_trips`, `trip_members`, `my_trip_requests()`, `driver_trip_requests()` y `my_chat_trips()`.
+- La compatibilidad de las solicitudes se calcula en el servidor (`private.request_match`, umbrales en `private.matching_config()`, iguales a `MATCHING_CONFIG` de la app) y la prioridad ConVía+ solo aplica entre solicitudes igual o más compatibles.
+- **Las versiones de la app anteriores a esta no pueden iniciar sesión** (leían columnas que ahora están cerradas).
+
+## Pruebas
+
+- `npx supabase db query --linked -f supabase/tests/security_audit_test.sql`: privacidad, organizaciones, chat, calificaciones, planes y prioridad. Corre dentro de una transacción que se deshace; el error final es el reporte (debe decir `0 failing`).
+- `node --env-file=.env supabase/tests/auth_e2e.mjs`: registro, perfil, notificaciones, sesión, contraseña y privacidad, con una cuenta temporal que se elimina al final.
 
 ## Conectar la app
 

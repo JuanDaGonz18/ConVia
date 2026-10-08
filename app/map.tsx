@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,12 +16,12 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { AppMap, MapHandle, MapLine, MapMarker, MapRegion, useMapCapabilities } from '@/maps';
 import { locationService } from '@/services/locationService';
+import { hasCoordinates, RankedMatch, rankTripsForJourney, suggestTrips } from '@/services/tripMatching';
 import { DriverTripRecord, tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
 import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
 import { usePlan } from '@/subscription/usePlan';
-import { hasCoordinates, RankedTrip, rankTrips, tripsForDestination } from '@/utils/tripRanking';
 
 const BOGOTA: MapRegion = { latitude: 4.711, longitude: -74.0721, latitudeDelta: 0.25, longitudeDelta: 0.25 };
 // Added to the space the search bar and the sheet already take.
@@ -43,6 +43,7 @@ export default function MapScreen() {
   const driverApproved = useAppStore((state) => state.currentUser?.driverStatus === 'aprobado');
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
+  const searchTime = useAppStore((state) => state.tripSearch.time);
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
   const mapRef = useRef<MapHandle>(null);
   const { has } = usePlan();
@@ -118,16 +119,17 @@ export default function MapScreen() {
     });
   };
 
-  // Passenger results for the chosen destination (arriving first, then passing near),
-  // ordered so those the user can catch near them come first.
-  const { arriving, passing } = selected && !isDriver ? tripsForDestination(trips, selected) : { arriving: [], passing: [] };
-  const rankedArriving = rankTrips(arriving, savedPlaces, favoriteDriverIds, me);
-  const rankedPassing = rankTrips(passing, savedPlaces, favoriteDriverIds, me);
-  const passingIds = new Set(passing.map((trip) => trip.id));
-  // Without a destination: only trips that suit the user (near them, to their places, favorite drivers).
-  const suggestions = !selected && !isDriver ? rankTrips(trips, savedPlaces, favoriteDriverIds, me).filter((item) => item.relevant) : [];
-  const shownTrips = selected ? [...rankedArriving, ...rankedPassing] : suggestions;
-  const highlighted = new Set(shownTrips.map((item) => item.trip.id));
+  // Passenger: same matching as Inicio. With a chosen point, trips compatible with the
+  // journey from here to there; without one, trips compatible with the saved places.
+  const favorites = useMemo(() => new Set(favoriteDriverIds), [favoriteDriverIds]);
+  const shownTrips = useMemo(() => {
+    if (isDriver) return [];
+    return selected
+      ? rankTripsForJourney(trips, { origin: me, destination: selected, time: searchTime, favoriteDriverIds: favorites })
+      : suggestTrips(trips, { origin: me, places: savedPlaces, favoriteDriverIds: favorites, time: searchTime });
+  }, [favorites, isDriver, me, savedPlaces, searchTime, selected, trips]);
+  const suggestions = selected ? [] : shownTrips;
+  const highlighted = new Set(shownTrips.map((entry) => entry.item.id));
   const focusedTrip = driverTrips.find((trip) => trip.id === focusedTripId) ?? null;
   const distanceFromMe = selected && me ? locationService.distanceKm(me, selected) : null;
 
@@ -172,7 +174,7 @@ export default function MapScreen() {
         }) : null}
 
         {/* Passenger: departure points of available trips; the ones that suit the destination stand out. */}
-        {!isDriver ? shownTrips.filter((item) => item.trip.route).map(({ trip }) => (
+        {!isDriver ? shownTrips.filter((entry) => entry.item.route).map(({ item: trip }) => (
           <MapLine color="rgba(0,111,253,0.45)" coordinates={trip.route!.coordinates} key={`route-${trip.id}`} width={4} />
         )) : null}
         {!isDriver ? trips.filter((trip) => hasCoordinates(trip.origin)).map((trip) => {
@@ -259,15 +261,13 @@ export default function MapScreen() {
               )
             ) : (
               shownTrips.length === 0 ? (
-                <Text style={styles.muted}>Ningún conductor va hacia allá ni pasa cerca por ahora.</Text>
+                <Text style={styles.muted}>No encontramos viajes compatibles: ninguno va hacia allá ni pasa cerca en su ruta desde donde estás.</Text>
               ) : (
                 <>
                   <Text style={styles.listTitle}>
-                    {rankedArriving.length ? `${rankedArriving.length} llega${rankedArriving.length === 1 ? '' : 'n'} cerca` : ''}
-                    {rankedArriving.length && rankedPassing.length ? ' · ' : ''}
-                    {rankedPassing.length ? `${rankedPassing.length} pasa${rankedPassing.length === 1 ? '' : 'n'} cerca en su ruta` : ''}
+                    {`${shownTrips.length} viaje${shownTrips.length === 1 ? '' : 's'} compatible${shownTrips.length === 1 ? '' : 's'}, el más útil primero`}
                   </Text>
-                  <TripCarousel items={shownTrips} onOpen={openTrip} passingIds={passingIds} />
+                  <TripCarousel items={shownTrips} onOpen={openTrip} />
                 </>
               )
             )}
@@ -328,15 +328,15 @@ export default function MapScreen() {
           <>
             <Text style={styles.sheetTitle}>Viajes para ti</Text>
             <Text style={styles.muted}>
-              {me ? 'Salen o pasan cerca de ti, van a tus lugares o son de tus conductores favoritos.' : 'Van a tus lugares o son de tus conductores favoritos.'}
+              Van hacia tus lugares guardados y te recogen en el camino.
             </Text>
             <TripCarousel items={suggestions} onOpen={openTrip} />
           </>
         ) : (
           <>
-            <Text style={styles.sheetTitle}>Nada cerca de ti por ahora</Text>
+            <Text style={styles.sheetTitle}>¿A dónde vas?</Text>
             <Text style={styles.muted}>
-              Ningún viaje sale ni pasa cerca de ti ni va a tus lugares guardados. Busca tu destino o toca el mapa para ver quién va hacia allá.
+              Busca tu destino o toca el mapa y te mostraremos solo los viajes que realmente te sirven.
             </Text>
           </>
         )}
@@ -346,10 +346,9 @@ export default function MapScreen() {
 }
 
 /** Relevant trips as swipeable cards, each with why it suits the user. */
-function TripCarousel({ items, onOpen, passingIds }: Readonly<{
-  items: RankedTrip[];
+function TripCarousel({ items, onOpen }: Readonly<{
+  items: RankedMatch<Trip>[];
   onOpen: (trip: Trip) => void;
-  passingIds?: Set<string>;
 }>) {
   const { width } = useWindowDimensions();
   const cardWidth = Math.min(width - 56, 420);
@@ -362,21 +361,9 @@ function TripCarousel({ items, onOpen, passingIds }: Readonly<{
       snapToInterval={cardWidth + spacing[12]}
       style={styles.carouselScroll}
     >
-      {items.map((item) => (
-        <View key={item.trip.id} style={[styles.carouselItem, { width: cardWidth }]}>
-          {passingIds?.has(item.trip.id) ? (
-            <View style={styles.passingTag}>
-              <Ionicons color={colors.primary} name="git-branch-outline" size={14} />
-              <Text style={styles.passingText}>Pasa cerca de tu destino en su ruta</Text>
-            </View>
-          ) : null}
-          <TripCard
-            favoriteDriver={item.favoriteDriver}
-            nearPlace={item.nearPlace}
-            onTripPress={() => onOpen(item.trip)}
-            pickup={item.pickup}
-            trip={item.trip}
-          />
+      {items.map(({ item, match }) => (
+        <View key={item.id} style={[styles.carouselItem, { width: cardWidth }]}>
+          <TripCard match={match} onTripPress={() => onOpen(item)} trip={item} />
         </View>
       ))}
     </ScrollView>
@@ -463,8 +450,6 @@ const styles = StyleSheet.create({
   carouselScroll: { flexGrow: 0, marginHorizontal: -spacing[16] },
   carousel: { gap: spacing[12], paddingHorizontal: spacing[16], paddingVertical: spacing[4] },
   carouselItem: { gap: spacing[4] },
-  passingTag: { alignItems: 'center', flexDirection: 'row', gap: 4, paddingHorizontal: spacing[4] },
-  passingText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8] },
   chip: {
     alignItems: 'center',

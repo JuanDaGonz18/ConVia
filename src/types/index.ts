@@ -116,6 +116,8 @@ export type User = {
   faceVerifiedAt?: string;
   /** null when the user never asked to drive. */
   driverStatus?: DriverStatus | null;
+  /** Has an active ConVía+ subscription (decided by the server). */
+  isPlus?: boolean;
 };
 
 export type Driver = User & {

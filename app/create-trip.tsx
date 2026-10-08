@@ -13,6 +13,7 @@ import { toast } from '@/components/ui/Toast';
 import { PlaceSearchField } from '@/components/forms/PlaceSearchField';
 import { RoutePicker } from '@/components/map/RoutePicker';
 import { DriverApprovalNotice } from '@/components/profile/DriverApprovalNotice';
+import { FieldError, fieldErrorBox } from '@/components/forms/FieldError';
 import { TextField } from '@/components/forms/TextField';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
@@ -58,6 +59,9 @@ function templatePlace(place: TripTemplate['origin']): Location | null {
   };
 }
 
+/** Problems found in the form, shown under each field. */
+type FieldErrors = Partial<Record<'vehicle' | 'origin' | 'destination' | 'departure' | 'price' | 'seats', string>>;
+
 export default function CreateTripScreen() {
   // ?repeatFrom=<id> copies a previous trip; ?edit=<id> edits a published one.
   const { repeatFrom, edit, destLat, destLng, destLabel } = useLocalSearchParams<{
@@ -86,6 +90,7 @@ export default function CreateTripScreen() {
   const [seats, setSeats] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   const [repeated, setRepeated] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -171,39 +176,36 @@ export default function CreateTripScreen() {
     });
   };
 
+  const validate = () => {
+    const parsedPrice = Number(price);
+    const parsedSeats = Number(seats);
+    const found: FieldErrors = {};
+    if (!vehicle) found.vehicle = vehicles.length ? 'Elige el vehículo del viaje.' : 'Registra un vehículo antes de publicar un viaje.';
+    else if (!vehicle.photoUrl && !edit) found.vehicle = 'Agrega una foto de este vehículo: los pasajeros la ven antes de pedir un cupo.';
+    if (!origin) found.origin = 'Elige el punto de salida.';
+    if (!destination) found.destination = 'Elige el destino.';
+    else if (origin && locationService.distanceKm(origin, destination) < 0.3) found.destination = 'El destino debe ser distinto al punto de salida.';
+    if (departure <= new Date()) found.departure = 'La salida debe ser en el futuro.';
+    if (!price.trim()) found.price = 'Escribe el precio por cupo.';
+    else if (!Number.isInteger(parsedPrice) || parsedPrice < 0) found.price = 'Escribe solo números, sin puntos ni decimales.';
+    if (!Number.isInteger(parsedSeats) || parsedSeats < 1 || parsedSeats > MAX_SEATS) found.seats = `Elige entre 1 y ${MAX_SEATS} cupos.`;
+    else if (vehicle && parsedSeats > (vehicle.seats ?? MAX_SEATS)) {
+      found.seats = `Tu vehículo tiene ${vehicle.seats} puesto${vehicle.seats === 1 ? '' : 's'} para pasajeros. Actualízalo para ofrecer ${parsedSeats} cupos.`;
+    }
+    return found;
+  };
+
+  const clearFieldError = (key: keyof FieldErrors) => {
+    setFieldErrors((current) => (current[key] ? { ...current, [key]: undefined } : current));
+  };
+
   const publishTrip = async () => {
     const parsedPrice = Number(price);
     const parsedSeats = Number(seats);
-    if (!vehicle) {
-      setError(vehicles.length ? 'Elige el vehículo del viaje.' : 'Registra un vehículo antes de publicar un viaje.');
-      return;
-    }
-    if (!vehicle.photoUrl && !edit) {
-      setError('Agrega una foto de este vehículo: los pasajeros la ven antes de pedir un cupo.');
-      return;
-    }
-    if (!origin || !destination) {
-      setError('Selecciona el punto de salida y el destino.');
-      return;
-    }
-    if (locationService.distanceKm(origin, destination) < 0.3) {
-      setError('El destino debe ser distinto al punto de salida.');
-      return;
-    }
-    if (departure <= new Date()) {
-      setError('La salida debe ser en el futuro.');
-      return;
-    }
-    if (!price.trim() || !Number.isInteger(parsedPrice) || parsedPrice < 0) {
-      setError('Ingresa un precio válido en pesos, sin puntos ni decimales.');
-      return;
-    }
-    if (!Number.isInteger(parsedSeats) || parsedSeats < 1 || parsedSeats > MAX_SEATS) {
-      setError(`Elige entre 1 y ${MAX_SEATS} cupos.`);
-      return;
-    }
-    if (parsedSeats > (vehicle.seats ?? MAX_SEATS)) {
-      setError(`Tu vehículo tiene ${vehicle.seats} puesto${vehicle.seats === 1 ? '' : 's'} para pasajeros registrados. Actualízalo para ofrecer ${parsedSeats} cupos.`);
+    const found = validate();
+    setFieldErrors(found);
+    if (Object.values(found).some(Boolean) || !vehicle || !origin || !destination) {
+      setError(null);
       return;
     }
     setError(null);
@@ -290,7 +292,7 @@ export default function CreateTripScreen() {
                   key={item.id}
                   onPress={() => {
                     setVehicleId(item.id);
-                    setError(null);
+                    clearFieldError('vehicle');
                   }}
                   style={[styles.vehicleCard, selected ? styles.vehicleCardSelected : null]}
                 >
@@ -319,6 +321,7 @@ export default function CreateTripScreen() {
             ) : null}
           </ScrollView>
         ) : null}
+        <FieldError message={fieldErrors.vehicle} />
         {vehicle && !vehicle.photoUrl ? (
           <Pressable onPress={() => router.push({ pathname: '/vehicle', params: { id: vehicle.id } })} style={styles.seatWarning}>
             <Ionicons color={colors.error} name="camera-outline" size={18} />
@@ -328,18 +331,27 @@ export default function CreateTripScreen() {
 
         <PlaceSearchField
           allowCurrentLocation
+          error={fieldErrors.origin}
           label="Salida"
           mapTitle="Punto de salida"
-          onChange={setOrigin}
+          onChange={(place) => {
+            setOrigin(place);
+            clearFieldError('origin');
+          }}
+          placeholder="Busca el punto de salida"
           quickPlaces={savedPlaces}
           value={origin}
         />
         <PlaceSearchField
+          error={fieldErrors.destination}
           label="Destino"
           mapTitle="Destino del viaje"
           near={origin}
-          onChange={setDestination}
-          placeholder="Ej. Universidad de La Sabana"
+          onChange={(place) => {
+            setDestination(place);
+            clearFieldError('destination');
+          }}
+          placeholder="Busca el destino del viaje"
           // Don't offer the place already chosen as the departure.
           quickPlaces={savedPlaces.filter((place) => !origin || locationService.distanceKm(place, origin) >= 0.3)}
           value={destination}
@@ -361,15 +373,16 @@ export default function CreateTripScreen() {
 
         <Text style={styles.label}>Fecha y hora de salida</Text>
         <View style={styles.dateRow}>
-          <Pressable accessibilityLabel="Elegir fecha" onPress={() => setPicker('date')} style={styles.dateButton}>
+          <Pressable accessibilityLabel="Elegir fecha" onPress={() => setPicker('date')} style={[styles.dateButton, fieldErrors.departure ? fieldErrorBox : null]}>
             <Ionicons color={colors.primary} name="calendar-outline" size={20} />
             <Text style={styles.dateText}>{dateLabel}</Text>
           </Pressable>
-          <Pressable accessibilityLabel="Elegir hora" onPress={() => setPicker('time')} style={styles.dateButton}>
+          <Pressable accessibilityLabel="Elegir hora" onPress={() => setPicker('time')} style={[styles.dateButton, fieldErrors.departure ? fieldErrorBox : null]}>
             <Ionicons color={colors.primary} name="time-outline" size={20} />
             <Text style={styles.dateText}>{timeLabel}</Text>
           </Pressable>
         </View>
+        <FieldError message={fieldErrors.departure} />
         {picker ? (
           <View style={Platform.OS === 'ios' ? styles.iosPicker : undefined}>
             <DateTimePicker
@@ -379,6 +392,7 @@ export default function CreateTripScreen() {
               mode={picker}
               onDismiss={() => setPicker(null)}
               onValueChange={(_event, picked) => {
+                clearFieldError('departure');
                 // iOS pickers are inline and report every change; keep them open until "Listo".
                 if (Platform.OS === 'ios') {
                   setDeparture((current) => {
@@ -398,7 +412,18 @@ export default function CreateTripScreen() {
           </View>
         ) : null}
 
-        <TextField label="Precio por cupo (COP)" keyboardType="number-pad" onChangeText={setPrice} placeholder="12000" value={price} />
+        <TextField
+          error={fieldErrors.price}
+          hint="En pesos colombianos, solo números."
+          keyboardType="number-pad"
+          label="Precio por cupo (COP)"
+          onChangeText={(text) => {
+            setPrice(text);
+            clearFieldError('price');
+          }}
+          placeholder="Valor por cupo"
+          value={price}
+        />
         <Text style={styles.label}>Cupos para pasajeros</Text>
         <View accessibilityRole="radiogroup" style={styles.seatRow}>
           {Array.from({ length: MAX_SEATS }, (_, index) => String(index + 1)).map((value) => {
@@ -411,7 +436,7 @@ export default function CreateTripScreen() {
                 key={value}
                 onPress={() => {
                   setSeats(value);
-                  setError(null);
+                  clearFieldError('seats');
                 }}
                 style={[styles.seat, selected ? styles.seatSelected : null]}
               >
@@ -420,6 +445,7 @@ export default function CreateTripScreen() {
             );
           })}
         </View>
+        <FieldError message={fieldErrors.seats} />
         {vehicle && Number(seats) > (vehicle.seats ?? MAX_SEATS) ? (
           <Pressable onPress={() => router.push({ pathname: '/vehicle', params: { id: vehicle.id } })} style={styles.seatWarning}>
             <Ionicons color={colors.primary} name="car-outline" size={18} />

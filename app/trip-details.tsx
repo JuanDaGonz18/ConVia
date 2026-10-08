@@ -4,10 +4,12 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
 import { PlaceSearchField } from '@/components/forms/PlaceSearchField';
+import { MatchSummary } from '@/components/trip/MatchSummary';
 import { TripRoutePreview } from '@/components/map/TripRoutePreview';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { Avatar } from '@/components/ui/Avatar';
@@ -19,11 +21,11 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { personalizationService } from '@/services/personalizationService';
+import { matchTrip, suggestTrips } from '@/services/tripMatching';
 import { tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { Location } from '@/types';
 import { errorMessage, formatDateTime, formatPrice, rawErrorMessage } from '@/utils/format';
-import { describeNearPlace, rankTrips } from '@/utils/tripRanking';
 
 function requestErrorMessage(error: unknown) {
   const raw = rawErrorMessage(error);
@@ -45,6 +47,10 @@ export default function TripDetailsScreen() {
   // Users who skipped the selfie at sign-up register it here.
   const [showEnrollment, setShowEnrollment] = useState(false);
   const [pickup, setPickup] = useState<Location | null>(null);
+  const [pickupError, setPickupError] = useState<string | null>(null);
+  // Where the passenger gets off; prefilled with the destination they searched for.
+  const searchDestination = useAppStore((state) => state.tripSearch.destination);
+  const [dropoff, setDropoff] = useState<Location | null>(searchDestination);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [requested, setRequested] = useState(false);
@@ -62,8 +68,11 @@ export default function TripDetailsScreen() {
     );
   }
 
-  const match = rankTrips([trip], savedPlaces, favoriteDriverIds)[0];
-  const isFavorite = match.favoriteDriver;
+  const isFavorite = favoriteDriverIds.includes(trip.driver.id);
+  // Why this trip suits the passenger: their current search, else their saved places.
+  const match = searchDestination
+    ? matchTrip(trip, { destination: searchDestination, favoriteDriverIds: new Set(favoriteDriverIds) })
+    : suggestTrips([trip], { places: savedPlaces, favoriteDriverIds: new Set(favoriteDriverIds) })[0]?.match ?? null;
 
   const toggleFavorite = async (driverId: string) => {
     setFavoriteBusy(true);
@@ -86,7 +95,7 @@ export default function TripDetailsScreen() {
   // Step 1: validate, then ask for a fresh face check (required by the database).
   const request = () => {
     if (!pickup) {
-      setError('Indica tu punto de recogida.');
+      setPickupError('Elige dónde quieres que te recojan.');
       return;
     }
     setError(null);
@@ -99,7 +108,7 @@ export default function TripDetailsScreen() {
     setShowFaceCheck(false);
     setLoading(true);
     try {
-      await tripService.requestPickup(trip.id, pickup.address, pickup.latitude, pickup.longitude);
+      await tripService.requestPickup(trip.id, pickup.address, pickup.latitude, pickup.longitude, dropoff);
       setRequested(true);
     } catch (requestError) {
       setError(requestErrorMessage(requestError));
@@ -137,19 +146,17 @@ export default function TripDetailsScreen() {
         <ScreenHeader kicker="DETALLE DEL VIAJE" title={`${trip.origin.label} a ${trip.destination.label}`} />
         <Text style={styles.subtitle}>{formatDateTime(trip.departureTime)}</Text>
         <Text style={styles.info}>{formatPrice(trip.price)} · {trip.seatsAvailable} cupos disponibles</Text>
-        {match.nearPlace ? (
-          <View style={styles.reason}>
-            <Ionicons color={colors.success} name="navigate-circle-outline" size={18} />
-            <Text style={styles.reasonText}>{describeNearPlace(match.nearPlace)}</Text>
-          </View>
-        ) : null}
+        {match?.compatible ? <MatchSummary match={match} /> : null}
 
         <TripRoutePreview chosenRoute={trip.route} destination={trip.destination} origin={trip.origin} />
 
         <View style={styles.driverCard}>
           <Avatar imageUrl={trip.driver.avatarUrl} name={trip.driver.name} size={48} />
           <View style={styles.driverText}>
-            <Text numberOfLines={1} style={styles.driverName}>{trip.driver.name}</Text>
+            <View style={styles.nameRow}>
+              <Text numberOfLines={1} style={styles.driverName}>{trip.driver.name}</Text>
+              {trip.driver.isPlus ? <PlusBadge /> : null}
+            </View>
             <Rating score={trip.driver.rating.score} />
           </View>
           {trip.driver.id !== userId ? (
@@ -196,10 +203,24 @@ export default function TripDetailsScreen() {
               allowCurrentLocation
               label="Punto de recogida"
               near={trip.origin.latitude || trip.origin.longitude ? trip.origin : null}
-              onChange={setPickup}
-              placeholder="Calle 123 # 7-45, barrio"
+              error={pickupError}
+              onChange={(place) => {
+                setPickup(place);
+                setPickupError(null);
+              }}
+              placeholder="Dirección o lugar de recogida"
               value={pickup}
             />
+            <PlaceSearchField
+              label="Dónde te bajas (opcional)"
+              mapLink="afterSelection"
+              mapTitle="Dónde te bajas"
+              near={trip.destination.latitude || trip.destination.longitude ? trip.destination : null}
+              onChange={setDropoff}
+              placeholder="Lugar donde te bajas"
+              value={dropoff}
+            />
+            <Text style={styles.hint}>Así el conductor sabe si su ruta te sirve. Si lo dejas vacío, te bajas en el destino del viaje.</Text>
             {error ? <Notice tone="error">{error}</Notice> : null}
             {isVerified ? (
               <ButtonPrimary loading={loading} onPress={request} title="Solicitar este viaje" />
@@ -244,8 +265,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[8],
     paddingVertical: 2,
   },
-  reason: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
-  reasonText: { ...typography.bodySmall, color: colors.success, fontWeight: '600' },
+  hint: { ...typography.caption, color: colors.textSecondary, marginTop: -spacing[8] },
   driverCard: {
     alignItems: 'center',
     backgroundColor: colors.white,
@@ -257,7 +277,8 @@ const styles = StyleSheet.create({
     padding: spacing[16],
   },
   driverText: { flex: 1, gap: 2 },
-  driverName: { ...typography.bodyMedium, color: colors.text, fontWeight: '600' },
+  driverName: { ...typography.bodyMedium, color: colors.text, flexShrink: 1, fontWeight: '600' },
+  nameRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   favoriteButton: { alignItems: 'center', gap: 2, padding: spacing[4] },
   favoriteLabel: { ...typography.caption, color: colors.textSecondary, fontSize: 11 },
 });

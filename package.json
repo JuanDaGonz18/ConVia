@@ -69,7 +69,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\""
   },
   "private": true
 }

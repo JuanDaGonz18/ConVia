@@ -44,13 +44,6 @@ export type Database = {
             foreignKeyName: "assistant_messages_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
-            referencedRelation: "available_trips"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assistant_messages_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
             referencedRelation: "trips"
             referencedColumns: ["id"]
           },
@@ -280,13 +273,6 @@ export type Database = {
             foreignKeyName: "messages_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
-            referencedRelation: "available_trips"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
             referencedRelation: "trips"
             referencedColumns: ["id"]
           },
@@ -443,13 +429,6 @@ export type Database = {
             columns: ["rater_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ratings_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "available_trips"
             referencedColumns: ["id"]
           },
           {
@@ -615,13 +594,6 @@ export type Database = {
             foreignKeyName: "trip_locations_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: true
-            referencedRelation: "available_trips"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trip_locations_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: true
             referencedRelation: "trips"
             referencedColumns: ["id"]
           },
@@ -631,6 +603,9 @@ export type Database = {
         Row: {
           boarded_at: string | null
           created_at: string
+          destino_lat: number | null
+          destino_lng: number | null
+          destino_nombre: string | null
           direccion: string
           estado: Database["public"]["Enums"]["request_status"]
           hora_aprox: string | null
@@ -648,6 +623,9 @@ export type Database = {
         Insert: {
           boarded_at?: string | null
           created_at?: string
+          destino_lat?: number | null
+          destino_lng?: number | null
+          destino_nombre?: string | null
           direccion: string
           estado?: Database["public"]["Enums"]["request_status"]
           hora_aprox?: string | null
@@ -665,6 +643,9 @@ export type Database = {
         Update: {
           boarded_at?: string | null
           created_at?: string
+          destino_lat?: number | null
+          destino_lng?: number | null
+          destino_nombre?: string | null
           direccion?: string
           estado?: Database["public"]["Enums"]["request_status"]
           hora_aprox?: string | null
@@ -685,13 +666,6 @@ export type Database = {
             columns: ["passenger_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trip_requests_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "available_trips"
             referencedColumns: ["id"]
           },
           {
@@ -737,13 +711,6 @@ export type Database = {
             columns: ["changed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trip_updates_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "available_trips"
             referencedColumns: ["id"]
           },
           {
@@ -909,6 +876,7 @@ export type Database = {
           destino_nombre: string | null
           driver_avatar_url: string | null
           driver_id: string | null
+          driver_is_plus: boolean | null
           driver_nombre: string | null
           driver_rating: number | null
           estado: Database["public"]["Enums"]["trip_status"] | null
@@ -930,29 +898,7 @@ export type Database = {
           vehicle_marca: string | null
           vehicle_placa: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "trips_driver_id_fkey"
-            columns: ["driver_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trips_institution_id_fkey"
-            columns: ["institution_id"]
-            isOneToOne: false
-            referencedRelation: "institutions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trips_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
@@ -961,6 +907,9 @@ export type Database = {
         Returns: {
           boarded_at: string | null
           created_at: string
+          destino_lat: number | null
+          destino_lng: number | null
+          destino_nombre: string | null
           direccion: string
           estado: Database["public"]["Enums"]["request_status"]
           hora_aprox: string | null
@@ -988,6 +937,9 @@ export type Database = {
         Returns: {
           boarded_at: string | null
           created_at: string
+          destino_lat: number | null
+          destino_lng: number | null
+          destino_nombre: string | null
           direccion: string
           estado: Database["public"]["Enums"]["request_status"]
           hora_aprox: string | null
@@ -1009,6 +961,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      chat_trip_state: { Args: { p_trip_id: string }; Returns: string }
       check_email_domain: {
         Args: { p_email: string }
         Returns: {
@@ -1016,6 +969,29 @@ export type Database = {
           institution_id: string
           nombre: string
           tipo: Database["public"]["Enums"]["community_type"]
+        }[]
+      }
+      driver_trip_requests: {
+        Args: never
+        Returns: {
+          created_at: string
+          destino_nombre: string
+          destino_viaje: string
+          direccion: string
+          dropoff_km: number
+          estado: Database["public"]["Enums"]["request_status"]
+          id: string
+          match_level: string
+          match_score: number
+          origen_nombre: string
+          passenger_id: string
+          passenger_is_plus: boolean
+          passenger_nombre: string
+          pickup_km: number
+          qr_token: string
+          responded_at: string
+          salida_at: string
+          trip_id: string
         }[]
       }
       finish_trip: { Args: { p_trip_id: string }; Returns: Json }
@@ -1030,6 +1006,61 @@ export type Database = {
           tier: string
         }[]
       }
+      get_my_profile: { Args: never; Returns: Json }
+      my_chat_trips: {
+        Args: never
+        Returns: {
+          destino_nombre: string
+          driver_avatar_url: string
+          driver_id: string
+          driver_nombre: string
+          origen_nombre: string
+          trip_id: string
+          viewer_is_driver: boolean
+        }[]
+      }
+      my_trip_requests: {
+        Args: never
+        Returns: {
+          created_at: string
+          destino_nombre: string
+          destino_viaje: string
+          direccion: string
+          estado: Database["public"]["Enums"]["request_status"]
+          id: string
+          last_change_at: string
+          last_changes: string[]
+          origen_viaje: string
+          qr_token: string
+          responded_at: string
+          salida_at: string
+          trip_id: string
+        }[]
+      }
+      passenger_trip_history: {
+        Args: never
+        Returns: {
+          destino_nombre: string
+          driver_avatar_url: string
+          driver_id: string
+          driver_is_plus: boolean
+          driver_nombre: string
+          driver_rating: number
+          estado: Database["public"]["Enums"]["trip_status"]
+          finished_at: string
+          my_driver_score: number
+          origen_nombre: string
+          precio: number
+          request_estado: Database["public"]["Enums"]["request_status"]
+          request_id: string
+          salida_at: string
+          trip_id: string
+        }[]
+      }
+      rate_trip_driver: {
+        Args: { p_comment?: string; p_score: number; p_trip_id: string }
+        Returns: undefined
+      }
       rate_trip_passenger: {
         Args: { p_comment?: string; p_request_id: string; p_score: number }
         Returns: undefined
@@ -1039,6 +1070,9 @@ export type Database = {
         Returns: {
           boarded_at: string | null
           created_at: string
+          destino_lat: number | null
+          destino_lng: number | null
+          destino_nombre: string | null
           direccion: string
           estado: Database["public"]["Enums"]["request_status"]
           hora_aprox: string | null

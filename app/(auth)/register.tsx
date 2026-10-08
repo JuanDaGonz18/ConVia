@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
+import { FieldError } from '@/components/forms/FieldError';
 import { PasswordChecklist, PasswordField } from '@/components/forms/PasswordField';
 import { TextField } from '@/components/forms/TextField';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
@@ -184,7 +185,7 @@ export default function RegisterScreen() {
                     setName(text);
                     refresh({ name: text });
                   }}
-                  placeholder="Ej. Laura Gómez"
+                  placeholder="Tu nombre y apellido"
                   value={name}
                 />
                 <TextField
@@ -198,7 +199,7 @@ export default function RegisterScreen() {
                     setEmail(text);
                     refresh({ email: text });
                   }}
-                  placeholder="nombre@unisabana.edu.co"
+                  placeholder="Tu correo institucional"
                   value={email}
                 />
                 <PasswordField
@@ -221,7 +222,7 @@ export default function RegisterScreen() {
                     setConfirm(text);
                     refresh({ confirm: text });
                   }}
-                  placeholder="Escríbela de nuevo"
+                  placeholder="Escribe la contraseña otra vez"
                   textContentType="newPassword"
                   value={confirm}
                 />
@@ -267,6 +268,7 @@ export default function RegisterScreen() {
                       refresh({ acceptedTerms: checked });
                     }}
                   />
+                  {errors.terms ? <View style={styles.termsError}><FieldError message={errors.terms} /></View> : null}
                   <Pressable
                     accessibilityHint="Abre los Términos y Condiciones y la Política de Privacidad"
                     accessibilityRole="link"
@@ -277,7 +279,6 @@ export default function RegisterScreen() {
                     <Ionicons color={colors.primary} name="document-text-outline" size={16} />
                     <Text style={styles.readMoreText}>Leer más: términos y política de privacidad</Text>
                   </Pressable>
-                  {errors.terms ? <Text style={styles.termsError}>{errors.terms}</Text> : null}
                 </View>
               </>
             )}
@@ -340,7 +341,7 @@ const styles = StyleSheet.create({
   roleDesc: { ...typography.caption, color: colors.textSecondary },
   readMore: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 6, marginLeft: 30, paddingVertical: spacing[4] },
   readMoreText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600', textDecorationLine: 'underline' },
-  termsError: { ...typography.caption, color: colors.error, marginLeft: 30 },
+  termsError: { marginLeft: 30 },
   stepTwo: { alignItems: 'center', gap: spacing[12], paddingVertical: spacing[8] },
   stepTwoIcon: {
     alignItems: 'center',

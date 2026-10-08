@@ -88,7 +88,7 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
       return {
         recipients,
         title: 'Viaje finalizado',
-        body: `Tu viaje a ${trip.destino_nombre} con ${driverName} terminó. ¡Gracias por viajar con ConVía!`,
+        body: `Tu viaje a ${trip.destino_nombre} con ${driverName} terminó. ¿Cómo te fue? Toca para calificar al conductor.`,
         data,
       };
     }
