@@ -3,7 +3,12 @@ import Constants from 'expo-constants';
 import type * as NotificationsModule from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import * as SecureStore from 'expo-secure-store';
+
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
+
+/** Last token saved for each user on this device, to skip identical writes. */
+const tokenKey = (userId: string) => `convia.push.${userId}`;
 
 export type NotifyEvent =
   | 'request_created'
@@ -90,7 +95,9 @@ export const notificationService = {
       if (error || !profile || profile.id !== userId || !profile.notifications_enabled) return;
       const token = await getPushToken();
       if (!token) return;
-      await supabase.from('profiles').update({ expo_push_token: token }).eq('id', userId);
+      if ((await SecureStore.getItemAsync(tokenKey(userId)).catch(() => null)) === token) return;
+      const { error: saveError } = await supabase.from('profiles').update({ expo_push_token: token }).eq('id', userId);
+      if (!saveError) await SecureStore.setItemAsync(tokenKey(userId), token).catch(() => undefined);
     } catch (error) {
       console.warn('[notifications] Push registration skipped', error);
     }
@@ -108,12 +115,15 @@ export const notificationService = {
       .update({ notifications_enabled: enabled, expo_push_token: token })
       .eq('id', userId);
     if (error) throw error;
+    if (token) await SecureStore.setItemAsync(tokenKey(userId), token).catch(() => undefined);
+    else await SecureStore.deleteItemAsync(tokenKey(userId)).catch(() => undefined);
     return true;
   },
 
   /** Detach this device so a signed-out phone stops receiving pushes. */
   async unregister(userId: string) {
     if (!isSupabaseEnabled) return;
+    await SecureStore.deleteItemAsync(tokenKey(userId)).catch(() => undefined);
     const { error } = await supabase.from('profiles').update({ expo_push_token: null }).eq('id', userId);
     if (error) console.warn('[notifications] Could not clear push token', error);
   },

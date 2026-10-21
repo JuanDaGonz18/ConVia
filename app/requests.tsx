@@ -78,16 +78,28 @@ export default function RequestsScreen() {
   useEffect(() => {
     const timer = setTimeout(() => void load(), 0);
     if (!isSupabaseEnabled) return () => clearTimeout(timer);
-    // RLS limits the change feed to requests this user can read.
+    // RLS limits the change feed to requests this user can read; a passenger
+    // also filters by their id. Several changes in a row reload only once.
+    let reload: ReturnType<typeof setTimeout> | undefined;
+    const scheduleReload = () => {
+      clearTimeout(reload);
+      reload = setTimeout(() => void load(), 400);
+    };
     const channel = supabase
-      .channel('requests-screen')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_requests' }, () => void load())
+      .channel(`requests-${userId ?? 'anon'}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'trip_requests',
+        ...(!isDriver && userId ? { filter: `passenger_id=eq.${userId}` } : {}),
+      }, scheduleReload)
       .subscribe();
     return () => {
       clearTimeout(timer);
+      clearTimeout(reload);
       void supabase.removeChannel(channel);
     };
-  }, [load]);
+  }, [isDriver, load, userId]);
 
   const runAction = async (requestId: string, action: () => Promise<void>, fallback: string) => {
     setBusyId(requestId);

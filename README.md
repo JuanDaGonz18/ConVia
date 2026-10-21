@@ -63,6 +63,10 @@ Screens never call Supabase directly; they go through `src/services`. User-facin
 
 See **[docs/PLANES.md](docs/PLANES.md)**: where capabilities and limits are defined (`plan_capabilities`, `plans.limits` and their mirror in `src/subscription/plans.ts`), how the beta works (`app_config.beta_mode`), how to end it with one SQL line, what the server enforces and how to add a ConVía+ feature. Screens ask `usePlan().can(...)` / `usePlan().limit(...)`, never the tier, for permissions.
 
+## Operations (Supabase Free plan)
+
+See **[docs/OPERACION.md](docs/OPERACION.md)**: Free-plan limits and current usage, the monthly usage review (`supabase/admin/usage_report.sql`) with 50/70/85 % thresholds, manual backups and restore tests, Microsoft Entra setup (the "Continuar con Microsoft" button is hidden until `EXPO_PUBLIC_MICROSOFT_AUTH=true`), load testing in staging and the scaling plan.
+
 ## Maps
 
 Screens use `AppMap`, `MapMarker` and `MapLine` from `@/maps` and never import a map SDK. The provider is picked in one place (`useMapProviderId()`), from the plan:

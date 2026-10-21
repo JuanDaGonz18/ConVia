@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 import { createClient } from '@supabase/supabase-js';
 // Genera los tipos con:  npx supabase gen types typescript --project-id hfnsgeunskbkapjavcao > src/lib/database.types.ts
 import type { Database } from './database.types';
+import { createResilientFetch } from './resilientFetch';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -46,6 +47,8 @@ export const supabase = createClient<Database>(
       // in app/(auth)/callback.tsx.
       flowType: 'pkce',
     },
+    // Timeouts for every request; reads retried with backoff (never writes).
+    global: { fetch: createResilientFetch(fetch) },
   },
 );
 

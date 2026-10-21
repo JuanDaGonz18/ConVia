@@ -63,13 +63,16 @@ export const profileService = {
     if (!extension) throw new Error('Formato no soportado. Usa JPG, PNG o WebP.');
     const image = await (await fetch(uri)).arrayBuffer();
     if (!image.byteLength) throw new Error('No se pudo leer la imagen seleccionada.');
-    if (image.byteLength > 5 * 1024 * 1024) throw new Error('La imagen supera el límite de 5 MB.');
+    if (image.byteLength > 3 * 1024 * 1024) throw new Error('La imagen supera el límite de 3 MB.');
 
     const path = `${userId}/avatar.${extension}`;
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(path, image, { contentType: mimeType, upsert: true });
     if (uploadError) throw uploadError;
+    // The same name is reused, but a previous photo in another format would be left behind.
+    const leftovers = Object.values(EXTENSIONS).filter((other) => other !== extension).map((other) => `${userId}/avatar.${other}`);
+    void supabase.storage.from('avatars').remove(leftovers).catch(() => undefined);
 
     // Cache-bust so the new photo shows even though the path is reused.
     const publicUrl = `${supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;

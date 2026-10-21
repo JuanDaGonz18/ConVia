@@ -18,6 +18,7 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { isSupabaseEnabled } from '@/lib/supabase';
+import { compressPhoto, PHOTO_MAX_SIDE } from '@/services/imageCompression';
 import { profileService } from '@/services/profileService';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
@@ -71,7 +72,9 @@ export default function ProfileEditScreen() {
     setError(null);
     setUploading(true);
     try {
-      const avatarUrl = await profileService.uploadAvatar(currentUser.id, asset.uri, asset.mimeType ?? 'image/jpeg');
+      // A 512 px JPEG instead of the full photo: less Storage and egress.
+      const photo = await compressPhoto(asset, PHOTO_MAX_SIDE.avatar);
+      const avatarUrl = await profileService.uploadAvatar(currentUser.id, photo.uri, photo.mimeType);
       setCurrentUser({ ...currentUser, avatarUrl });
       toast.success('Foto de perfil actualizada');
     } catch (uploadError) {

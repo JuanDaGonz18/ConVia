@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
 import { FunctionsHttpError } from '@supabase/supabase-js';
@@ -7,6 +8,7 @@ import { ensureSupabaseConfigured, supabase } from '@/lib/supabase';
 import { LEGAL_VERSION } from '@/content/legal';
 import { notificationService } from '@/services/notificationService';
 import { DriverStatus, User, UserRole } from '@/types';
+import { microsoftErrorMessage, parseAuthUrl } from '@/utils/authLink';
 
 const SESSION_KEY = 'convia.demo.session';
 const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
@@ -66,6 +68,23 @@ function authCallbackUrl() {
   return 'convia://callback';
 }
 
+/** Microsoft sign-in is shown only once the Azure provider is configured in Supabase. */
+export const isMicrosoftAuthEnabled = process.env.EXPO_PUBLIC_MICROSOFT_AUTH === 'true';
+
+// The same PKCE code can reach the app twice (the browser result and the
+// convia://callback deep link); it is exchanged only once.
+const exchanges = new Map<string, Promise<void>>();
+export function exchangeAuthCode(code: string) {
+  let exchange = exchanges.get(code);
+  if (!exchange) {
+    exchange = supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+      if (error) throw error;
+    });
+    exchanges.set(code, exchange);
+  }
+  return exchange;
+}
+
 export const authService = {
   async getCurrentUser(): Promise<User | null> {
     if (useSupabase) return getSupabaseUser();
@@ -95,6 +114,31 @@ export const authService = {
 
     const user = buildDemoUser(email, 'client', 'Merchito', 'mock-user-current');
     await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({ user }));
+    return user;
+  },
+
+  /**
+   * Institutional Microsoft account (Supabase Auth + Azure provider, PKCE).
+   * The server only accepts allowlisted tenants with the institution's domain
+   * (migration 27). Returns null when the person closes the Microsoft window.
+   */
+  async signInWithMicrosoft(): Promise<User | null> {
+    ensureSupabaseConfigured();
+    const redirectTo = authCallbackUrl();
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'azure',
+      options: { redirectTo, skipBrowserRedirect: true, scopes: 'openid email profile offline_access' },
+    });
+    if (error) throw error;
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (result.type !== 'success') return null;
+    const link = parseAuthUrl(result.url);
+    if (link.errorCode || !link.code) throw new Error(microsoftErrorMessage(link));
+    await exchangeAuthCode(link.code);
+    const user = await getSupabaseUser();
+    if (!user) throw new Error('No se encontró el perfil del usuario.');
+    // The terms are shown next to the button: continuing accepts them (first time only).
+    await supabase.from('profiles').update({ terms_accepted_at: new Date().toISOString() }).eq('id', user.id).is('terms_accepted_at', null);
     return user;
   },
 

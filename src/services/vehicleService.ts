@@ -57,7 +57,7 @@ async function uploadPhoto(userId: string, vehicleId: string, uri: string, mimeT
   const extension = PHOTO_TYPES[mimeType] ?? 'jpg';
   const image = await (await fetch(uri)).arrayBuffer();
   if (!image.byteLength) throw new Error('No se pudo leer la foto del vehículo.');
-  if (image.byteLength > 10 * 1024 * 1024) throw new Error('La foto supera el límite de 10 MB.');
+  if (image.byteLength > 4 * 1024 * 1024) throw new Error('La foto supera el límite de 4 MB.');
   const path = `${userId}/${vehicleId}.${extension}`;
   const { error } = await supabase.storage
     .from('vehicle-photos')

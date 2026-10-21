@@ -3,7 +3,7 @@
 Proyecto: **ConVía** · ref `hfnsgeunskbkapjavcao` · región Canada (Central) · plan Free
 URL: `https://hfnsgeunskbkapjavcao.supabase.co`
 
-Estado: las migraciones 1–26 están aplicadas (historial reparado el 2026-09-26). La 6 añade chat persistente y referencia facial privada; la 7 añade `expo_push_token` y `notifications_enabled` en `profiles`.
+Estado: las migraciones 1–28 están aplicadas (historial reparado el 2026-09-26). La 6 añade chat persistente y referencia facial privada; la 7 añade `expo_push_token` y `notifications_enabled` en `profiles`.
 
 La 19 (`20261007000019_subscriptions.sql`, aplicada el 2026-10-07) crea los planes FREE / ConVía+: tablas `plans` y `subscriptions` (sin fila = FREE; la app solo puede leer la suya), `get_my_plan()` para la app, y triggers que limitan vehículos activos, lugares guardados y conductores favoritos según el plan (`private.plan_limit`). Para activar ConVía+ a mano ver el README principal.
 
@@ -28,6 +28,13 @@ La 25 (`20261008000025_planned_features.sql`) y la 26 (`20261008000026_ride_km_o
 - **Notificaciones de alertas y horarios:** `claim_alert_pushes()` y `claim_recurring_pushes()` (solo `service_role`) deciden qué se envía (permiso del usuario, preferencias, máximo 3 alertas por día) y lo marcan para no repetirlo; los textos usan lugares sin número de casa. La función `notify` las envía al publicar (`trip_published`, `recurring_saved`, solo el conductor del viaje) y cada 5 minutos por `dispatch-pending-pushes` (pg_cron + pg_net, evento `sweep`).
 - **Preferencias** (`user_preferences`, solo del dueño) y **estadísticas** (`my_trip_stats()`, solo datos del propio usuario; cada sección exige su capacidad).
 
+La 27 (`20261021000027_hardening_free_tier.sql`) y la 28 (`20261021000028_lighter_public_route.sql`), aplicadas el 2026-10-21:
+
+- **Microsoft (Entra ID):** `institution_identity_providers` (tenants autorizados por institución, solo administradores) y un trigger en `auth.identities` que rechaza (`TENANT_NO_AUTORIZADO`) toda identidad de Azure cuyo tenant no esté autorizado o cuyo correo no sea del dominio de esa institución, también cuando Supabase intentaría enlazarla a una cuenta existente por correo. Falla cerrado si la identidad no trae tenant. `handle_new_user()` toma el nombre de `full_name`/`name`.
+- **Viajes:** un viaje con solicitudes (incluso pendientes) ya no se puede borrar por la API; se cancela con `cancel_trip()`, que avisa.
+- **Consumo:** Realtime deja de publicar `trips` y `trip_locations` (la app no los escucha); limpieza diaria del historial de `pg_cron` (> 7 días) y de alertas de viajes viejos (> 30 días); límites de los buckets (avatares 3 MB, vehículos 4 MB); la ruta pública que reciben los pasajeros tiene máx. 120 puntos y 5 decimales.
+- Reversión de cada cambio: comentada al inicio de cada migración. Guía de operación, copias y Microsoft: `docs/OPERACION.md`.
+
 ### Secretos del envío programado
 
 `dispatch-pending-pushes` lee de Vault `convia_project_url`, `convia_anon_key` y `convia_cron_secret`, y la función `notify` compara el encabezado `x-convia-cron` con su variable `CRON_SECRET`. No están en el repositorio. Para rotarlos (mismo valor en los dos lados):
@@ -46,6 +53,8 @@ Sin esos secretos el envío programado no hace nada; las alertas siguen visibles
 - `npx supabase db query --linked -f supabase/tests/security_audit_test.sql`: privacidad, organizaciones, chat, calificaciones, planes y prioridad. Corre dentro de una transacción que se deshace; el error final es el reporte (debe decir `0 failing`).
 - `npx supabase db query --linked -f supabase/tests/plan_capabilities_test.sql`: planes, capacidades y modo beta.
 - `npx supabase db query --linked -f supabase/tests/planned_features_test.sql`: viajes recurrentes, alertas, rutas, preferencias, estadísticas, repetir viaje y varios vehículos (propiedad, organización y privacidad incluidas).
+- `npx supabase db query --linked -f supabase/tests/hardening_test.sql`: Microsoft por tenant, borrado de viajes, transiciones de estado inválidas, escalamiento de privilegios, Storage, Realtime y ruta pública.
+- `npx supabase db query --linked -f supabase/admin/usage_report.sql`: reporte de uso para la revisión mensual (solo lectura, administradores).
 - `node --env-file=.env supabase/tests/auth_e2e.mjs`: registro, perfil, notificaciones, sesión, contraseña y privacidad, con una cuenta temporal que se elimina al final.
 
 ## Conectar la app

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/brand/Brand';
@@ -17,7 +17,7 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { SavedUsersPanel } from '@/dev/SavedUsersPanel';
 import { savedUsers } from '@/dev/savedUsers';
-import { authService } from '@/services/authService';
+import { authService, isMicrosoftAuthEnabled } from '@/services/authService';
 import { credentialStore } from '@/services/credentialStore';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
@@ -41,6 +41,7 @@ export default function LoginScreen() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
@@ -82,6 +83,21 @@ export default function LoginScreen() {
       setError(loginErrorMessage(loginError));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMicrosoft = async () => {
+    setError(null);
+    setMicrosoftLoading(true);
+    try {
+      const user = await authService.signInWithMicrosoft();
+      if (!user) return; // The person closed the Microsoft window.
+      setCurrentUser(user);
+      router.replace('/(tabs)');
+    } catch (microsoftError) {
+      setError(errorMessage(microsoftError, 'No pudimos iniciar sesión con Microsoft. Inténtalo de nuevo.'));
+    } finally {
+      setMicrosoftLoading(false);
     }
   };
 
@@ -141,7 +157,28 @@ export default function LoginScreen() {
             {/* The web build never stores passwords (no secure keychain in browsers). */}
             {Platform.OS !== 'web' ? <Checkbox checked={rememberMe} label="Recordarme en este teléfono" onChange={setRememberMe} /> : null}
 
-            <ButtonPrimary loading={loading} loadingTitle="Entrando…" onPress={() => void handleLogin()} title="Iniciar sesión" />
+            <ButtonPrimary disabled={microsoftLoading} loading={loading} loadingTitle="Entrando…" onPress={() => void handleLogin()} title="Iniciar sesión" />
+
+            {useSupabase && isMicrosoftAuthEnabled ? (
+              <>
+                <View style={styles.divider}>
+                  <View style={styles.line} />
+                  <Text style={styles.dividerText}>o</Text>
+                  <View style={styles.line} />
+                </View>
+                <ButtonSecondary
+                  disabled={loading}
+                  icon="logo-microsoft"
+                  loading={microsoftLoading}
+                  onPress={() => void handleMicrosoft()}
+                  title="Continuar con Microsoft"
+                />
+                <Text style={styles.terms}>
+                  Usa tu cuenta institucional. Al continuar aceptas los términos y la política de tratamiento de datos.{' '}
+                  <Link href="/legal" style={styles.termsLink}>Leer más</Link>
+                </Text>
+              </>
+            ) : null}
           </View>
 
           <View style={styles.divider}>
@@ -195,6 +232,8 @@ const styles = StyleSheet.create({
   divider: { alignItems: 'center', flexDirection: 'row', gap: spacing[12] },
   line: { backgroundColor: colors.lightGray, flex: 1, height: 1 },
   dividerText: { ...typography.caption, color: colors.textSecondary },
+  terms: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
+  termsLink: { color: colors.primary, fontWeight: '700' },
   demo: { gap: spacing[8] },
   demoTitle: { ...typography.caption, color: colors.textSecondary, textAlign: 'center', textTransform: 'uppercase' },
 });

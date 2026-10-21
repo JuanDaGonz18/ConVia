@@ -47,3 +47,10 @@ google-services.json
 android/local.properties
 supabase/.temp/
 site/
+
+# Backups de la base de datos (datos personales: nunca en Git)
+backups/
+*.dump
+*.backup
+*.sql.gz
+*.sql.gpg

@@ -18,6 +18,7 @@ import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import { compressPhoto, PHOTO_MAX_SIDE } from '@/services/imageCompression';
 import { isValidPlate, MAX_SEATS, vehicleService } from '@/services/vehicleService';
 import { planLimitFromError } from '@/subscription/plans';
 import { usePlan } from '@/subscription/usePlan';
@@ -79,7 +80,8 @@ export default function VehicleScreen() {
       const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
       const asset = result.canceled ? null : result.assets?.[0];
       if (asset?.uri) {
-        setPhoto({ uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' });
+        // Resized before upload (and before the preview) to save Storage and egress.
+        setPhoto(await compressPhoto(asset, PHOTO_MAX_SIDE.vehicle));
         clearFieldError('photo');
       }
     } catch (pickError) {
