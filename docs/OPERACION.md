@@ -127,49 +127,92 @@ npx supabase db dump --linked --data-only --use-copy -f backups/$(date +%F)/data
 
 ## 5. Inicio de sesión con Microsoft (Entra ID)
 
-La app ya tiene el botón "Continuar con Microsoft" (oculto hasta activarlo) y
-el servidor ya valida el tenant. Pasos manuales (no se pueden hacer desde el
-código):
+El botón "Continuar con Microsoft" (login) y "Crear cuenta con Microsoft"
+(registro) están en la app, ocultos hasta activarlos. El servidor valida el
+tenant y el dominio. Todo esto cuesta $0: Entra ID Free y Supabase Free.
 
-1. **Microsoft Entra (Azure Portal)** → App registrations → New registration.
-   - Supported account types: *Accounts in any organizational directory (multitenant)*.
-   - Redirect URI (Web): `https://hfnsgeunskbkapjavcao.supabase.co/auth/v1/callback`.
-   - Certificates & secrets → New client secret (anotar el valor; vence).
-   - Token configuration → Add optional claim → ID token → `email` y `xms_edov`.
-   - API permissions: `openid`, `email`, `profile`, `offline_access` (Microsoft Graph, delegadas).
-2. **Supabase** → Authentication → Sign In / Providers → Azure: activar,
-   pegar Application (client) ID y el secreto. Dejar *Azure Tenant URL*
-   vacío (multitenant): el control de tenants lo hace la base de datos.
-   Authentication → URL Configuration → Redirect URLs: agregar `convia://callback`.
-3. **Autorizar cada institución** (solo administradores, SQL):
+### Estado (2026-10-21)
+
+| Pieza | Valor | Estado |
+| --- | --- | --- |
+| App en Entra (directorio de gonzalezjuandavid07@gmail.com) | **ConVía** · Client ID `c434c61f-1d89-49bf-9f1e-f814575c1177` · multitenant | ✅ |
+| Redirect URI (Web) | `https://hfnsgeunskbkapjavcao.supabase.co/auth/v1/callback` | ✅ |
+| Claims opcionales del ID token | `email`, `xms_edov` | ✅ |
+| Permisos delegados de Microsoft Graph | `openid`, `email`, `profile`, `offline_access`, `User.Read` | ✅ |
+| Secreto de cliente | 24 meses; **renovarlo antes de que venza** (abajo) | ✅ |
+| Supabase → Providers → Azure | activado, *Azure Tenant URL* vacío | ✅ |
+| Supabase → Redirect URLs | `https://juandagonz18.github.io/ConVia/**`, `convia://**` | ✅ |
+| Tenant autorizado: Universidad de La Sabana | `aca51631-00fe-490d-91ab-163ef87260ee` | ✅ |
+| *Admin consent* de TI de La Sabana | — | ⏳ pendiente |
+| Botón activado en web y APK | — | ⏳ después del consentimiento |
+
+### Consentimiento del administrador (obligatorio)
+
+Microsoft no deja que los usuarios de otra organización acepten una app
+multitenant nueva sin *editor verificado*. Un administrador de Entra de la
+universidad debe abrir este enlace y aceptar (solo inicio de sesión, nombre
+y correo; no lee correos ni archivos):
+
+```
+https://login.microsoftonline.com/<tenant-id>/adminconsent?client_id=c434c61f-1d89-49bf-9f1e-f814575c1177
+```
+
+La Sabana: `<tenant-id>` = `aca51631-00fe-490d-91ab-163ef87260ee`. Sin
+eso, Microsoft muestra "Se necesita aprobación del administrador" y la app
+explica que se pida a TI.
+
+### Activar el botón
+
+1. **Web:** GitHub → repo → Settings → Secrets and variables → Actions →
+   pestaña *Variables* → New repository variable `MICROSOFT_AUTH` = `true`.
+   Luego Actions → *Sitio web (GitHub Pages)* → *Run workflow* (o cualquier
+   push). Para apagarlo, cambia la variable a `false`.
+2. **APK:** `EXPO_PUBLIC_MICROSOFT_AUTH=true` en el entorno de EAS
+   (`npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_MICROSOFT_AUTH --value true --visibility plaintext`)
+   y en tu `.env`; compilar y publicar un APK nuevo.
+
+La web va a Microsoft en la misma pestaña y vuelve a `/app/callback?via=microsoft`
+(Safari bloquea las ventanas emergentes); el APK usa el navegador del sistema y
+vuelve por `convia://callback`. `domain_hint` lleva directo al inicio de
+sesión de la institución (`EXPO_PUBLIC_MICROSOFT_DOMAIN_HINT`, por defecto
+`unisabana.edu.co`).
+
+### Agregar otra institución
+
+1. Su dominio en `public.institutions`.
+2. Su tenant ID: `https://login.microsoftonline.com/<dominio>/v2.0/.well-known/openid-configuration`
+   → el GUID dentro de `issuer`.
+3. SQL (solo administradores):
    ```sql
    insert into public.institution_identity_providers (provider, tenant_id, institution_id)
-   select 'azure', '<directory-tenant-id-en-minúsculas>', id from public.institutions where dominio = 'unisabana.edu.co';
+   select 'azure', '<tenant-id-en-minúsculas>', id from public.institutions where dominio = '<dominio>';
    ```
-   El tenant ID de la universidad lo da su área de TI (Entra → Overview →
-   Tenant ID).
-4. **Consentimiento de administrador:** muchas universidades no permiten que
-   cada estudiante autorice apps externas. Su administrador de Entra debe dar
-   *admin consent* a la app (Enterprise applications → ConVía → Permissions →
-   Grant admin consent). Sin eso, Microsoft muestra "Se necesita aprobación
-   del administrador" y la app explica que se pida a TI. No asumir que una
-   universidad aprobó la app.
-5. **Activar en la app**: `EXPO_PUBLIC_MICROSOFT_AUTH=true` en el entorno de
-   EAS (preview/production) y generar un APK nuevo. El secreto de Microsoft
-   **nunca** va a la app ni al repositorio; solo vive en Supabase.
-6. **Verificar con una cuenta real** antes de anunciarlo: que entra, que el
-   perfil queda con el nombre, que una cuenta personal (outlook.com) y una de
-   otro tenant son rechazadas, y que en `auth.identities` el campo
-   `identity_data` trae `custom_claims.tid` o `iss` (el servidor rechaza si no
-   encuentra el tenant).
+4. Pedir el *admin consent* con el enlace de arriba y su tenant ID.
 
-Reglas del servidor (migración 27): una identidad de Azure solo se acepta si
-su tenant está en `institution_identity_providers` y el correo es del dominio
-de esa institución. Esto también protege el enlace automático de Supabase
-(que une cuentas con el mismo correo): una cuenta de otro tenant con un
-correo `@unisabana.edu.co` es rechazada, no unida. Los usuarios existentes
-con correo y contraseña conservan su id y sus datos; si entran con Microsoft
+### Renovar el secreto
+
+Entra → ConVía → Certificados y secretos → nuevo secreto → pegar el **Valor**
+en Supabase → Providers → Azure → *Save* → borrar el secreto viejo. Hacerlo
+antes de que venza: si vence, nadie puede entrar con Microsoft.
+
+### Verificar con una cuenta real antes de anunciarlo
+
+Que entra y el perfil queda con el nombre; que una cuenta personal
+(outlook.com) y una de otro tenant son rechazadas; y que en `auth.identities`
+el campo `identity_data` trae `custom_claims.tid` o `iss` (el servidor
+rechaza si no encuentra el tenant). Probar en Safari (iPhone) y en el APK.
+
+### Reglas del servidor (migración 27)
+
+Una identidad de Azure solo se acepta si su tenant está en
+`institution_identity_providers` y el correo es del dominio de esa
+institución. Esto también protege el enlace automático de Supabase (que une
+cuentas con el mismo correo): una cuenta de otro tenant con un correo
+`@unisabana.edu.co` es rechazada, no unida. Los usuarios existentes con
+correo y contraseña conservan su id y sus datos; si entran con Microsoft
 desde su tenant autorizado, Supabase agrega la identidad a la misma cuenta.
+El secreto de Microsoft **nunca** va a la app ni al repositorio; solo vive en
+Supabase.
 
 ## 6. Prueba de carga (staging, datos sintéticos)
 
