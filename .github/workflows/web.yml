@@ -27,6 +27,9 @@ jobs:
       EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_d_BpHw8eIUvUkrwjGT2v1w_cFD6k3hh
       EXPO_PUBLIC_USE_SUPABASE: 'true'
       EXPO_PUBLIC_WEB_BASE_URL: /${{ github.event.repository.name }}/app
+      # "Continuar con Microsoft": off until the repository variable MICROSOFT_AUTH is 'true'
+      # (GitHub → Settings → Secrets and variables → Actions → Variables). See docs/OPERACION.md §5.
+      EXPO_PUBLIC_MICROSOFT_AUTH: ${{ vars.MICROSOFT_AUTH == 'true' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

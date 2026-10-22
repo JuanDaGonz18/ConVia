@@ -71,6 +71,26 @@ function authCallbackUrl() {
 /** Microsoft sign-in is shown only once the Azure provider is configured in Supabase. */
 export const isMicrosoftAuthEnabled = process.env.EXPO_PUBLIC_MICROSOFT_AUTH === 'true';
 
+/**
+ * Microsoft goes straight to the institution's sign-in page instead of the
+ * generic account picker. The server still checks the tenant (migration 27);
+ * this is only a shortcut for the person.
+ */
+const MICROSOFT_DOMAIN_HINT = process.env.EXPO_PUBLIC_MICROSOFT_DOMAIN_HINT ?? 'unisabana.edu.co';
+
+/** Marks on the callback URL that the person is coming back from Microsoft (web build). */
+export const MICROSOFT_CALLBACK_FLAG = 'microsoft';
+
+/** The terms are shown next to the Microsoft button: continuing accepts them (first time only). */
+export async function acceptTermsIfNeeded(userId: string) {
+  // Never blocks the sign-in: the person already accepted by continuing.
+  await supabase
+    .from('profiles')
+    .update({ terms_accepted_at: new Date().toISOString() })
+    .eq('id', userId)
+    .is('terms_accepted_at', null);
+}
+
 // The same PKCE code can reach the app twice (the browser result and the
 // convia://callback deep link); it is exchanged only once.
 const exchanges = new Map<string, Promise<void>>();
@@ -120,14 +140,32 @@ export const authService = {
   /**
    * Institutional Microsoft account (Supabase Auth + Azure provider, PKCE).
    * The server only accepts allowlisted tenants with the institution's domain
-   * (migration 27). Returns null when the person closes the Microsoft window.
+   * (migration 27). Signs in and also creates the account the first time.
+   *
+   * Phones: opens Microsoft in an in-app browser and returns the user, or
+   * null when the person closes the window.
+   * Web: the whole page goes to Microsoft and comes back to /callback, which
+   * finishes the sign-in; this returns null and the page navigates away.
+   * (Safari blocks a popup opened after an awaited request, so no popup.)
    */
   async signInWithMicrosoft(): Promise<User | null> {
     ensureSupabaseConfigured();
+    const scopes = 'openid email profile offline_access';
+    const queryParams = { domain_hint: MICROSOFT_DOMAIN_HINT, prompt: 'select_account' };
+
+    if (Platform.OS === 'web') {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: { redirectTo: `${authCallbackUrl()}?via=${MICROSOFT_CALLBACK_FLAG}`, scopes, queryParams },
+      });
+      if (error) throw error;
+      return null;
+    }
+
     const redirectTo = authCallbackUrl();
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'azure',
-      options: { redirectTo, skipBrowserRedirect: true, scopes: 'openid email profile offline_access' },
+      options: { redirectTo, skipBrowserRedirect: true, scopes, queryParams },
     });
     if (error) throw error;
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
@@ -137,8 +175,7 @@ export const authService = {
     await exchangeAuthCode(link.code);
     const user = await getSupabaseUser();
     if (!user) throw new Error('No se encontró el perfil del usuario.');
-    // The terms are shown next to the button: continuing accepts them (first time only).
-    await supabase.from('profiles').update({ terms_accepted_at: new Date().toISOString() }).eq('id', user.id).is('terms_accepted_at', null);
+    await acceptTermsIfNeeded(user.id);
     return user;
   },
 

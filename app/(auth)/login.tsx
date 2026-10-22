@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MicrosoftSignInButton } from '@/components/auth/MicrosoftSignInButton';
 import { BrandLogo } from '@/components/brand/Brand';
 import { PasswordField } from '@/components/forms/PasswordField';
 import { TextField } from '@/components/forms/TextField';
@@ -76,28 +77,13 @@ export default function LoginScreen() {
       // Only after a successful sign-in: never store credentials that don't work.
       if (rememberMe) await credentialStore.remember(address, password);
       else await credentialStore.forget(address);
-      await savedUsers.add({ email: address, name: user.name, role: user.role }); // TEMPORARY (src/dev)
+      if (__DEV__) await savedUsers.add({ email: address, name: user.name, role: user.role }); // TEMPORARY (src/dev)
       setCurrentUser(user);
       router.replace('/(tabs)');
     } catch (loginError) {
       setError(loginErrorMessage(loginError));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleMicrosoft = async () => {
-    setError(null);
-    setMicrosoftLoading(true);
-    try {
-      const user = await authService.signInWithMicrosoft();
-      if (!user) return; // The person closed the Microsoft window.
-      setCurrentUser(user);
-      router.replace('/(tabs)');
-    } catch (microsoftError) {
-      setError(errorMessage(microsoftError, 'No pudimos iniciar sesión con Microsoft. Inténtalo de nuevo.'));
-    } finally {
-      setMicrosoftLoading(false);
     }
   };
 
@@ -160,24 +146,12 @@ export default function LoginScreen() {
             <ButtonPrimary disabled={microsoftLoading} loading={loading} loadingTitle="Entrando…" onPress={() => void handleLogin()} title="Iniciar sesión" />
 
             {useSupabase && isMicrosoftAuthEnabled ? (
-              <>
-                <View style={styles.divider}>
-                  <View style={styles.line} />
-                  <Text style={styles.dividerText}>o</Text>
-                  <View style={styles.line} />
-                </View>
-                <ButtonSecondary
-                  disabled={loading}
-                  icon="logo-microsoft"
-                  loading={microsoftLoading}
-                  onPress={() => void handleMicrosoft()}
-                  title="Continuar con Microsoft"
-                />
-                <Text style={styles.terms}>
-                  Usa tu cuenta institucional. Al continuar aceptas los términos y la política de tratamiento de datos.{' '}
-                  <Link href="/legal" style={styles.termsLink}>Leer más</Link>
-                </Text>
-              </>
+              <MicrosoftSignInButton
+                disabled={loading}
+                onBusyChange={setMicrosoftLoading}
+                onError={setError}
+                title="Continuar con Microsoft"
+              />
             ) : null}
           </View>
 
@@ -188,15 +162,17 @@ export default function LoginScreen() {
           </View>
           <ButtonSecondary icon="person-add-outline" onPress={() => router.push('/(auth)/register')} title="Crear una cuenta" />
 
-          {/* TEMPORARY: development-only account switcher (src/dev). */}
-          <SavedUsersPanel
-            onSelect={(savedEmail, savedPassword) => {
-              setEmail(savedEmail);
-              setPassword(savedPassword ?? '');
-              setRememberMe(savedPassword !== null);
-              setFieldErrors(savedPassword ? {} : { password: 'Escribe la contraseña de esta cuenta (no se guardó con "Recordarme").' });
-            }}
-          />
+          {/* TEMPORARY: development-only account switcher (src/dev); never in release builds. */}
+          {__DEV__ ? (
+            <SavedUsersPanel
+              onSelect={(savedEmail, savedPassword) => {
+                setEmail(savedEmail);
+                setPassword(savedPassword ?? '');
+                setRememberMe(savedPassword !== null);
+                setFieldErrors(savedPassword ? {} : { password: 'Escribe la contraseña de esta cuenta (no se guardó con "Recordarme").' });
+              }}
+            />
+          ) : null}
 
           {!useSupabase ? (
             <View style={styles.demo}>
@@ -232,8 +208,6 @@ const styles = StyleSheet.create({
   divider: { alignItems: 'center', flexDirection: 'row', gap: spacing[12] },
   line: { backgroundColor: colors.lightGray, flex: 1, height: 1 },
   dividerText: { ...typography.caption, color: colors.textSecondary },
-  terms: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
-  termsLink: { color: colors.primary, fontWeight: '700' },
   demo: { gap: spacing[8] },
   demoTitle: { ...typography.caption, color: colors.textSecondary, textAlign: 'center', textTransform: 'uppercase' },
 });
