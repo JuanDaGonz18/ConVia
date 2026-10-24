@@ -66,7 +66,7 @@ function createExpoConfig({ config }) {
       lang: 'es',
       themeColor: '#006FFD',
       backgroundColor: '#FFFFFF',
-      description: 'Carpooling verificado para la comunidad universitaria de Chía y la Sabana.',
+      description: 'Carpooling verificado para tu comunidad universitaria.',
     },
     android: {
       ...config.android,
