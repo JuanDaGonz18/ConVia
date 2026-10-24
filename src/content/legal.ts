@@ -1,29 +1,34 @@
 /**
- * Terms and Conditions + Privacy Policy shown in the app (app/legal.tsx).
+ * Terms and Conditions + Privacy Policy shown in the app (app/legal.tsx) and
+ * linked from the download page (/app/legal?doc=privacy).
  *
  * Written to match what the app actually does (see README > Security notes).
- * Before publishing in the stores, have a lawyer review it and fill in the
- * company details below. When the text changes materially, bump
- * LEGAL_VERSION: new sign-ups store the version they accepted.
+ * ConVía is a non-profit student project, not a company: no personal names,
+ * tax ID or street address are published. If a company is ever set up, put
+ * its details in LEGAL_COMPANY and section 1 of the privacy policy, and have a
+ * lawyer review both documents before going to the app stores.
+ * When the text changes materially, bump LEGAL_VERSION: new sign-ups store
+ * the version they accepted.
  */
 
-export const LEGAL_VERSION = '1.0';
-export const LEGAL_UPDATED_AT = '30 de septiembre de 2026';
+export const LEGAL_VERSION = '1.1';
+export const LEGAL_UPDATED_AT = '24 de octubre de 2026';
 
-// TODO(legal): replace with the company's real details before release.
 export const LEGAL_COMPANY = {
   name: 'ConVía',
-  legalName: '[Razón social de ConVía]',
-  taxId: '[NIT]',
-  address: '[Dirección, ciudad]',
-  email: '[correo de contacto para datos personales]',
+  /** Who runs ConVía, as it appears in both documents. */
+  operator: 'el equipo de estudiantes que desarrolla ConVía como proyecto académico',
+  /** General location only (no street address). */
+  location: 'Cundinamarca, Colombia',
+  /** The one contact channel for questions, requests and complaints. */
+  email: 'gonzalezjuandavid07@gmail.com',
 };
 
 export type LegalBlock = string | { bullets: string[] };
 export type LegalSection = { id: string; title: string; body: LegalBlock[] };
 export type LegalDocument = { title: string; summary: string[]; sections: LegalSection[] };
 
-const company = `${LEGAL_COMPANY.legalName} (en adelante, "ConVía")`;
+const company = `${LEGAL_COMPANY.operator} (en adelante, "ConVía")`;
 
 export const TERMS: LegalDocument = {
   title: 'Términos y Condiciones',
@@ -32,6 +37,7 @@ export const TERMS: LegalDocument = {
     'El aporte que acuerdan pasajero y conductor es solo para compartir gastos del trayecto, no para obtener ganancia.',
     'Cada conductor responde por tener licencia, SOAT, revisión técnico-mecánica y su vehículo en regla.',
     'Debes ser mayor de edad, dar datos reales y tratar a los demás con respeto. Podemos suspender cuentas que incumplan estas reglas.',
+    'ConVía es un proyecto académico de estudiantes, gratuito y sin ánimo de lucro, en fase beta. No es un servicio oficial de ninguna universidad.',
   ],
   sections: [
     {
@@ -47,6 +53,8 @@ export const TERMS: LegalDocument = {
       title: '2. Qué es ConVía',
       body: [
         'ConVía es una plataforma tecnológica que permite a miembros de una comunidad universitaria publicar trayectos que ya van a realizar en su vehículo particular y a otros miembros solicitar un cupo en ellos (carro compartido).',
+        'ConVía es un proyecto académico desarrollado por estudiantes universitarios. No es una empresa constituida, no tiene ánimo de lucro y no es un servicio oficial ni respaldado por ninguna universidad o institución educativa, aunque solo admite correos de instituciones habilitadas.',
+        'La aplicación está en fase beta: es gratuita, puede tener errores y puede cambiar, interrumpirse o terminar en cualquier momento. Si ConVía deja de funcionar, eliminaremos los datos personales según la Política de Tratamiento de Datos.',
         'ConVía no es una empresa de transporte, no presta el servicio de transporte, no es propietaria de los vehículos, no contrata a los conductores y no es parte del acuerdo entre pasajero y conductor. Nuestra función se limita a facilitar el contacto y la coordinación entre usuarios.',
         'La aplicación no debe usarse para prestar servicio público de transporte ni ninguna actividad de transporte con fines comerciales o de lucro.',
       ],
@@ -71,6 +79,7 @@ export const TERMS: LegalDocument = {
       title: '4. Tu cuenta y tu contraseña',
       body: [
         'Eres responsable de mantener la confidencialidad de tu contraseña y de toda la actividad realizada desde tu cuenta. Si sospechas un uso no autorizado, cambia tu contraseña de inmediato y avísanos.',
+        'Si entras con tu cuenta institucional de Microsoft, la contraseña y la verificación la administra tu institución: ConVía nunca la ve. Si pierdes acceso a esa cuenta (por ejemplo, al terminar tus estudios), puedes perder el acceso a ConVía por esa vía.',
         'La opción "Recordarme" guarda tus credenciales únicamente en el almacenamiento seguro de tu teléfono. No la uses en dispositivos compartidos.',
       ],
     },
@@ -160,7 +169,7 @@ export const TERMS: LegalDocument = {
       id: 'propiedad',
       title: '12. Propiedad intelectual',
       body: [
-        'La marca ConVía, el diseño y el software de la aplicación pertenecen a ConVía o a sus licenciantes. Conservas los derechos sobre el contenido que publicas (fotos, mensajes, comentarios) y nos autorizas a usarlo únicamente para operar la aplicación.',
+        'El nombre ConVía, el diseño y el software de la aplicación pertenecen a sus autores o a sus licenciantes. Conservas los derechos sobre el contenido que publicas (fotos, mensajes, comentarios) y nos autorizas a usarlo únicamente para operar la aplicación.',
       ],
     },
     {
@@ -174,7 +183,7 @@ export const TERMS: LegalDocument = {
       id: 'ley',
       title: '14. Ley aplicable',
       body: [
-        'Estos términos se rigen por las leyes de la República de Colombia. Las diferencias se intentarán resolver primero de forma directa a través de nuestro canal de contacto.',
+        `Estos términos se rigen por las leyes de la República de Colombia. Las diferencias se intentarán resolver primero de forma directa escribiendo a ${LEGAL_COMPANY.email}.`,
       ],
     },
   ],
@@ -187,13 +196,15 @@ export const PRIVACY: LegalDocument = {
     'Tu ubicación se usa mientras usas la aplicación (buscar lugares y viajes cercanos); no te rastreamos en segundo plano.',
     'Para verificar tu identidad convertimos tu rostro en una representación numérica. No guardamos fotos de tu cara ni de tu licencia.',
     'No vendemos tus datos. Puedes consultarlos, corregirlos o eliminar tu cuenta cuando quieras.',
+    'ConVía es un proyecto académico de estudiantes, sin ánimo de lucro y sin empresa detrás.',
   ],
   sections: [
     {
       id: 'responsable',
       title: '1. Responsable del tratamiento',
       body: [
-        `${LEGAL_COMPANY.legalName}, NIT ${LEGAL_COMPANY.taxId}, con domicilio en ${LEGAL_COMPANY.address}. Correo de contacto para asuntos de datos personales: ${LEGAL_COMPANY.email}.`,
+        `El responsable del tratamiento de tus datos es ${LEGAL_COMPANY.operator}, sin ánimo de lucro y sin constituir una empresa, con domicilio en ${LEGAL_COMPANY.location}. ConVía no es un servicio oficial de ninguna universidad: las instituciones cuyos correos se admiten no reciben ni administran tus datos.`,
+        `Canal de atención para consultas, reclamos y cualquier asunto sobre tus datos personales: ${LEGAL_COMPANY.email}.`,
         'Esta política se expide en cumplimiento de la Ley 1581 de 2012, el Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015) y demás normas colombianas sobre protección de datos personales.',
       ],
     },
@@ -204,13 +215,14 @@ export const PRIVACY: LegalDocument = {
         {
           bullets: [
             'Identificación y contacto: nombre, correo institucional, teléfono (opcional) y foto de perfil.',
-            'Cuenta: contraseña (la administra nuestro proveedor de autenticación de forma cifrada; ConVía no puede verla), rol (pasajero o conductor) e institución.',
+            'Cuenta: contraseña (la administra nuestro proveedor de autenticación de forma cifrada; ConVía no puede verla), rol (pasajero o conductor), institución y la versión de estos documentos que aceptaste.',
+            'Inicio de sesión con Microsoft (si lo usas): Microsoft nos envía tu nombre, tu correo institucional y el identificador de tu institución, que usamos para confirmar que perteneces a una institución habilitada. Nunca recibimos tu contraseña de Microsoft.',
             'Vehículo (conductores): marca, color, placa, número de cupos y fotos del vehículo.',
             'Viajes: origen, destino, ruta, fecha, hora, aporte, cupos, solicitudes, puntos de recogida, abordaje con código QR y estado del viaje.',
             'Comunicaciones: mensajes del chat de cada viaje, calificaciones y comentarios, y registro de aportes pagados.',
             'Ubicación: la posición de tu teléfono cuando usas funciones como "Usar mi ubicación", el mapa o los viajes cercanos.',
             'Datos biométricos: la representación numérica de tu rostro y el resultado de cada verificación (ver sección 4).',
-            'Datos técnicos: identificador para notificaciones push y datos básicos del dispositivo necesarios para que la aplicación funcione.',
+            'Datos técnicos: identificador para notificaciones push y datos básicos del dispositivo necesarios para que la aplicación funcione. En la versión web, tu sesión se guarda en el almacenamiento de tu navegador.',
           ],
         },
       ],
@@ -259,8 +271,8 @@ export const PRIVACY: LegalDocument = {
         {
           bullets: [
             'Otros usuarios, solo en la medida necesaria para el viaje (por ejemplo, el conductor ve tu nombre, foto y punto de recogida cuando solicitas un cupo).',
-            'Proveedores tecnológicos que actúan como encargados del tratamiento: Supabase (base de datos, autenticación y almacenamiento de archivos), Google (mapas en Android y Firebase Cloud Messaging para notificaciones), Apple (mapas y notificaciones en iPhone) y Expo (envío de notificaciones).',
-            'Servicios de mapas basados en OpenStreetMap (búsqueda de lugares y cálculo de rutas), a los que se envían las búsquedas y coordenadas necesarias, sin tu nombre ni tu correo.',
+            'Proveedores tecnológicos que actúan como encargados del tratamiento: Supabase (base de datos, autenticación y almacenamiento de archivos), Microsoft (inicio de sesión con tu cuenta institucional, solo si lo usas), Google (Firebase Cloud Messaging para notificaciones en Android y Google Maps en las funciones que lo usan), Expo (envío de notificaciones) y GitHub (aloja esta página, la versión web y el archivo de instalación para Android; como cualquier sitio web, recibe datos técnicos de tu conexión, como la dirección IP).',
+            'Servicios de mapas basados en OpenStreetMap (Photon para buscar lugares, OSRM para calcular rutas y OpenStreetMap y OpenFreeMap para dibujar el mapa), a los que se envían las búsquedas y coordenadas necesarias, sin tu nombre ni tu correo.',
             'Autoridades competentes, cuando exista una orden o una obligación legal.',
           ],
         },
@@ -279,7 +291,7 @@ export const PRIVACY: LegalDocument = {
             'Ser informado sobre el uso que les damos a tus datos.',
             'Revocar la autorización y solicitar la supresión de tus datos, cuando no exista un deber legal o contractual de conservarlos.',
             'Acceder gratuitamente a tus datos personales.',
-            'Presentar quejas ante la Superintendencia de Industria y Comercio (SIC) por infracciones a la ley, después de haber agotado el trámite ante ConVía.',
+            'Presentar quejas ante la Superintendencia de Industria y Comercio (SIC), autoridad de protección de datos en Colombia, por infracciones a la ley, después de haber agotado el trámite ante ConVía.',
           ],
         },
         'Puedes actualizar tu nombre, teléfono y foto en Perfil > Información personal, y eliminar tu cuenta en Perfil > Eliminar mi cuenta.',
@@ -298,6 +310,7 @@ export const PRIVACY: LegalDocument = {
       title: '9. Conservación y eliminación',
       body: [
         'Conservamos tus datos mientras tengas una cuenta activa. Cuando eliminas tu cuenta, se borran tu perfil, fotos, vehículos, viajes, solicitudes, mensajes y representaciones faciales, salvo la información que debamos conservar por obligación legal o para atender reclamaciones pendientes.',
+        'Si el proyecto termina, eliminaremos los datos personales de todos los usuarios y te avisaremos con anticipación en la aplicación o por correo.',
         'Los mensajes y datos que otros usuarios ya recibieron durante un viaje pueden permanecer en sus dispositivos (por ejemplo, en capturas de pantalla), fuera del control de ConVía.',
       ],
     },
