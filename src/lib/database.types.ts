@@ -1143,6 +1143,81 @@ export type Database = {
           },
         ]
       }
+      vehicle_verifications: {
+        Row: {
+          brand_match: boolean | null
+          brand_read: string | null
+          color_match: boolean | null
+          color_read: string | null
+          confidence: number | null
+          created_at: string
+          driver_id: string
+          id: string
+          image_quality: string | null
+          line_read: string | null
+          message: string
+          mock: boolean
+          plate_expected: string
+          plate_read: string | null
+          reason: string
+          status: string
+          vehicle_id: string
+        }
+        Insert: {
+          brand_match?: boolean | null
+          brand_read?: string | null
+          color_match?: boolean | null
+          color_read?: string | null
+          confidence?: number | null
+          created_at?: string
+          driver_id: string
+          id?: string
+          image_quality?: string | null
+          line_read?: string | null
+          message: string
+          mock?: boolean
+          plate_expected: string
+          plate_read?: string | null
+          reason: string
+          status: string
+          vehicle_id: string
+        }
+        Update: {
+          brand_match?: boolean | null
+          brand_read?: string | null
+          color_match?: boolean | null
+          color_read?: string | null
+          confidence?: number | null
+          created_at?: string
+          driver_id?: string
+          id?: string
+          image_quality?: string | null
+          line_read?: string | null
+          message?: string
+          mock?: boolean
+          plate_expected?: string
+          plate_read?: string | null
+          reason?: string
+          status?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_verifications_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_verifications_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           activo: boolean

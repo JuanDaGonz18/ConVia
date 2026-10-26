@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { compressPhoto, PHOTO_MAX_SIDE } from '@/services/imageCompression';
 import { isValidPlate, MAX_SEATS, vehicleService } from '@/services/vehicleService';
+import { canVerifyPlate, type VehicleVerification, vehicleVerificationService } from '@/services/vehicleVerificationService';
 import { planLimitFromError } from '@/subscription/plans';
 import { usePlan } from '@/subscription/usePlan';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
@@ -46,6 +47,9 @@ export default function VehicleScreen() {
   const [saving, setSaving] = useState(false);
   // The server rejected a new vehicle because the plan's limit was reached.
   const [limitReached, setLimitReached] = useState(false);
+  // Latest AI check of the saved vehicle (editing only); null when never verified with the current plate.
+  const [verification, setVerification] = useState<VehicleVerification | null>(null);
+  const [savedPlate, setSavedPlate] = useState('');
   const { isPlus } = usePlan();
 
   useEffect(() => {
@@ -60,9 +64,16 @@ export default function VehicleScreen() {
       setColor(saved.color ?? '');
       setSeats(String(Math.min(saved.seats ?? 1, MAX_SEATS)));
       setSavedPhotoUrl(saved.photoUrl);
+      setSavedPlate(saved.plate);
     }).catch((loadError) => setError(errorMessage(loadError, 'No se pudo cargar el vehículo.')))
       .finally(() => setLoaded(true));
   }, [id]);
+
+  // Refreshed on focus, so the result shows up when coming back from the verification screen.
+  useFocusEffect(useCallback(() => {
+    if (!id || !savedPlate) return;
+    void vehicleVerificationService.getLatest(id, savedPlate).then(setVerification).catch(() => undefined);
+  }, [id, savedPlate]));
 
   const pickPhoto = async (source: 'camera' | 'library') => {
     setError(null);
@@ -110,9 +121,11 @@ export default function VehicleScreen() {
     setLimitReached(false);
     setSaving(true);
     try {
-      await vehicleService.saveVehicle({ plate, brand, color, seats: parsedSeats }, photo, id);
+      const saved = await vehicleService.saveVehicle({ plate, brand, color, seats: parsedSeats }, photo, id);
       toast.success(editing ? 'Vehículo actualizado' : '¡Vehículo agregado!');
-      router.back();
+      // New cars go straight to the AI verification step (it can be skipped).
+      if (!editing && canVerifyPlate(saved.plate)) router.replace({ pathname: '/vehicle-verify', params: { id: saved.id, fromNew: '1' } });
+      else router.back();
     } catch (saveError) {
       setLimitReached(planLimitFromError(rawErrorMessage(saveError))?.key === 'vehicles');
       setError(/duplicate key|unique/i.test(rawErrorMessage(saveError))
@@ -144,6 +157,21 @@ export default function VehicleScreen() {
           <ActivityIndicator color={colors.primary} />
         ) : (
           <>
+            {editing && savedPlate && canVerifyPlate(savedPlate) ? (
+              verification?.status === 'verified' ? (
+                <Notice tone="success" title="Vehículo verificado">
+                  La placa de tu carro se verificó con IA. Si cambias la placa, tendrás que verificarlo de nuevo.
+                </Notice>
+              ) : (
+                <Notice
+                  action={{ label: verification ? 'Verificar de nuevo' : 'Verificar con IA', onPress: () => router.push({ pathname: '/vehicle-verify', params: { id: id! } }) }}
+                  tone={verification ? 'warning' : 'info'}
+                  title={verification ? 'Verificación pendiente' : 'Verifica tu vehículo'}
+                >
+                  {verification?.message ?? 'Toma una foto del carro con la placa visible y comprobamos que coincide con la registrada.'}
+                </Notice>
+              )
+            ) : null}
             <Text style={styles.label}>Foto del vehículo</Text>
             {previewUri ? (
               <Image accessibilityLabel="Foto del vehículo" source={{ uri: previewUri }} style={styles.photo} />
