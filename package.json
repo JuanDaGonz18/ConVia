@@ -73,7 +73,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\""
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\"",
+    "test:functions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"supabase/functions/**/*.test.ts\""
   },
   "private": true
 }
