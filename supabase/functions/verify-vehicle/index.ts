@@ -63,7 +63,10 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** POST to the Meta Model API with a timeout and one backoff retry on 429. Logs the duration of every call. */
 async function callModel(path: string, body: unknown, label: string, timeoutMs: number): Promise<unknown> {
+  let backoffMs = 0;
   for (let attempt = 1; attempt <= 2; attempt++) {
+    // Waited here, so the logged duration is the call's own.
+    if (backoffMs) await sleep(backoffMs);
     const started = performance.now();
     let status = 0;
     try {
@@ -79,7 +82,7 @@ async function callModel(path: string, body: unknown, label: string, timeoutMs: 
         if (attempt === 2) throw new ModelError('rate_limited', 'Rate limited');
         // Retry-After when given (capped so the driver isn't left waiting), else 500 ms + jitter.
         const retryAfter = Number(res.headers.get('retry-after'));
-        await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 3000) : 500 + Math.random() * 250);
+        backoffMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 3000) : 500 + Math.random() * 250;
         continue;
       }
       if (!res.ok) throw new ModelError('http', `HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
@@ -200,8 +203,9 @@ async function mockAnalysis(plate: string, brand: string, color: string, request
   const outcome: Outcome = requested === 'verified' || requested === 'failed' || requested === 'retry'
     ? requested
     : /[78]$/.test(plate) ? 'failed' : /9$/.test(plate) ? 'retry' : 'verified';
-  await sleep(700 + Math.random() * 600);
-  log('model_call', { call: 'mock', outcome, ms: 0 });
+  const latency = Math.round(700 + Math.random() * 600);
+  await sleep(latency);
+  log('model_call', { call: 'mock', outcome, ms: latency });
   const car = box(90, 160, 1190, 900);
   if (outcome === 'retry') return { detections: { cars: [car], plates: [] }, report: null };
   const wrongPlate = `${plate.slice(0, 3)}${String((Number(plate.slice(3)) + 417) % 1000).padStart(3, '0')}`;
