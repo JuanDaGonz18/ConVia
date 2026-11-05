@@ -228,7 +228,9 @@
       "openSettings": "Abrir ajustes del teléfono",
       "allowCamera": "Permitir cámara",
       "webUnavailable": "La verificación con video está disponible en la app para Android e iPhone.",
-      "mock": "Modo de prueba: resultado simulado, sin IA real."
+      "mock": "Modo de prueba: resultado simulado, sin IA real.",
+      "monthlyLimit_one": "Tu plan incluye {{count}} verificación al mes.",
+      "monthlyLimit_other": "Tu plan incluye {{count}} verificaciones al mes."
     },
     "steps": {
       "upload": {
@@ -385,15 +387,17 @@
       "unsupported_vehicle": {
         "title": "No disponible para este vehículo",
         "text": "La verificación con IA funciona solo con placas de carro (3 letras y 3 números)."
+      },
+      "monthly_limit": {
+        "title": "Llegaste al límite de este mes",
+        "text": "Ya usaste las verificaciones del carro incluidas en tu plan este mes ({{count}}). Podrás verificar de nuevo el próximo mes."
+      },
+      "plan_locked": {
+        "title": "No disponible en tu plan",
+        "text": "La verificación del carro no está incluida en tu plan."
       }
     },
-    "samples": {
-      "title": "¿Sin carro para filmar? Prueba con un video de ejemplo",
-      "text": "Carros ficticios generados con Muse Image. El análisis es el real: SAM 3.1 y Muse Spark, como con un video tuyo.",
-      "match": "Llega el carro del viaje",
-      "other": "Llega otro carro",
-      "covered": "Llega con la placa tapada"
-    }
+    "plusAction": "Conocer ConVía+"
   },
   "colors": {
     "blanco": "blanco",

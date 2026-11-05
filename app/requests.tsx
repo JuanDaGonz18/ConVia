@@ -211,6 +211,11 @@ export default function RequestsScreen() {
               {!isDriver && request.estado === 'aceptado' ? (
                 <>
                   <ButtonPrimary
+                    icon="car-outline"
+                    onPress={() => router.push({ pathname: '/pickup-verify', params: { requestId: request.id, tripId: request.trip_id } })}
+                    title={t('pickup.button')}
+                  />
+                  <ButtonSecondary
                     icon="qr-code-outline"
                     onPress={() => router.push({ pathname: '/boarding-qr', params: { requestId: request.id } })}
                     title={t('requests.showCode')}

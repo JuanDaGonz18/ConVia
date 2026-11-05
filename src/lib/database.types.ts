@@ -346,6 +346,101 @@ export type Database = {
         }
         Relationships: []
       }
+      pickup_verifications: {
+        Row: {
+          brand_match: boolean | null
+          brand_read: string | null
+          color_match: boolean | null
+          color_read: string | null
+          confidence: number | null
+          created_at: string
+          driver_id: string
+          frames_processed: number | null
+          id: string
+          latency_ms: number
+          mock: boolean
+          passenger_id: string
+          plate_read: string | null
+          reason: string
+          reported_at: string | null
+          request_id: string
+          status: string
+          timings: NonNullable<Json>
+          trip_id: string
+        }
+        Insert: {
+          brand_match?: boolean | null
+          brand_read?: string | null
+          color_match?: boolean | null
+          color_read?: string | null
+          confidence?: number | null
+          created_at?: string
+          driver_id: string
+          frames_processed?: number | null
+          id?: string
+          latency_ms: number
+          mock?: boolean
+          passenger_id: string
+          plate_read?: string | null
+          reason: string
+          reported_at?: string | null
+          request_id: string
+          status: string
+          timings?: NonNullable<Json>
+          trip_id: string
+        }
+        Update: {
+          brand_match?: boolean | null
+          brand_read?: string | null
+          color_match?: boolean | null
+          color_read?: string | null
+          confidence?: number | null
+          created_at?: string
+          driver_id?: string
+          frames_processed?: number | null
+          id?: string
+          latency_ms?: number
+          mock?: boolean
+          passenger_id?: string
+          plate_read?: string | null
+          reason?: string
+          reported_at?: string | null
+          request_id?: string
+          status?: string
+          timings?: NonNullable<Json>
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pickup_verifications_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pickup_verifications_passenger_id_fkey"
+            columns: ["passenger_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pickup_verifications_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "trip_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pickup_verifications_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_capabilities: {
         Row: {
           beta_unlocked: boolean
@@ -1557,6 +1652,10 @@ export type Database = {
         Args: { p_comment?: string; p_request_id: string; p_score: number }
         Returns: undefined
       }
+      report_pickup_mismatch: {
+        Args: { p_verification_id: string }
+        Returns: undefined
+      }
       respond_trip_request: {
         Args: { p_accept: boolean; p_request_id: string }
         Returns: {
@@ -1615,6 +1714,10 @@ export type Database = {
           p_user: string
         }
         Returns: undefined
+      }
+      service_stale_pickup_clips: {
+        Args: { p_limit?: number; p_older_than?: string }
+        Returns: string[]
       }
       set_passenger_payment: {
         Args: { p_paid: boolean; p_request_id: string }

@@ -228,7 +228,9 @@
       "openSettings": "Open phone settings",
       "allowCamera": "Allow camera",
       "webUnavailable": "Video verification is available in the app for Android and iPhone.",
-      "mock": "Test mode: simulated result, no real AI."
+      "mock": "Test mode: simulated result, no real AI.",
+      "monthlyLimit_one": "Your plan includes {{count}} check per month.",
+      "monthlyLimit_other": "Your plan includes {{count}} checks per month."
     },
     "steps": {
       "upload": {
@@ -385,15 +387,17 @@
       "unsupported_vehicle": {
         "title": "Not available for this vehicle",
         "text": "AI verification works only with car plates (3 letters and 3 numbers)."
+      },
+      "monthly_limit": {
+        "title": "You reached this month's limit",
+        "text": "You already used this month's car checks included in your plan ({{count}}). You can check again next month."
+      },
+      "plan_locked": {
+        "title": "Not available on your plan",
+        "text": "Car checks are not included in your plan."
       }
     },
-    "samples": {
-      "title": "No car to film? Try with a sample video",
-      "text": "Fictional cars generated with Muse Image. The analysis is real: SAM 3.1 and Muse Spark, same as with your own video.",
-      "match": "The trip's car arrives",
-      "other": "A different car arrives",
-      "covered": "Arrives with the plate covered"
-    }
+    "plusAction": "See ConVía+"
   },
   "colors": {
     "blanco": "white",

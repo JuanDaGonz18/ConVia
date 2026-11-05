@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "ConVía necesita la cámara para verificar tu identidad y leer los códigos QR de abordaje."
+        "NSCameraUsageDescription": "ConVía necesita la cámara para verificar tu identidad, leer los códigos QR de abordaje y grabar el carro que te recoge."
       }
     },
     "android": {
@@ -42,7 +42,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "ConVía necesita la cámara para verificar tu identidad y leer los códigos QR de abordaje.",
+          "cameraPermission": "ConVía necesita la cámara para verificar tu identidad, leer los códigos QR de abordaje y grabar el carro que te recoge.",
           "barcodeScannerEnabled": true
         }
       ],

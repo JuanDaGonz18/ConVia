@@ -86,6 +86,32 @@ begin
     r := r || case when sqlerrm = 'LIMITE_PLAN:pickup_verifications_month:10' then E'\nOK  production: FREE monthly pickup limit enforced' else E'\nBAD production: ' || sqlerrm end; end;
   execute 'reset role';
 
+  -- ================= VERIFICAR EL CARRO: datos y borrado programado =================
+  perform set_config('request.jwt.claims', json_build_object('sub', uF, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  begin
+    insert into public.pickup_verifications (trip_id, request_id, passenger_id, driver_id, status, reason, latency_ms)
+      values (gen_random_uuid(), gen_random_uuid(), uF, uF, 'verified', 'plate_match', 1);
+    r := r || E'\nBAD pickup: the app wrote a verification result';
+  exception when insufficient_privilege then r := r || E'\nOK  pickup: only the Edge Function writes results'; end;
+  begin perform public.service_stale_pickup_clips(); r := r || E'\nBAD pickup: app can list stale clips';
+  exception when insufficient_privilege then r := r || E'\nOK  pickup: stale-clip listing not callable from the app'; end;
+  begin perform private.dispatch_pickup_clips_cleanup(); r := r || E'\nBAD pickup: app can trigger the clean-up';
+  exception when insufficient_privilege then r := r || E'\nOK  pickup: clean-up dispatch not callable from the app'; end;
+  begin perform public.report_pickup_mismatch(gen_random_uuid()); r := r || E'\nBAD pickup: reported a result that is not theirs';
+  exception when others then
+    r := r || case when sqlerrm = 'pickup_report_not_allowed' then E'\nOK  pickup: only the passenger can report their own mismatch' else E'\nBAD pickup: ' || sqlerrm end; end;
+  execute 'reset role';
+  r := r || case when exists (select 1 from cron.job where jobname = 'cleanup-pickup-clips' and schedule = '*/30 * * * *')
+                 then E'\nOK  pickup: clips older than an hour are deleted on a schedule'
+                 else E'\nBAD pickup: cleanup-pickup-clips job missing' end;
+  r := r || case when exists (select 1 from storage.buckets where id = 'pickup-clips' and not public)
+                  and exists (select 1 from pg_policies where schemaname = 'storage' and policyname = 'pickup_clips_insert_own' and with_check like '%my_object_count%')
+                 then E'\nOK  pickup: private clip bucket with a per-user file cap'
+                 else E'\nBAD pickup: clip bucket or its insert policy' end;
+  r := r || case when exists (select 1 from cron.job where jobname = 'cleanup-vehicle-suggestions')
+                 then E'\nOK  autofill: suggestion counters cleaned daily' else E'\nBAD autofill: cleanup job missing' end;
+
   bad := (length(r) - length(replace(r, E'\nBAD', ''))) / 4;
   raise exception 'AI CAPABILITIES (rolled back) — % failing:%', bad, r;
 end $$;
