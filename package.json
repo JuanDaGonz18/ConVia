@@ -56,12 +56,14 @@
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
     "@types/leaflet": "^1.9.22",
+    "@types/node": "^26.6.5",
     "@types/react": "~19.2.2",
     "@types/react-dom": "~19.2.0",
     "babel-preset-expo": "^57.0.12",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
     "patch-package": "^8.0.1",
+    "supabase": "^2.122.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -72,7 +74,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\""
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\"",
+    "test:functions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"supabase/functions/**/*.test.ts\""
   },
   "private": true
 }
