@@ -4,15 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ConVía Beta</title>
-<meta name="description" content="ConVía: comparte el carro con gente verificada de tu universidad. Descarga gratis para Android o usa la versión web en iPhone.">
+<meta name="description" content="ConVía: comparte el carro con personas verificadas de tu institución. Verificación del carro que te recoge, carné estudiantil, español e inglés. Gratis para Android y en la web.">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:title" content="ConVía · Carpooling verificado">
-<meta property="og:description" content="Comparte el carro con gente verificada de tu universidad. Gratis para Android y iPhone.">
+<meta property="og:description" content="Comparte el carro con personas verificadas de tu institución. Gratis para Android y iPhone.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <script>
 /* Saved theme (light/dark) before first paint; without one, the page follows the system. */
+try { const l = localStorage.getItem("convia-lang"); if (l === "es" || l === "en") document.documentElement.lang = l; else if (!/^es/i.test(navigator.language || "es")) document.documentElement.lang = "en"; } catch (e) {}
 try { const t = localStorage.getItem("convia-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -151,6 +152,23 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-block:28px 40px;
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .route{stroke-dasharray:6 8;animation:drive 2.4s linear infinite}
 @keyframes drive{to{stroke-dashoffset:-28}}
+
+/* language toggle */
+.lang-btn{height:40px;min-width:48px;padding:0 10px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px var(--f-mono);letter-spacing:.06em;cursor:pointer;transition:border-color .15s ease}
+.lang-btn:hover{border-color:var(--accent)}
+
+/* features */
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feature{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;min-width:0;display:grid;gap:10px;align-content:start}
+.feature .ico{width:40px;height:40px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.feature .ico svg{width:22px;height:22px}
+.feature h3{font-size:19px;font-weight:600}
+.feature p{color:var(--muted);font-size:15px}
+.plus{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.plus .feature{border-color:var(--accent)}
+.badge{justify-self:start;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);padding:3px 9px;border-radius:999px}
+.bubble{font-size:14px;background:var(--accent-soft);color:var(--ink);border-radius:12px 12px 12px 4px;padding:10px 12px;font-style:italic}
+@media (max-width:820px){.features,.plus{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -163,7 +181,8 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-block:28px 40px;
       ConVía
     </a>
     <div class="nav-end">
-      <span class="chip">Beta gratuita</span>
+      <span class="chip" data-i18n="chip">Beta gratuita</span>
+      <button class="lang-btn" id="lang-btn" type="button" aria-label="Read in English" title="Read in English">EN</button>
       <button class="theme-btn" id="theme-btn" type="button" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -173,23 +192,23 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-block:28px 40px;
 
   <header class="hero">
     <div>
-      <p class="eyebrow">Carpooling verificado · Comunidad universitaria</p>
-      <h1>Ya vas para el mismo lado. <em>Vayan juntos.</em></h1>
-      <p class="lead">ConVía conecta a conductores y pasajeros de tu comunidad universitaria que hacen la misma ruta. Cada persona se verifica con su correo institucional, así sabes con quién viajas.</p>
+      <p class="eyebrow" data-i18n="eyebrow">Carpooling verificado · Para tu comunidad</p>
+      <h1 data-i18n-html="h1">Ya vas para el mismo lado. <em>Vayan juntos.</em></h1>
+      <p class="lead" data-i18n="lead">ConVía conecta a conductores y pasajeros de tu universidad o institución que hacen la misma ruta. Cada persona verifica su cara y su institución, y antes de subirte puedes comprobar que el carro que llegó es el correcto.</p>
       <div class="ctas">
         <a class="btn primary" id="btn-android" href="#instalar" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22A11.4 11.4 0 0 0 12 8.2c-1.77 0-3.43.38-4.92 1.04L5.22 6.02a.38.38 0 1 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
-          <span><small id="android-small">Descargar para</small><span id="android-label">Android (APK)</span></span>
+          <span><small id="android-small" data-i18n="androidSmall">Descargar para</small><span id="android-label">Android (APK)</span></span>
         </a>
         <a class="btn" id="btn-ios" href="#instalar" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.6 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.24 2.73 2.2 1.1-.04 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.41 1.2-2.47-.03-.01-2.3-.88-2.28-3.52zM14.19 6.13c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.54 1.31-.56.64-1.05 1.68-.92 2.67.97.08 1.96-.49 2.56-1.22z"/></svg>
-          <span><small id="ios-small">Usar en</small><span id="ios-label">iPhone (web)</span></span>
+          <span><small id="ios-small" data-i18n="iosSmall">Usar en</small><span id="ios-label" data-i18n="iosLabel">iPhone (web)</span></span>
         </a>
       </div>
-      <p class="detected" id="detected">Gratis. Sin publicidad. Solo necesitas tu correo institucional.</p>
+      <p class="detected" id="detected" data-i18n="detected">Gratis. Sin publicidad. Regístrate con tu correo o con tu cuenta Microsoft.</p>
     </div>
 
-    <div class="phone" aria-label="Vista de ejemplo de un viaje en ConVía" role="img">
+    <div class="phone" aria-label="Vista de ejemplo de un viaje en ConVía" data-i18n-aria="phoneAria" role="img">
       <div class="screen">
         <div class="map">
           <svg viewBox="0 0 276 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -199,86 +218,141 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-block:28px 40px;
             <circle cx="30" cy="222" r="9" fill="#fff" stroke="#006FFD" stroke-width="4"/>
             <circle cx="240" cy="78" r="9" fill="#006FFD"/>
           </svg>
-          <span class="sample">VISTA DE EJEMPLO</span>
+          <span class="sample" data-i18n="sample">VISTA DE EJEMPLO</span>
         </div>
         <div class="trip">
-          <div class="trip-row"><b>Calle 3 → Campus</b><span class="verified">✓ Verificado</span></div>
-          <div class="trip-row"><span style="color:var(--muted)">Sale 6:40 a. m. · 2 cupos</span><span class="seats"><i class="seat on"></i><i class="seat on"></i><i class="seat"></i><i class="seat"></i></span></div>
-          <div class="fake-btn">Pedir cupo</div>
+          <div class="trip-row"><b data-i18n="sampleRoute">Calle 3 → Campus</b><span class="verified" data-i18n="sampleVerified">✓ Verificado</span></div>
+          <div class="trip-row"><span style="color:var(--muted)" data-i18n="sampleTime">Sale 6:40 a. m. · 2 cupos</span><span class="seats"><i class="seat on"></i><i class="seat on"></i><i class="seat"></i><i class="seat"></i></span></div>
+          <div class="fake-btn" data-i18n="sampleButton">Pedir cupo</div>
         </div>
       </div>
     </div>
   </header>
 
   <div class="strip">
-    <div><div class="num">72,7%</div><p>de los encuestados va en su propio carro.</p></div>
-    <div><div class="num">+70%</div><p>viaja con dos o más puestos vacíos.</p></div>
-    <div><div class="num">#1</div><p>La desconfianza es la principal barrera para compartir el carro. Por eso verificamos a todos.</p></div>
-    <p class="src">Fuente: encuesta del equipo ConVía, datos preliminares 2026.</p>
+    <div><div class="num">72,7%</div><p data-i18n="stat1">de los encuestados va en su propio carro.</p></div>
+    <div><div class="num">+70%</div><p data-i18n="stat2">viaja con dos o más puestos vacíos.</p></div>
+    <div><div class="num">#1</div><p data-i18n="stat3">La desconfianza es la principal barrera para compartir el carro. Por eso verificamos a todos.</p></div>
+    <p class="src" data-i18n="statSource">Fuente: encuesta de ConVía, datos preliminares 2026.</p>
   </div>
 
   <section id="como">
-    <div class="sec-h"><h2>Cómo funciona</h2><p>Tres pasos para tu primer viaje compartido.</p></div>
+    <div class="sec-h"><h2 data-i18n="howTitle">Cómo funciona</h2><p data-i18n="howLead">Tres pasos para tu primer viaje compartido.</p></div>
     <ol class="steps">
-      <li><h3>Verifica tu cuenta</h3><p>Regístrate con tu correo institucional. Solo entran personas de comunidades verificadas.</p></li>
-      <li><h3>Encuentra tu ruta</h3><p>Busca viajes que pasen por tu zona y lleguen a tu campus con horarios parecidos a los tuyos.</p></li>
-      <li><h3>Viaja y califica</h3><p>Confirma el viaje, encuéntrate con tu compañero y califica la experiencia al llegar.</p></li>
+      <li><h3 data-i18n="step1Title">Crea tu cuenta y verifícate</h3><p data-i18n="step1">Regístrate con tu correo o con Microsoft, confirma tu cara y une tu cuenta a tu institución.</p></li>
+      <li><h3 data-i18n="step2Title">Encuentra tu ruta</h3><p data-i18n="step2">Busca viajes que pasen por tu zona y lleguen a tu destino con horarios parecidos a los tuyos.</p></li>
+      <li><h3 data-i18n="step3Title">Viaja y califica</h3><p data-i18n="step3">Comprueba el carro cuando llegue, sube con tranquilidad y califica la experiencia al llegar.</p></li>
     </ol>
   </section>
 
+  <section id="seguridad">
+    <div class="sec-h"><h2 data-i18n="safetyTitle">Confianza en cada viaje</h2><p data-i18n="safetyLead">Verificamos a las personas, a los carros y el momento en que te recogen.</p></div>
+    <div class="features">
+      <div class="feature">
+        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>
+        <h3 data-i18n="pickupTitle">Verifica el carro que te recoge</h3>
+        <p data-i18n="pickup">Graba un video de dos segundos cuando llegue el carro. ConVía comprueba con IA que el modelo y la placa coinciden con los del viaje. El video se borra apenas termina.</p>
+      </div>
+      <div class="feature">
+        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><path d="M14 10h4M14 14h4"/></svg></span>
+        <h3 data-i18n="cardTitle">Tu carné estudiantil cuenta</h3>
+        <p data-i18n="card">¿Tu correo no es de la institución? Verifícate con una foto de tu carné vigente, sin costo. Si hace falta, una persona del equipo lo revisa.</p>
+      </div>
+      <div class="feature">
+        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg></span>
+        <h3 data-i18n="peopleTitle">Personas y vehículos verificados</h3>
+        <p data-i18n="people">Cada persona confirma su cara. Los conductores verifican su licencia y la placa de su vehículo. Solo compartes viaje con gente de tu misma institución.</p>
+      </div>
+      <div class="feature">
+        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg></span>
+        <h3 data-i18n="langTitle">En español y en inglés</h3>
+        <p data-i18n="lang">La app está completa en los dos idiomas. Usa el de tu teléfono o elige otro desde tu perfil, junto con el tema claro u oscuro.</p>
+      </div>
+      <div class="feature">
+        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+        <h3 data-i18n="chatTitle">Chat del viaje</h3>
+        <p data-i18n="chat">Coordina el punto de encuentro con tu conductor o tus pasajeros sin compartir tu número.</p>
+      </div>
+      <div class="feature">
+        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg></span>
+        <h3 data-i18n="qrTitle">Abordaje con QR</h3>
+        <p data-i18n="qr">El conductor escanea tu código al subir, así los dos saben que el viaje empezó con las personas correctas.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="plus">
+    <div class="sec-h"><h2 data-i18n="plusTitle">ConVía+</h2><p data-i18n="plusLead">Funciones con IA para ahorrar tiempo. Todo lo de seguridad sigue siendo gratis.</p></div>
+    <div class="plus">
+      <div class="feature">
+        <span class="badge">ConVía+</span>
+        <h3 data-i18n="assistantTitle">Asistente de viajes</h3>
+        <p data-i18n="assistant">Escribe de dónde sales, a dónde vas y a qué hora. El asistente busca, revisa que el conductor esté verificado y te propone un viaje; tú decides si pides el cupo.</p>
+        <p class="bubble" data-i18n="assistantExample">«Necesito llegar al campus mañana a las 7 desde el centro»</p>
+      </div>
+      <div class="feature">
+        <span class="badge">ConVía+</span>
+        <h3 data-i18n="autofillTitle">Autocompletar tu vehículo</h3>
+        <p data-i18n="autofill">Toma una foto de tu carro y ConVía llena la marca, el modelo, el color y la placa por ti. Solo revisas y guardas.</p>
+      </div>
+    </div>
+  </section>
+
   <section>
-    <div class="sec-h"><h2>Una app, dos modos</h2><p>Cambia entre pasajero y conductor cuando quieras desde tu perfil.</p></div>
+    <div class="sec-h"><h2 data-i18n="modesTitle">Una app, dos modos</h2><p data-i18n="modesLead">Cambia entre pasajero y conductor cuando quieras desde tu perfil.</p></div>
     <div class="roles">
-      <div class="role"><h3>Pasajero</h3><ul><li>Pide cupo en viajes que ya van para tu destino.</li><li>Ve el perfil y las calificaciones del conductor antes de subirte.</li><li>Elige el viaje que mejor se ajuste a tu horario.</li></ul></div>
-      <div class="role"><h3>Conductor</h3><ul><li>Publica tu ruta y cuántos puestos tienes libres.</li><li>Acepta solo a pasajeros verificados.</li><li>Aprovecha los puestos que hoy van vacíos.</li></ul></div>
+      <div class="role"><h3 data-i18n="passengerTitle">Pasajero</h3><ul><li data-i18n="passenger1">Pide cupo en viajes que ya van para tu destino.</li><li data-i18n="passenger2">Ve el perfil y las calificaciones del conductor antes de subirte.</li><li data-i18n="passenger3">Comprueba que el carro que llegó es el del viaje.</li></ul></div>
+      <div class="role"><h3 data-i18n="driverTitle">Conductor</h3><ul><li data-i18n="driver1">Publica tu ruta y cuántos puestos tienes libres.</li><li data-i18n="driver2">Acepta solo a pasajeros verificados.</li><li data-i18n="driver3">Aprovecha los puestos que hoy van vacíos.</li></ul></div>
     </div>
   </section>
 
   <section id="instalar">
-    <div class="sec-h"><h2>Instálala en tu celular</h2><p>Elige tu sistema. La versión beta es gratuita.</p></div>
+    <div class="sec-h"><h2 data-i18n="installTitle">Instálala en tu celular</h2><p data-i18n="installLead">Elige tu sistema. La versión beta es gratuita.</p></div>
     <div class="install">
       <div>
-        <div class="tabs" role="tablist" aria-label="Sistema operativo">
+        <div class="tabs" role="tablist" aria-label="Sistema operativo" data-i18n-aria="tabsAria">
           <button role="tab" id="tab-android" aria-selected="true" aria-controls="panel-android">Android</button>
           <button role="tab" id="tab-ios" aria-selected="false" aria-controls="panel-ios">iPhone</button>
         </div>
         <div id="panel-android" role="tabpanel" aria-labelledby="tab-android">
           <ol class="how">
-            <li><span>Toca <b>Descargar para Android</b> y espera a que la descarga termine.<span class="note">Pesa varias decenas de MB. Si lo abres antes de que termine, Android dirá que el paquete no es válido.</span></span></li>
-            <li><span>Abre el archivo <b>convia.apk</b> desde la notificación o desde la app Archivos.</span></li>
-            <li><span>Si aparece "Instalar apps desconocidas", toca <b>Configuración</b> y permite instalar desde tu navegador.<span class="note">Android muestra este aviso con cualquier app que no viene de Play Store.</span></span></li>
-            <li><span>Toca <b>Instalar</b>. Si Play Protect pregunta, elige <b>Instalar de todas formas</b>.<span class="note">Funciona en Android 8.0 o superior.</span></span></li>
+            <li><span data-i18n-html="android1">Toca <b>Descargar para Android</b> y espera a que la descarga termine.<span class="note">Pesa varias decenas de MB. Si lo abres antes de que termine, Android dirá que el paquete no es válido.</span></span></li>
+            <li><span data-i18n-html="android2">Abre el archivo <b>convia.apk</b> desde la notificación o desde la app Archivos.</span></li>
+            <li><span data-i18n-html="android3">Si aparece "Instalar apps desconocidas", toca <b>Configuración</b> y permite instalar desde tu navegador.<span class="note">Android muestra este aviso con cualquier app que no viene de Play Store.</span></span></li>
+            <li><span data-i18n-html="android4">Toca <b>Instalar</b>. Si Play Protect pregunta, elige <b>Instalar de todas formas</b>.<span class="note">Funciona en Android 8.0 o superior.</span></span></li>
           </ol>
         </div>
         <div id="panel-ios" role="tabpanel" aria-labelledby="tab-ios" hidden>
           <ol class="how">
-            <li><span>Abre esta página en <b>Safari</b> y toca <b>Usar en iPhone</b>. Se abre ConVía en el navegador.</span></li>
-            <li><span>Toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</span></li>
-            <li><span>Elige <b>Agregar a pantalla de inicio</b> y luego <b>Agregar</b>.<span class="note">ConVía queda con su ícono, como cualquier otra app.</span></span></li>
-            <li><span>Ábrela desde tu pantalla de inicio e inicia sesión con tu correo institucional.<span class="note">Para la verificación facial, permite el acceso a la cámara cuando Safari lo pida.</span></span></li>
+            <li><span data-i18n-html="ios1">Abre esta página en <b>Safari</b> y toca <b>Usar en iPhone</b>. Se abre ConVía en el navegador.</span></li>
+            <li><span data-i18n-html="ios2">Toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</span></li>
+            <li><span data-i18n-html="ios3">Elige <b>Agregar a pantalla de inicio</b> y luego <b>Agregar</b>.<span class="note">ConVía queda con su ícono, como cualquier otra app.</span></span></li>
+            <li><span data-i18n-html="ios4">Ábrela desde tu pantalla de inicio e inicia sesión.<span class="note">Para la verificación facial y la del carro, permite el acceso a la cámara cuando Safari lo pida.</span></span></li>
           </ol>
         </div>
       </div>
       <div class="qr-card">
-        <div id="qr" aria-label="Código QR para abrir esta página en el celular"></div>
-        <p>¿Estás en el computador? Escanea con la cámara de tu celular para abrir esta página allí.</p>
+        <div id="qr" aria-label="Código QR para abrir esta página en el celular" data-i18n-aria="qrAria"></div>
+        <p data-i18n="qrHint">¿Estás en el computador? Escanea con la cámara de tu celular para abrir esta página allí.</p>
       </div>
     </div>
   </section>
 
   <section>
-    <div class="sec-h"><h2>Preguntas frecuentes</h2></div>
+    <div class="sec-h"><h2 data-i18n="faqTitle">Preguntas frecuentes</h2></div>
     <div class="faq">
-      <details><summary>¿Cuánto cuesta?</summary><p>Nada. Durante la beta ConVía es gratis para pasajeros y conductores.</p></details>
-      <details><summary>¿Por qué no está en Play Store ni en App Store?</summary><p>Estamos en beta abierta. Mientras probamos con la comunidad, la distribuimos directamente desde aquí. Cuando salga en las tiendas, te avisaremos dentro de la app.</p></details>
-      <details><summary>Android dice que el archivo puede ser peligroso. ¿Es seguro?</summary><p>Android muestra esa advertencia con toda app instalada fuera de Play Store. Descarga el APK solo desde esta página para asegurarte de tener la versión oficial.</p></details>
-      <details><summary>¿Quién puede ver mis datos?</summary><p>Solo usamos tus datos para verificar tu cuenta y coordinar viajes. Los detalles están en nuestra <a id="privacy-link" href="#" target="_blank" rel="noopener">política de privacidad</a>.</p></details>
-      <details id="faq-bug"><summary>Encontré un error. ¿Cómo lo reporto?</summary><p>Escríbenos a <span id="contact" style="user-select:all;font-family:var(--f-mono);font-size:14px"></span>. Cuéntanos qué celular usas y qué estabas haciendo.</p></details>
+      <details><summary data-i18n="faq1q">¿Cuánto cuesta?</summary><p data-i18n="faq1a">Usar ConVía es gratis para pasajeros y conductores, incluida la verificación del carro que te recoge y la del carné. ConVía+ agrega el asistente de viajes y el autocompletado del vehículo.</p></details>
+      <details><summary data-i18n="faq2q">¿Necesito un correo de mi institución?</summary><p data-i18n="faq2a">No. Puedes registrarte con cualquier correo o con tu cuenta Microsoft. Para viajar, une tu cuenta a tu institución: con un correo de la institución, con tu carné o enviando una solicitud si tu institución aún no está en ConVía.</p></details>
+      <details><summary data-i18n="faq3q">¿Qué pasa con el video y las fotos?</summary><p data-i18n="faq3a">El video del carro que te recoge se borra apenas termina la verificación. Si tu carné pasa a revisión manual, su imagen se borra a los 7 días.</p></details>
+      <details><summary data-i18n="faq4q">¿Por qué no está en Play Store ni en App Store?</summary><p data-i18n="faq4a">Estamos en beta abierta. Mientras tanto la distribuimos directamente desde aquí. Cuando salga en las tiendas, te avisaremos dentro de la app.</p></details>
+      <details><summary data-i18n="faq5q">Android dice que el archivo puede ser peligroso. ¿Es seguro?</summary><p data-i18n="faq5a">Android muestra esa advertencia con toda app instalada fuera de Play Store. Descarga el APK solo desde esta página para asegurarte de tener la versión oficial.</p></details>
+      <details><summary data-i18n="faq6q">¿Quién puede ver mis datos?</summary><p><span data-i18n="faq6a">Solo usamos tus datos para verificar tu cuenta y coordinar viajes. Los detalles están en nuestra</span> <a id="privacy-link" href="#" target="_blank" rel="noopener" data-i18n="privacyLink">política de privacidad</a>.</p></details>
+      <details id="faq-bug"><summary data-i18n="faq7q">Encontré un error. ¿Cómo lo reporto?</summary><p><span data-i18n="faq7a">Escríbenos a</span> <span id="contact" style="user-select:all;font-family:var(--f-mono);font-size:14px"></span>. <span data-i18n="faq7b">Cuéntanos qué celular usas y qué estabas haciendo.</span></p></details>
     </div>
   </section>
 
   <footer>
-    <span>© 2026 ConVía · Proyecto académico · Hecho en Colombia</span>
+    <span data-i18n="footer">© 2026 ConVía · Hecho en Colombia</span>
     <span id="version"></span>
   </footer>
 </div>
@@ -297,16 +371,151 @@ const CONFIG = {
 };
 /* ====================================== */
 
+/* English copy; the Spanish text is the HTML itself. */
+const EN = {
+  chip: "Free beta",
+  eyebrow: "Verified carpooling · For your community",
+  h1: "You're already going the same way. <em>Go together.</em>",
+  lead: "ConVía connects drivers and passengers from your university or institution who share the same route. Everyone verifies their face and their institution, and before you get in you can check that the car that arrived is the right one.",
+  androidSmall: "Download for",
+  iosSmall: "Use on",
+  iosLabel: "iPhone (web)",
+  detected: "Free. No ads. Sign up with your e-mail or your Microsoft account.",
+  phoneAria: "Sample view of a ConVía trip",
+  sample: "SAMPLE VIEW",
+  sampleRoute: "Main St → Campus",
+  sampleVerified: "✓ Verified",
+  sampleTime: "Leaves 6:40 a.m. · 2 seats",
+  sampleButton: "Request a seat",
+  stat1: "of respondents drive their own car.",
+  stat2: "drive with two or more empty seats.",
+  stat3: "Distrust is the main barrier to sharing a car. That's why we verify everyone.",
+  statSource: "Source: ConVía survey, preliminary data 2026.",
+  howTitle: "How it works",
+  howLead: "Three steps to your first shared ride.",
+  step1Title: "Sign up and get verified",
+  step1: "Sign up with your e-mail or Microsoft, confirm your face and link your account to your institution.",
+  step2Title: "Find your route",
+  step2: "Look for rides that pass near you and reach your destination at times close to yours.",
+  step3Title: "Ride and rate",
+  step3: "Check the car when it arrives, get in with peace of mind and rate the ride when you get there.",
+  safetyTitle: "Trust on every ride",
+  safetyLead: "We verify the people, the cars and the moment you're picked up.",
+  pickupTitle: "Check the car that picks you up",
+  pickup: "Record a two-second video when the car arrives. ConVía uses AI to check that the model and plate match the trip. The video is deleted as soon as the check ends.",
+  cardTitle: "Your student ID counts",
+  card: "E-mail not from your institution? Verify with a photo of your current student ID, at no cost. If needed, someone from our team reviews it.",
+  peopleTitle: "Verified people and vehicles",
+  people: "Everyone confirms their face. Drivers verify their license and their vehicle's plate. You only share rides with people from your own institution.",
+  langTitle: "In Spanish and English",
+  lang: "The whole app is available in both languages. It follows your phone, or pick another one in your profile, along with the light or dark theme.",
+  chatTitle: "Trip chat",
+  chat: "Agree on the meeting point with your driver or passengers without sharing your number.",
+  qrTitle: "QR boarding",
+  qr: "The driver scans your code when you get in, so both of you know the ride started with the right people.",
+  plusTitle: "ConVía+",
+  plusLead: "AI features that save you time. Everything about safety stays free.",
+  assistantTitle: "Trip assistant",
+  assistant: "Type where you're leaving from, where you're going and when. The assistant searches, checks that the driver is verified and suggests a ride; you decide whether to request the seat.",
+  assistantExample: "“I need to get to campus tomorrow at 7 from downtown”",
+  autofillTitle: "Vehicle autofill",
+  autofill: "Take a photo of your car and ConVía fills in the make, model, color and plate for you. Just review and save.",
+  modesTitle: "One app, two modes",
+  modesLead: "Switch between passenger and driver whenever you want from your profile.",
+  passengerTitle: "Passenger",
+  passenger1: "Request a seat on rides already headed your way.",
+  passenger2: "See the driver's profile and ratings before you get in.",
+  passenger3: "Check that the car that arrived is the one on the trip.",
+  driverTitle: "Driver",
+  driver1: "Post your route and how many seats you have free.",
+  driver2: "Accept only verified passengers.",
+  driver3: "Put today's empty seats to use.",
+  installTitle: "Install it on your phone",
+  installLead: "Pick your system. The beta is free.",
+  tabsAria: "Operating system",
+  android1: "Tap <b>Download for Android</b> and wait for the download to finish.<span class=\"note\">It's a few dozen MB. If you open it before it finishes, Android will say the package is invalid.</span>",
+  android2: "Open <b>convia.apk</b> from the notification or from the Files app.",
+  android3: "If you see \"Install unknown apps\", tap <b>Settings</b> and allow installs from your browser.<span class=\"note\">Android shows this for any app that doesn't come from the Play Store.</span>",
+  android4: "Tap <b>Install</b>. If Play Protect asks, choose <b>Install anyway</b>.<span class=\"note\">Works on Android 8.0 or later.</span>",
+  ios1: "Open this page in <b>Safari</b> and tap <b>Use on iPhone</b>. ConVía opens in the browser.",
+  ios2: "Tap the <b>Share</b> button (the square with the arrow pointing up).",
+  ios3: "Choose <b>Add to Home Screen</b> and then <b>Add</b>.<span class=\"note\">ConVía gets its own icon, like any other app.</span>",
+  ios4: "Open it from your home screen and sign in.<span class=\"note\">For face and car checks, allow camera access when Safari asks.</span>",
+  qrAria: "QR code to open this page on your phone",
+  qrHint: "On a computer? Scan with your phone's camera to open this page there.",
+  faqTitle: "Frequently asked questions",
+  faq1q: "How much does it cost?",
+  faq1a: "ConVía is free for passengers and drivers, including the pickup check and the student ID check. ConVía+ adds the trip assistant and vehicle autofill.",
+  faq2q: "Do I need an e-mail from my institution?",
+  faq2a: "No. You can sign up with any e-mail or with your Microsoft account. To ride, link your account to your institution: with an institutional e-mail, with your student ID, or by sending a request if your institution isn't on ConVía yet.",
+  faq3q: "What happens to the video and photos?",
+  faq3a: "The video of the car that picks you up is deleted as soon as the check ends. If your student ID goes to manual review, its image is deleted after 7 days.",
+  faq4q: "Why isn't it on the Play Store or the App Store?",
+  faq4a: "We're in open beta. Meanwhile we distribute it directly from here. When it's in the stores, we'll let you know in the app.",
+  faq5q: "Android says the file may be harmful. Is it safe?",
+  faq5a: "Android shows that warning for every app installed outside the Play Store. Only download the APK from this page to be sure you have the official version.",
+  faq6q: "Who can see my data?",
+  faq6a: "We only use your data to verify your account and coordinate rides. The details are in our",
+  privacyLink: "privacy policy",
+  faq7q: "I found a bug. How do I report it?",
+  faq7a: "Write to us at",
+  faq7b: "Tell us which phone you use and what you were doing.",
+  footer: "© 2026 ConVía · Made in Colombia",
+};
+
+/* Strings set from the script, in both languages. */
+const UI = {
+  es: { soon: "Muy pronto en", soonTitle: "Disponible muy pronto", download: "Descargar para", version: "Versión", toLight: "Cambiar a modo claro", toDark: "Cambiar a modo oscuro", switchLang: "Read in English", iphoneDetected: "Detectamos un iPhone. Sigue los pasos de abajo para agregar ConVía a tu pantalla de inicio.", androidDetected: "Detectamos un celular Android. Toca el botón azul para descargar.", tflight: "iPhone (TestFlight)" },
+  en: { soon: "Coming soon to", soonTitle: "Available soon", download: "Download for", version: "Version", toLight: "Switch to light mode", toDark: "Switch to dark mode", switchLang: "Leer en español", iphoneDetected: "We detected an iPhone. Follow the steps below to add ConVía to your home screen.", androidDetected: "We detected an Android phone. Tap the blue button to download.", tflight: "iPhone (TestFlight)" },
+};
+
 const $ = (id) => document.getElementById(id);
 const ua = navigator.userAgent || "";
 const isAndroid = /Android/i.test(ua);
 const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
+// Idioma: el HTML trae el español; el inglés sale de EN. Se recuerda en este navegador.
+const ES = {};
+document.querySelectorAll("[data-i18n]").forEach((el) => { ES[el.dataset.i18n] = el.textContent; });
+document.querySelectorAll("[data-i18n-html]").forEach((el) => { ES[el.dataset.i18nHtml] = el.innerHTML; });
+document.querySelectorAll("[data-i18n-aria]").forEach((el) => { ES[el.dataset.i18nAria] = el.getAttribute("aria-label"); });
+let lang = document.documentElement.lang === "en" ? "en" : "es";
+const ui = (key) => UI[lang][key];
+const state = { apk: null, release: null, detected: null };
+
+function applyLanguage(){
+  const dict = lang === "en" ? EN : ES;
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach((el) => { const v = dict[el.dataset.i18n]; if (v != null) el.textContent = v; });
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => { const v = dict[el.dataset.i18nHtml]; if (v != null) el.innerHTML = v; });
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) => { const v = dict[el.dataset.i18nAria]; if (v != null) el.setAttribute("aria-label", v); });
+  $("lang-btn").textContent = lang === "en" ? "ES" : "EN";
+  $("lang-btn").setAttribute("aria-label", ui("switchLang")); $("lang-btn").title = ui("switchLang");
+  renderAndroid(); renderDetected(); labelThemeButton();
+  if (CONFIG.testflightUrl) { $("ios-small").textContent = ui("download"); $("ios-label").textContent = ui("tflight"); }
+  $("version").textContent = state.release ? `${ui("version")} ${state.release}` : CONFIG.version;
+}
+$("lang-btn").addEventListener("click", () => {
+  lang = lang === "en" ? "es" : "en";
+  try { localStorage.setItem("convia-lang", lang); } catch (e) {}
+  applyLanguage();
+});
+
 function wire(btn, url){
   if (url) { btn.href = url; }
-  else { btn.href = "#instalar"; btn.removeAttribute("target"); btn.title = "Disponible muy pronto"; }
+  else { btn.href = "#instalar"; btn.removeAttribute("target"); btn.title = ui("soonTitle"); }
 }
 wire($("btn-android"), CONFIG.apkUrl);
+
+function renderAndroid(){
+  if (state.apk === false) {
+    $("android-small").textContent = ui("soon");
+    $("android-label").textContent = "Android";
+  } else if (state.apk) {
+    $("android-small").textContent = ui("download");
+    $("android-label").textContent = `Android (${(state.apk.size / 1048576).toFixed(0)} MB)`;
+  }
+}
 
 // Until the first APK is published as a GitHub Release, show "Muy pronto" instead of a broken link.
 if (CONFIG.apkUrl && CONFIG.releasesApi) {
@@ -315,33 +524,26 @@ if (CONFIG.apkUrl && CONFIG.releasesApi) {
     .then((release) => {
       const apk = release?.assets?.find((a) => a.name.endsWith(".apk"));
       if (apk) {
-        $("android-small").textContent = "Descargar para";
-        $("android-label").textContent = `Android (${(apk.size / 1048576).toFixed(0)} MB)`;
-        if (release.tag_name) $("version").textContent = `Versión ${release.tag_name.replace(/^v/, "")}`;
-        return;
+        state.apk = apk;
+        if (release.tag_name) state.release = release.tag_name.replace(/^v/, "");
+      } else {
+        state.apk = false;
+        const btn = $("btn-android");
+        btn.href = "#instalar"; btn.removeAttribute("target");
       }
-      const btn = $("btn-android");
-      btn.href = "#instalar"; btn.removeAttribute("target");
-      $("android-small").textContent = "Muy pronto en";
-      $("android-label").textContent = "Android";
+      applyLanguage();
     })
     .catch(() => {});
 }
-if (CONFIG.testflightUrl) {
-  wire($("btn-ios"), CONFIG.testflightUrl);
-  $("ios-small").textContent = "Descargar para"; $("ios-label").textContent = "iPhone (TestFlight)";
-} else {
-  wire($("btn-ios"), CONFIG.iosWebUrl);
-}
+wire($("btn-ios"), CONFIG.testflightUrl || CONFIG.iosWebUrl);
 if (CONFIG.privacyUrl) $("privacy-link").href = CONFIG.privacyUrl;
 if (CONFIG.contactEmail) $("contact").textContent = CONFIG.contactEmail; else $("faq-bug").hidden = true;
-$("version").textContent = CONFIG.version;
 
 // Modo claro / oscuro (se recuerda en este navegador)
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 const isDark = () => (document.documentElement.dataset.theme || (darkQuery.matches ? "dark" : "light")) === "dark";
 function labelThemeButton(){
-  const text = isDark() ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+  const text = isDark() ? ui("toLight") : ui("toDark");
   $("theme-btn").setAttribute("aria-label", text); $("theme-btn").title = text;
 }
 $("theme-btn").addEventListener("click", () => {
@@ -351,15 +553,11 @@ $("theme-btn").addEventListener("click", () => {
   labelThemeButton();
 });
 darkQuery.addEventListener?.("change", labelThemeButton);
-labelThemeButton();
 
 // Destaca el botón del sistema detectado
-if (isIOS) {
-  $("btn-android").classList.remove("primary"); $("btn-ios").classList.add("primary");
-  $("detected").textContent = "Detectamos un iPhone. Sigue los pasos de abajo para agregar ConVía a tu pantalla de inicio.";
-} else if (isAndroid) {
-  $("detected").textContent = "Detectamos un celular Android. Toca el botón azul para descargar.";
-}
+if (isIOS) { $("btn-android").classList.remove("primary"); $("btn-ios").classList.add("primary"); state.detected = "iphoneDetected"; }
+else if (isAndroid) state.detected = "androidDetected";
+function renderDetected(){ if (state.detected) $("detected").textContent = ui(state.detected); }
 
 // Pestañas
 function selectTab(which){
@@ -372,6 +570,8 @@ function selectTab(which){
 $("tab-android").addEventListener("click", ()=>selectTab("android"));
 $("tab-ios").addEventListener("click", ()=>selectTab("ios"));
 if (isIOS) selectTab("ios");
+
+applyLanguage();
 
 // QR
 try {
