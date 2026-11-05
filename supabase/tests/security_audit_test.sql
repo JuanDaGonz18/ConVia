@@ -29,13 +29,15 @@ begin
   update public.app_config set beta_mode = false;
   insert into public.institutions (nombre, tipo, dominio) values ('Org B (prueba)', 'universidad', 'orgb-prueba.edu.co');
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
-    (dA,  'zz.driver@unisabana.edu.co', '{"nombre":"ZZ Conductor A","rol":"conductor"}', 'authenticated', 'authenticated'),
+    (dA,  'zz.driver@unisabana.edu.co', '{"nombre":"ZZ Conductor A"}', 'authenticated', 'authenticated'),
     (pF,  'zz.free@unisabana.edu.co',   '{"nombre":"ZZ Free"}',  'authenticated', 'authenticated'),
     (pF2, 'zz.free2@unisabana.edu.co',  '{"nombre":"ZZ Free2"}', 'authenticated', 'authenticated'),
     (pP,  'zz.plus@unisabana.edu.co',   '{"nombre":"ZZ Plus"}',  'authenticated', 'authenticated'),
     (pP2, 'zz.plus2@unisabana.edu.co',  '{"nombre":"ZZ Plus2"}', 'authenticated', 'authenticated'),
-    (dB,  'zz.driverb@orgb-prueba.edu.co', '{"nombre":"ZZ Conductor B","rol":"conductor"}', 'authenticated', 'authenticated'),
+    (dB,  'zz.driverb@orgb-prueba.edu.co', '{"nombre":"ZZ Conductor B"}', 'authenticated', 'authenticated'),
     (pB,  'zz.b@orgb-prueba.edu.co',    '{"nombre":"ZZ OrgB"}',  'authenticated', 'authenticated');
+  -- Signup always creates 'usuario'; driver mode is set by the server (as switch_role would).
+  update public.profiles set rol = 'conductor' where id in (dA, dB);
   update public.profiles set verification_status = 'verificado', telefono = '3000000000' where id in (dA, pF, pF2, pP, pP2, dB, pB);
   insert into public.driver_profiles (user_id, status) values (dA, 'aprobado'), (dB, 'aprobado')
     on conflict (user_id) do update set status = 'aprobado';

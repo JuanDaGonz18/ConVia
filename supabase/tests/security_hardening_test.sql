@@ -9,11 +9,14 @@ do $$
 declare
   u uuid := gen_random_uuid();
   v uuid; t uuid; rq uuid;
-  r text := ''; n integer;
+  r text := ''; n integer; s text;
   bad integer := 0;
 begin
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
     (u, 'zz.hardening@unisabana.edu.co', '{"nombre":"ZZ Hardening","rol":"conductor"}', 'authenticated', 'authenticated');
+  select rol::text into s from public.profiles where id = u;
+  r := r || case when s = 'usuario' then E'\nOK  signup ignores rol from user metadata'
+                 else E'\nBAD signup kept rol from metadata: ' || s end;
   insert into public.driver_profiles (user_id, status) values (u, 'aprobado')
     on conflict (user_id) do update set status = 'aprobado';
   update public.profiles set rol = 'conductor', verification_status = 'verificado', telefono = '3000000000' where id = u;

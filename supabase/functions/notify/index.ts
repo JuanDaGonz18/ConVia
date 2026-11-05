@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { MB, readJsonBody } from '../_shared/guard.ts';
+import { type ClaimStore, type ExpoMessage, postToExpo, sendOnce } from './push.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -172,44 +173,29 @@ async function send(pushes: Push[]) {
     .not('expo_push_token', 'is', null);
   if (error) throw error;
   const tokens = new Map((profiles ?? []).map((profile) => [profile.id as string, profile.expo_push_token as string]));
-  const messages = pushes.flatMap((push) => push.recipients
+  const messages: ExpoMessage[] = pushes.flatMap((push) => push.recipients
     .filter((userId) => tokens.has(userId))
     .map((userId) => ({
-      to: tokens.get(userId),
+      to: tokens.get(userId)!,
       title: push.title,
       body: push.body,
       data: push.data,
       sound: 'default',
       channelId: 'default',
     })));
-  // Expo accepts up to 100 messages per request.
-  for (let start = 0; start < messages.length; start += 100) {
-    const expoResponse = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(messages.slice(start, start + 100)),
-    });
-    if (!expoResponse.ok) {
-      console.error('[notify] Expo push failed', expoResponse.status, await expoResponse.text());
-      throw new Error('PUSH_FAILED');
-    }
-  }
-  return messages.length;
+  return postToExpo(messages);
 }
 
-/**
- * Claims (event, id) in notified_events so replaying the same request sends
- * nothing. Returns a release function for when the send fails, or null when
- * the push was already sent.
- */
-async function claimOnce(event: NotifyEvent, id: string) {
-  const { error } = await admin.from('notified_events').insert({ event, ref_id: id });
-  if (error?.code === '23505') return null;
-  if (error) throw error;
-  return async () => {
-    await admin.from('notified_events').delete().eq('event', event).eq('ref_id', id);
-  };
-}
+/** notified_events, written only with the service role: each (event, id) is pushed once. */
+const notifiedEvents: ClaimStore = {
+  async insert(event, refId) {
+    const { error } = await admin.from('notified_events').insert({ event, ref_id: refId });
+    return error;
+  },
+  async remove(event, refId) {
+    await admin.from('notified_events').delete().eq('event', event).eq('ref_id', refId);
+  },
+};
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
@@ -240,14 +226,7 @@ Deno.serve(async (request) => {
     // Alerts above are already claimed once by the database; these are deduped here.
     const push = await buildPush(body.event, body.id, authData.user.id);
     if (!push) return response({ sent: 0 });
-    const release = await claimOnce(body.event, push.dedupeId ?? body.id);
-    if (!release) return response({ sent: 0 });
-    try {
-      return response({ sent: await send([push]) });
-    } catch (error) {
-      await release();
-      throw error;
-    }
+    return response({ sent: await sendOnce(notifiedEvents, body.event, push.dedupeId ?? body.id, () => send([push])) });
   } catch (error) {
     console.error('[notify]', error);
     return response({ error: 'NOTIFY_FAILED' }, 500);

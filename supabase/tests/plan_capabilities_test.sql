@@ -14,9 +14,11 @@ declare
   bad integer;
 begin
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
-    (dF, 'zz.free@unisabana.edu.co',    '{"nombre":"ZZ Free","rol":"conductor"}', 'authenticated', 'authenticated'),
+    (dF, 'zz.free@unisabana.edu.co',    '{"nombre":"ZZ Free"}', 'authenticated', 'authenticated'),
     (pP, 'zz.plus@unisabana.edu.co',    '{"nombre":"ZZ Plus"}',    'authenticated', 'authenticated'),
     (pE, 'zz.expired@unisabana.edu.co', '{"nombre":"ZZ Expired"}', 'authenticated', 'authenticated');
+  -- Signup always creates 'usuario'; driver mode is set by the server (as switch_role would).
+  update public.profiles set rol = 'conductor' where id in (dF);
   insert into public.subscriptions (user_id, tier, status, provider, current_period_end) values
     (pP, 'plus', 'active', 'manual', null),
     (pE, 'plus', 'active', 'manual', now() - interval '1 day');

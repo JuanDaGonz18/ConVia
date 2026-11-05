@@ -75,7 +75,18 @@ grant execute on function
   to authenticated;
 grant execute on all functions in schema private to service_role;
 
--- 7. Storage: face-verifications solo lo escriben las Edge Functions (service role),
+-- 7. Los usuarios nuevos siempre empiezan como 'usuario': el app no manda otro rol y
+--    el modo conductor se activa con switch_role, que exige la licencia aprobada.
+do $$ declare d text; begin
+  d := pg_get_functiondef('public.handle_new_user()'::regprocedure);
+  if position($r$coalesce((new.raw_user_meta_data->>'rol')::public.user_role, 'usuario')$r$ in d) = 0 then
+    raise exception 'handle_new_user cambió: revisar el reemplazo del rol';
+  end if;
+  d := replace(d, $r$coalesce((new.raw_user_meta_data->>'rol')::public.user_role, 'usuario')$r$, $r$'usuario'::public.user_role$r$);
+  execute d;
+end $$;
+
+-- 8. Storage: face-verifications solo lo escriben las Edge Functions (service role),
 --    y hay un tope de archivos por usuario para que nadie suba sin límite.
 create or replace function private.my_object_count(p_bucket text)
 returns integer language sql stable security definer set search_path = '' as $$
@@ -93,7 +104,7 @@ with check (
   and private.my_object_count(bucket_id) < case when bucket_id = 'avatars' then 5 else 20 end
 );
 
--- 8. notify: cada (evento, id) se envía una sola vez; repetir la petición no manda nada.
+-- 9. notify: cada (evento, id) se envía una sola vez; repetir la petición no manda nada.
 --    Solo la escribe la Edge Function con el service role: RLS sin políticas.
 create table public.notified_events (
   event text not null,

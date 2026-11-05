@@ -25,12 +25,14 @@ begin
   update public.app_config set beta_mode = true;
   insert into public.institutions (nombre, tipo, dominio) values ('Org B (prueba)', 'universidad', 'orgb-prueba.edu.co');
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
-    (dA, 'zz.drivera@unisabana.edu.co', '{"nombre":"ZZ Conductor A","rol":"conductor"}', 'authenticated', 'authenticated'),
-    (dX, 'zz.driverx@unisabana.edu.co', '{"nombre":"ZZ Conductor X","rol":"conductor"}', 'authenticated', 'authenticated'),
+    (dA, 'zz.drivera@unisabana.edu.co', '{"nombre":"ZZ Conductor A"}', 'authenticated', 'authenticated'),
+    (dX, 'zz.driverx@unisabana.edu.co', '{"nombre":"ZZ Conductor X"}', 'authenticated', 'authenticated'),
     (pF, 'zz.pf@unisabana.edu.co', '{"nombre":"ZZ Pasajero F"}', 'authenticated', 'authenticated'),
     (pG, 'zz.pg@unisabana.edu.co', '{"nombre":"ZZ Pasajero G"}', 'authenticated', 'authenticated'),
     (pH, 'zz.ph@unisabana.edu.co', '{"nombre":"ZZ Pasajero H"}', 'authenticated', 'authenticated'),
     (pB, 'zz.pb@orgb-prueba.edu.co', '{"nombre":"ZZ Pasajero B"}', 'authenticated', 'authenticated');
+  -- Signup always creates 'usuario'; driver mode is set by the server (as switch_role would).
+  update public.profiles set rol = 'conductor' where id in (dA, dX);
   update public.profiles set verification_status = 'verificado' where id in (dA, dX, pF, pG, pH, pB);
   insert into public.driver_profiles (user_id, status) values (dA, 'aprobado'), (dX, 'aprobado')
     on conflict (user_id) do update set status = 'aprobado';
