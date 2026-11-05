@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { modelMode, readJsonBody } from './guard.ts';
+import { modelMode, positiveIntEnv, readJsonBody } from './guard.ts';
 
 describe('modelMode', () => {
   test('a model key always means live, even with ALLOW_MOCK', () => {
@@ -50,5 +50,17 @@ describe('readJsonBody', () => {
   test('invalid JSON and non-objects are INVALID_BODY', async () => {
     assert.deepEqual(await readJsonBody(post('not json'), 100), { ok: false, status: 400, error: 'INVALID_BODY' });
     assert.deepEqual(await readJsonBody(post('42'), 100), { ok: false, status: 400, error: 'INVALID_BODY' });
+  });
+});
+
+describe('positiveIntEnv', () => {
+  test('reads a positive whole number', () => {
+    assert.equal(positiveIntEnv('5', 20), 5);
+    assert.equal(positiveIntEnv(' 12 ', 20), 12);
+  });
+  test('anything else keeps the default limit', () => {
+    for (const value of [undefined, '', '  ', '0', '-3', '2.5', 'abc', 'Infinity']) {
+      assert.equal(positiveIntEnv(value, 20), 20, String(value));
+    }
   });
 });
