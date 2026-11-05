@@ -19,9 +19,15 @@ efectivas, límites efectivos, límites del plan y si hay beta. La app lo carga 
 - **Capacidad** (`private.has_capability(user, key)`): la tiene si es `free`, si el
   usuario tiene ConVía+ vigente, o si hay beta y la capacidad está marcada
   `beta_unlocked`.
-- **Límite** (`private.plan_limit(user, key)`): con beta se aplican a todos los
-  límites de ConVía+ (relajados, no infinitos); sin beta, los del plan real.
-  Clave ausente = sin límite.
+- **Límite** (`private.plan_limit(user, key)`, sobre `private.effective_limits`): con
+  beta se aplican a todos los límites de ConVía+ (relajados, no infinitos); sin beta,
+  los del plan real. Clave ausente = sin límite. Excepción: los límites de
+  `private.real_plan_limit_keys()` (hoy `pickup_verifications_month`, igual que
+  `REAL_PLAN_LIMITS` en `plans.ts`) siempre usan el plan real, haya beta o no.
+- **Funciones de IA**: cada Edge Function revisa el plan en el servidor con
+  `public.service_check_plan(user, capacidad, límite, usados)` (solo `service_role`;
+  ver `supabase/functions/_shared/plan.ts`). Responde 403 con el mismo código que
+  ya traduce la app: `CAPACIDAD_PLAN:<clave>` o `LIMITE_PLAN:<clave>:<límite>`.
 - **Plan real** (`private.effective_tier`): ConVía+ solo si está `active`/`trialing`
   y no ha vencido. Si vence, el usuario vuelve a FREE automáticamente.
 
@@ -32,9 +38,11 @@ Hoy `beta_mode = true`:
 - FREE usa casi todo: varios vehículos, repetir viajes, viajes recurrentes,
   alertas de viajes, filtros y preferencias avanzadas, estadísticas, todos los
   resultados compatibles, más lugares, rutas guardadas y favoritos.
-- **La beta no abre** lo que es una ventaja frente a otros usuarios o lo que
-  queremos probar por plan: Google Maps, tráfico, prioridad en solicitudes,
-  distintivo y perfil destacado. Eso sigue dependiendo del plan real, así que
+- **La beta no abre** lo que es una ventaja frente a otros usuarios, lo que
+  queremos probar por plan o lo que cuesta llamadas a modelos de IA: Google Maps,
+  tráfico, prioridad en solicitudes, distintivo, perfil destacado, asistente de
+  viajes y autocompletar vehículo. El tope mensual de verificaciones del carro
+  tampoco se relaja. Eso sigue dependiendo del plan real, así que
   FREE sigue probando MapLibre y ConVía+ sigue probando Google.
 - En la app, lo que un usuario FREE tiene solo por la beta lleva una marca
   discreta "ConVía+" (`usePlan().isBetaPerk(...)`), sin ventanas de venta.
@@ -71,6 +79,10 @@ agregar más por encima del límite.
 | Estadísticas de pasajero y de conductor | – | ✓ |
 | Prioridad entre solicitudes igual de compatibles | – | ✓ |
 | Distintivo y perfil destacado (aro azul en la foto) | – | ✓ |
+| Verificar con video el carro que te recoge | 10 al mes | sin límite |
+| Verificar el vehículo con IA (conductor) | ✓ (tope diario) | ✓ (tope diario) |
+| Asistente de viajes (IA) | – | ✓ |
+| Autocompletar vehículo con una foto (IA) | – | ✓ |
 
 Todas las capacidades del catálogo están construidas (`implemented: true`; un test
 lo verifica).

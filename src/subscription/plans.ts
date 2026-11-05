@@ -24,8 +24,11 @@ export type PlanTier = 'free' | 'plus';
 
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'expired';
 
-/** Numeric limits; `null` means unlimited. Enforced by database triggers (except visible_results, UI only). */
-export type PlanLimit = 'vehicles' | 'saved_places' | 'favorite_drivers' | 'visible_results' | 'saved_routes';
+/**
+ * Numeric limits; `null` means unlimited. Enforced by database triggers (except visible_results,
+ * UI only) or, for the AI features, inside the Edge Function (pickup_verifications_month).
+ */
+export type PlanLimit = 'vehicles' | 'saved_places' | 'favorite_drivers' | 'visible_results' | 'saved_routes' | 'pickup_verifications_month';
 
 type CapabilityInfo = {
   /** 'free': everyone. 'plus': ConVía+. */
@@ -54,6 +57,7 @@ export const CAPABILITIES = {
   time_filters: { tier: 'free', betaUnlocked: false, implemented: true, title: 'Filtros de horario', description: 'Lo antes posible, hoy, mañana.', icon: 'calendar-outline' },
   saved_places: { tier: 'free', betaUnlocked: false, implemented: true, title: 'Lugares guardados', description: 'Casa, trabajo, universidad y otros.', icon: 'bookmark-outline' },
   favorites: { tier: 'free', betaUnlocked: false, implemented: true, title: 'Conductores favoritos', description: 'Destaca los viajes de quienes prefieres.', icon: 'heart-outline' },
+  pickup_verification: { tier: 'free', betaUnlocked: false, implemented: true, title: 'Verificar mi carro', description: 'Graba el carro que llega y revisamos con IA que sea el de tu viaje.', icon: 'videocam-outline' },
   // ConVía+ that the beta opens to everyone
   multiple_vehicles: { tier: 'plus', betaUnlocked: true, implemented: true, title: 'Varios vehículos', description: 'Registra más de un vehículo y elige con cuál vas en cada viaje.', icon: 'car-sport-outline' },
   repeat_trip: { tier: 'plus', betaUnlocked: true, implemented: true, title: 'Repetir viajes', description: 'Publica de nuevo un viaje anterior con un toque.', icon: 'repeat' },
@@ -71,18 +75,24 @@ export const CAPABILITIES = {
   smart_match_priority: { tier: 'plus', betaUnlocked: false, implemented: true, title: 'Prioridad en solicitudes', description: 'Entre solicitudes igual de compatibles, la tuya va primero.', icon: 'trending-up-outline' },
   plus_badge: { tier: 'plus', betaUnlocked: false, implemented: true, title: 'Distintivo ConVía+', description: 'Tu perfil muestra el distintivo ConVía+.', icon: 'sparkles-outline' },
   highlighted_profile: { tier: 'plus', betaUnlocked: false, implemented: true, title: 'Perfil destacado', description: 'Tu foto se destaca en viajes y solicitudes. No cambia la compatibilidad.', icon: 'ribbon-outline' },
+  // ConVía+ AI features: each use costs model calls, so the beta does not unlock them
+  trip_assistant: { tier: 'plus', betaUnlocked: false, implemented: true, title: 'Asistente de viajes', description: 'Dile a dónde vas y a qué hora: busca, compara y te propone un viaje.', icon: 'sparkles-outline' },
+  vehicle_autofill: { tier: 'plus', betaUnlocked: false, implemented: true, title: 'Autocompletar vehículo', description: 'Toma una foto y llenamos marca, línea, color y placa por ti.', icon: 'camera-outline' },
 } as const satisfies Record<string, CapabilityInfo>;
 
 export type Capability = keyof typeof CAPABILITIES;
 
 const CAPABILITY_KEYS = Object.keys(CAPABILITIES) as Capability[];
-const LIMIT_KEYS: PlanLimit[] = ['vehicles', 'saved_places', 'favorite_drivers', 'visible_results', 'saved_routes'];
+const LIMIT_KEYS: PlanLimit[] = ['vehicles', 'saved_places', 'favorite_drivers', 'visible_results', 'saved_routes', 'pickup_verifications_month'];
 
 /** Each plan's limits (what applies once the beta ends). Must match `plans.limits`. */
 export const PLAN_LIMITS: Record<PlanTier, Record<PlanLimit, number | null>> = {
-  free: { vehicles: 1, saved_places: 3, favorite_drivers: 10, visible_results: 5, saved_routes: 1 },
-  plus: { vehicles: 10, saved_places: 20, favorite_drivers: null, visible_results: null, saved_routes: 10 },
+  free: { vehicles: 1, saved_places: 3, favorite_drivers: 10, visible_results: 5, saved_routes: 1, pickup_verifications_month: 10 },
+  plus: { vehicles: 10, saved_places: 20, favorite_drivers: null, visible_results: null, saved_routes: 10, pickup_verifications_month: null },
 };
+
+/** Limits that always follow the real plan, even during the beta. Same list as private.real_plan_limit_keys(). */
+export const REAL_PLAN_LIMITS: readonly PlanLimit[] = ['pickup_verifications_month'];
 
 /** Only used before the server answers or in demo mode; the server decides. */
 export const FALLBACK_BETA_MODE = true;
@@ -95,9 +105,14 @@ export function resolveCapabilities(tier: PlanTier, betaMode: boolean): Capabili
   });
 }
 
-/** The same rule as private.plan_limit(): during the beta everyone gets ConVía+ limits. */
+/**
+ * The same rule as private.effective_limits(): during the beta everyone gets ConVía+ limits,
+ * except the REAL_PLAN_LIMITS, which keep the user's own plan.
+ */
 export function resolveLimits(tier: PlanTier, betaMode: boolean): Record<PlanLimit, number | null> {
-  return { ...PLAN_LIMITS[betaMode ? 'plus' : tier] };
+  const limits = { ...PLAN_LIMITS[betaMode ? 'plus' : tier] };
+  for (const key of REAL_PLAN_LIMITS) limits[key] = PLAN_LIMITS[tier][key];
+  return limits;
 }
 
 export type Plan = {
@@ -187,6 +202,13 @@ export const LIMIT_INFO: Record<PlanLimit, LimitInfo> = {
     freeText: (limit) => `Puedes guardar ${plural(limit, 'ruta', 'rutas')}.`,
     plusText: (limit) => (limit === null ? 'Guarda todas tus rutas con ConVía+.' : `Guarda hasta ${plural(limit, 'ruta', 'rutas')} con ConVía+.`),
     reachedText: (limit) => `Ya guardaste el máximo de tu plan (${plural(limit, 'ruta', 'rutas')}).`,
+  },
+  pickup_verifications_month: {
+    title: 'Verificaciones del carro al mes',
+    icon: 'videocam-outline',
+    freeText: (limit) => `Con el plan gratis puedes verificar el carro ${plural(limit, 'vez', 'veces')} al mes.`,
+    plusText: (limit) => (limit === null ? 'Verifica el carro cada vez que lo necesites con ConVía+.' : `Hasta ${plural(limit, 'verificación', 'verificaciones')} al mes con ConVía+.`),
+    reachedText: (limit) => `Ya usaste las ${plural(limit, 'verificación', 'verificaciones')} del carro de este mes.`,
   },
 };
 
