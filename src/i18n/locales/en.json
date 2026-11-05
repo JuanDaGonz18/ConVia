@@ -66,12 +66,12 @@
     "show": "Show password"
   },
   "auth": {
-    "emailLabel": "Institutional email",
-    "emailPlaceholder": "Your institutional email",
-    "emailRequired": "Enter your institutional email.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Your email",
+    "emailRequired": "Enter your email.",
     "emailInvalid": "That email doesn't look valid.",
     "login": {
-      "tagline": "Share the ride with your campus community.",
+      "tagline": "Share the ride with your verified community.",
       "title": "Log in",
       "passwordLabel": "Password",
       "passwordPlaceholder": "Your password",
@@ -137,7 +137,7 @@
       "faceRequired": "You need to register your face to request or post rides. You can do it now or later from your profile.",
       "fields": {
         "name": "Full name",
-        "email": "Institutional email",
+        "email": "Email",
         "password": "Password",
         "confirm": "Password confirmation",
         "terms": "Terms and conditions"

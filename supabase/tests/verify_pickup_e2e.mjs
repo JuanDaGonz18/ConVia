@@ -59,7 +59,7 @@ async function upload(user, requestId, clip = CLIP) {
 
 async function invoke(user, body) {
   const { data, error } = await user.client.functions.invoke('verify-pickup', { body });
-  if (error) return { httpStatus: error.context?.status, data: null };
+  if (error) return { httpStatus: error.context?.status, data: null, error: `${error.name}: ${error.message}` };
   return { httpStatus: 200, data };
 }
 
@@ -114,14 +114,14 @@ await admin.from('trip_requests').update({ estado: 'aceptado' }).eq('id', reques
 let mismatchId = null;
 for (const outcome of ['verified', 'mismatch', 'retry']) {
   const r = await invoke(passenger, { ...(await upload(passenger, requestId)), mock_outcome: outcome });
-  check(`mock_outcome=${outcome}`, r.data?.status === outcome, r.data?.reason);
+  check(`mock_outcome=${outcome}`, r.data?.status === outcome, r.data?.reason ?? `${r.httpStatus} ${r.error}`);
   if (outcome === 'mismatch') mismatchId = r.data?.verification_id;
 }
 
 // Clips longer than 2.5 s are refused before paying for SAM (the app records at most 2 s).
 {
   const r = await invoke(passenger, await upload(passenger, requestId, LONG_CLIP));
-  check('3 s clip → retry clip_too_long', r.data?.status === 'retry' && r.data?.reason === 'clip_too_long', JSON.stringify(r.data));
+  check('3 s clip → retry clip_too_long', r.data?.status === 'retry' && r.data?.reason === 'clip_too_long', JSON.stringify(r.data ?? { status: r.httpStatus, error: r.error }));
   check('files deleted after a too-long clip', (await leftFiles(passenger, requestId)) === 0);
 }
 
@@ -183,7 +183,7 @@ for (const outcome of ['verified', 'mismatch', 'retry']) {
 {
   let last;
   for (let i = 0; i < 1; i++) last = await invoke(passenger, await upload(passenger, requestId));
-  check('7th attempt → retry too_many_attempts', last.data?.status === 'retry' && last.data?.reason === 'too_many_attempts', last.data?.reason);
+  check('7th attempt → retry too_many_attempts', last.data?.status === 'retry' && last.data?.reason === 'too_many_attempts', JSON.stringify(last.data ?? last.error?.message));
   check('files deleted when the limit is hit', (await leftFiles(passenger, requestId)) === 0);
 }
 

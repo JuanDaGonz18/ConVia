@@ -66,12 +66,12 @@
     "show": "Mostrar contraseña"
   },
   "auth": {
-    "emailLabel": "Correo institucional",
-    "emailPlaceholder": "Tu correo institucional",
-    "emailRequired": "Escribe tu correo institucional.",
+    "emailLabel": "Correo",
+    "emailPlaceholder": "Tu correo",
+    "emailRequired": "Escribe tu correo.",
     "emailInvalid": "Ese correo no parece válido.",
     "login": {
-      "tagline": "Comparte el camino con tu comunidad universitaria.",
+      "tagline": "Comparte el camino con tu comunidad verificada.",
       "title": "Inicia sesión",
       "passwordLabel": "Contraseña",
       "passwordPlaceholder": "Tu contraseña",
@@ -137,7 +137,7 @@
       "faceRequired": "Necesitas registrar tu rostro para pedir o publicar viajes. Puedes hacerlo ahora o más tarde desde tu perfil.",
       "fields": {
         "name": "Nombre completo",
-        "email": "Correo institucional",
+        "email": "Correo",
         "password": "Contraseña",
         "confirm": "Confirmación de la contraseña",
         "terms": "Términos y condiciones"
