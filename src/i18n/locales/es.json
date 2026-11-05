@@ -1319,7 +1319,8 @@
     "applied": "Datos llenados. Revísalos antes de guardar.",
     "unclear": "No reconocimos el vehículo en la foto. Escribe los datos.",
     "unavailable": "La sugerencia con IA no está disponible ahora. Escribe los datos.",
-    "dismiss": "Cerrar sugerencia"
+    "dismiss": "Cerrar sugerencia",
+    "plusEntry": "Llena marca, línea, color y placa con una foto"
   },
   "demo": {
     "disabled": "Desactivado en modo demo",

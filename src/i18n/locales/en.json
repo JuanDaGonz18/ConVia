@@ -1319,7 +1319,8 @@
     "applied": "Details filled in. Check them before saving.",
     "unclear": "We couldn't recognize the vehicle in the photo. Enter the details.",
     "unavailable": "AI suggestion isn't available right now. Enter the details.",
-    "dismiss": "Close suggestion"
+    "dismiss": "Close suggestion",
+    "plusEntry": "Fill in brand, model, color and plate from a photo"
   },
   "demo": {
     "disabled": "Disabled in demo mode",

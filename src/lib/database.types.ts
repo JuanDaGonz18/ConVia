@@ -1193,6 +1193,24 @@ export type Database = {
           },
         ]
       }
+      vehicle_suggestions: {
+        Row: {
+          created_at: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          user_id?: string
+        }
+        Relationships: []
+      }
       vehicle_verifications: {
         Row: {
           brand_match: boolean | null

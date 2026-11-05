@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -6,12 +6,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
+import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { requirePlus } from '@/components/subscription/PlusGate';
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { toast } from '@/components/ui/Toast';
 import { FieldError } from '@/components/forms/FieldError';
 import { TextField } from '@/components/forms/TextField';
+import { type SuggestionState, VehicleSuggestionCard } from '@/components/vehicle/VehicleSuggestionCard';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { colors } from '@/constants/colors';
@@ -21,6 +23,7 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { compressPhoto, PHOTO_MAX_SIDE } from '@/services/imageCompression';
 import { isValidPlate, MAX_SEATS, vehicleService } from '@/services/vehicleService';
+import { vehicleSuggestionService } from '@/services/vehicleSuggestionService';
 import { canVerifyPlate, type VehicleVerification, vehicleVerificationService, verificationText } from '@/services/vehicleVerificationService';
 import { planLimitFromError } from '@/subscription/plans';
 import { usePlan } from '@/subscription/usePlan';
@@ -43,6 +46,9 @@ export default function VehicleScreen() {
   const [seats, setSeats] = useState('4');
   const [savedPhotoUrl, setSavedPhotoUrl] = useState<string | undefined>();
   const [photo, setPhoto] = useState<Photo | null>(null);
+  // The AI's proposal for the fields, from the latest photo (null = none to show).
+  const [suggestion, setSuggestion] = useState<SuggestionState | null>(null);
+  const latestSuggestion = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [cameraBlocked, setCameraBlocked] = useState(false);
@@ -52,7 +58,8 @@ export default function VehicleScreen() {
   // Latest AI check of the saved vehicle (editing only); null when never verified with the current plate.
   const [verification, setVerification] = useState<VehicleVerification | null>(null);
   const [savedPlate, setSavedPlate] = useState('');
-  const { isPlus } = usePlan();
+  const { isPlus, can } = usePlan();
+  const canAutofill = can('vehicle_autofill');
 
   useEffect(() => {
     if (!id) return;
@@ -94,12 +101,46 @@ export default function VehicleScreen() {
       const asset = result.canceled ? null : result.assets?.[0];
       if (asset?.uri) {
         // Resized before upload (and before the preview) to save Storage and egress.
-        setPhoto(await compressPhoto(asset, PHOTO_MAX_SIDE.vehicle));
+        const compressed = await compressPhoto(asset, PHOTO_MAX_SIDE.vehicle);
+        setPhoto(compressed);
         clearFieldError('photo');
+        if (canAutofill) void suggestFromPhoto(compressed.uri);
       }
     } catch (pickError) {
       setError(errorMessage(pickError, t('vehicle.pickFailed')));
     }
+  };
+
+  /** Asks the AI for brand, line, color and plate; only the newest photo's answer is shown. */
+  const suggestFromPhoto = async (uri: string) => {
+    const requestId = ++latestSuggestion.current;
+    setSuggestion({ status: 'loading' });
+    const result = await vehicleSuggestionService.suggest(uri);
+    if (requestId !== latestSuggestion.current) return;
+    if (result.status === 'locked') {
+      // The server says the plan no longer includes it (e.g. ConVía+ expired).
+      setSuggestion(null);
+      requirePlus({ capability: 'vehicle_autofill' });
+      return;
+    }
+    setSuggestion(result);
+  };
+
+  /** Fills only the fields the model was sure about; the driver can still edit all of them. */
+  const applySuggestion = () => {
+    if (suggestion?.status !== 'ok') return;
+    const { brand: suggestedBrand, line, color: suggestedColor, plate: suggestedPlate } = suggestion.suggestion;
+    if (suggestedBrand) setBrand([suggestedBrand, line].filter(Boolean).join(' '));
+    if (suggestedColor) setColor(suggestedColor);
+    if (suggestedPlate) setPlate(suggestedPlate);
+    setFieldErrors((current) => ({
+      ...current,
+      brand: suggestedBrand ? undefined : current.brand,
+      color: suggestedColor ? undefined : current.color,
+      plate: suggestedPlate ? undefined : current.plate,
+    }));
+    setSuggestion(null);
+    toast.info(t('vehicleSuggestion.applied'));
   };
 
   const clearFieldError = (key: keyof FieldErrors) => {
@@ -184,6 +225,27 @@ export default function VehicleScreen() {
               </View>
             )}
             <FieldError message={fieldErrors.photo} />
+            {suggestion ? (
+              <VehicleSuggestionCard
+                onApply={applySuggestion}
+                onDismiss={() => {
+                  latestSuggestion.current += 1;
+                  setSuggestion(null);
+                }}
+                state={suggestion}
+              />
+            ) : null}
+            {!canAutofill && !editing ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => requirePlus({ capability: 'vehicle_autofill' })}
+                style={styles.autofillEntry}
+              >
+                <Ionicons color={colors.primary} name="sparkles-outline" size={18} />
+                <Text style={styles.autofillText}>{t('vehicleSuggestion.plusEntry')}</Text>
+                <PlusBadge compact />
+              </Pressable>
+            ) : null}
             <View style={styles.photoActions}>
               <View style={styles.flex}>
                 <ButtonSecondary onPress={() => void pickPhoto('camera')} title={previewUri ? t('vehicle.takeAnother') : t('vehicle.takePhoto')} />
@@ -264,6 +326,15 @@ const styles = StyleSheet.create({
   photoEmpty: { alignItems: 'center', gap: spacing[8], justifyContent: 'center', padding: spacing[24] },
   photoHint: { ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center' },
   photoActions: { flexDirection: 'row', gap: spacing[8] },
+  autofillEntry: {
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.radiusMedium,
+    flexDirection: 'row',
+    gap: spacing[8],
+    padding: spacing[12],
+  },
+  autofillText: { ...typography.bodySmall, color: colors.text, flex: 1 },
   seatRow: { flexDirection: 'row', gap: spacing[8] },
   seat: {
     alignItems: 'center',
