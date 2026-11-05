@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
+import { VerifyInstitutionCard } from '@/components/institution/VerifyInstitutionCard';
+import { useMembership } from '@/services/membershipService';
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { requirePlus } from '@/components/subscription/PlusGate';
 import { RateDriverBanner } from '@/components/trip/RateDriverBanner';
@@ -49,6 +51,9 @@ export default function HomeScreen() {
   const currentUser = useAppStore((state) => state.currentUser);
   const isDriver = currentUser?.role === 'driver';
   const firstName = (currentUser?.name || t('home.user')).split(' ')[0];
+  // Until the institution is verified there are no trips to show: explain why instead.
+  const membership = useMembership();
+  const pending = !!membership && membership.status !== 'verified';
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -59,7 +64,11 @@ export default function HomeScreen() {
         </View>
         <ModeSwitch compact />
       </View>
-      {isDriver ? <DriverHome /> : <PassengerHome />}
+      {pending ? (
+        <ScrollView contentContainerStyle={styles.content}>
+          <VerifyInstitutionCard />
+        </ScrollView>
+      ) : isDriver ? <DriverHome /> : <PassengerHome />}
     </SafeAreaView>
   );
 }

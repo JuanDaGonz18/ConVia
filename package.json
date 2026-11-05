@@ -81,6 +81,7 @@
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\"",
     "test:verify-vehicle": "node scripts/test-verify-vehicle.mjs",
     "test:verify-pickup": "node scripts/test-verify-pickup.mjs",
+    "review": "node --env-file-if-exists=scripts/admin/.env.review.local scripts/admin/review-cli.mjs",
     "test:functions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"supabase/functions/**/*.test.ts\""
   },
   "private": true

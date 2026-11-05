@@ -57,6 +57,10 @@ const FRIENDLY_ERRORS: [RegExp, string][] = [
   [/supabase_env_missing|supabase_required/i, 'notConnected'],
   [/PERFIL_NO_ENCONTRADO/, 'noProfile'],
   [/DOMINIO_NO_PERMITIDO/, 'domain'],
+  [/INSTITUTION_NOT_VERIFIED/, 'institutionNotVerified'],
+  [/REQUEST_PENDING/, 'institutionRequestPending'],
+  [/ALREADY_VERIFIED/, 'institutionAlreadyVerified'],
+  [/NO_INSTITUTION_CHOSEN/, 'noInstitutionChosen'],
 ];
 
 // Signs that a message is an internal/technical one we should not show verbatim.

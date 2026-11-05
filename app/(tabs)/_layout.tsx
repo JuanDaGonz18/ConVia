@@ -1,11 +1,15 @@
-import { Redirect, Tabs } from 'expo-router';
+import { Redirect, router, Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useMembership } from '@/services/membershipService';
 import { BottomNavigation } from '@/components/navigation/BottomNavigation';
 import { authService } from '@/services/authService';
 import { personalizationService } from '@/services/personalizationService';
 import { useAppStore } from '@/store/appStore';
+
+/** Once per app session, so closing the screen doesn't bring it back on every tab change. */
+let askedForInstitution = false;
 
 export default function TabsLayout() {
   const { t } = useTranslation();
@@ -50,6 +54,14 @@ export default function TabsLayout() {
       .catch((error) => console.warn('[personalization] Could not load saved places', error));
     return () => { active = false; };
   }, [setFavoriteDriverIds, setPreferences, setSavedPlaces, setSavedRoutes, userId]);
+
+  // First login with an e-mail of no known institution: choose one (once per session).
+  const membership = useMembership();
+  useEffect(() => {
+    if (!userId || membership?.status !== 'none' || askedForInstitution) return;
+    askedForInstitution = true;
+    router.push('/institution');
+  }, [membership?.status, userId]);
 
   if (!isHydrated) return null;
   if (!currentUser) return <Redirect href="/(auth)/login" />;

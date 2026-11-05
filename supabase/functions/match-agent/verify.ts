@@ -20,7 +20,7 @@ export type VerifyData = {
   availableTrip(tripId: string): Promise<AvailableTripRow | null>;
   /** The user's pending, accepted or boarded requests, with each trip's departure. */
   myActiveRequests(): Promise<{ trip_id: string; salida_at: string }[]>;
-  /** The user's institution is verified (profiles.institution_id set). */
+  /** The user's institution membership is verified (my_institution().status = 'verified'). */
   institutionVerified(): Promise<boolean>;
 };
 

@@ -407,6 +407,14 @@ verify_jwt = true
 [functions.verify-pickup]
 verify_jwt = true
 
+# Called by the app with the user's JWT (free: student card check).
+[functions.verify-student-id]
+verify_jwt = true
+
+# Called only by pg_cron (anon key + x-convia-cron = CRON_SECRET); refuses anything else.
+[functions.card-review-cleanup]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

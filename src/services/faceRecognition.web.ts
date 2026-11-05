@@ -24,6 +24,7 @@ import {
   SIZE,
   WORKING_SIZE,
 } from '@/services/faceCore';
+import { regionsAroundFace } from '@/services/studentCard';
 import { importUrl, loadScript } from '@/web/loadScript';
 
 export { FaceCheckError };
@@ -55,7 +56,7 @@ type Point = { x: number; y: number };
 type OrtWeb = {
   InferenceSession: { create(model: string | Uint8Array, options?: object): Promise<InferenceSession> };
   Tensor: new (type: 'float32', data: Float32Array, dims: number[]) => unknown;
-  env: { wasm: { wasmPaths?: string; numThreads?: number } };
+  env: { logLevel?: 'verbose' | 'info' | 'warning' | 'error' | 'fatal'; wasm: { wasmPaths?: string; numThreads?: number } };
 };
 type Landmark = { x: number; y: number; z: number };
 type LandmarkerResult = {
@@ -86,9 +87,12 @@ function getSession() {
       if (!ort) throw UNAVAILABLE;
       ort.env.wasm.wasmPaths = ORT_BASE;
       ort.env.wasm.numThreads = 1; // GitHub Pages can't send the headers multithreading needs.
+      // The model lists its 144 weights as graph inputs, so ONNX Runtime prints one warning per weight
+      // on load. They are harmless (same embeddings, same speed); only errors are worth logging.
+      ort.env.logLevel = 'error';
       const asset = Asset.fromModule(MODEL_ASSET);
       const bytes = new Uint8Array(await (await fetch(asset.uri)).arrayBuffer());
-      const session = await ort.InferenceSession.create(bytes, { executionProviders: ['wasm'] });
+      const session = await ort.InferenceSession.create(bytes, { executionProviders: ['wasm'], logSeverityLevel: 3 });
       return { ort, session };
     }, () => { sessionPromise = null; });
   }
@@ -152,11 +156,15 @@ function draw(image: HTMLImageElement, source: FaceSource, degrees: number) {
 
 const toDegrees = (radians: number) => (radians * 180) / Math.PI;
 
+/** A detected face plus its full box in the image (the student card is cropped around it). */
+type WebFace = FaceLike & { box: { x: number; y: number; width: number; height: number } };
+
 /** Converts a MediaPipe face (normalized to `region`) into the ML Kit shape the checks expect. */
-function toFace(result: LandmarkerResult, index: number, region: { x: number; y: number; w: number; h: number }): FaceLike {
+function toFace(result: LandmarkerResult, index: number, region: { x: number; y: number; w: number; h: number }): WebFace {
   const mesh = result.faceLandmarks[index];
   const at = (i: number): Point => ({ x: region.x + mesh[i].x * region.w, y: region.y + mesh[i].y * region.h });
   const xs = mesh.map((point) => region.x + point.x * region.w);
+  const ys = mesh.map((point) => region.y + point.y * region.h);
   const nose = at(NOSE_TIP);
   const below = at(NOSE_BELOW);
 
@@ -171,6 +179,7 @@ function toFace(result: LandmarkerResult, index: number, region: { x: number; y:
 
   return {
     bounds: { width: Math.max(...xs) - Math.min(...xs) },
+    box: { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) },
     yawAngle,
     pitchAngle,
     leftEyeOpenProbability: leftBlink === undefined ? undefined : 1 - leftBlink,
@@ -191,20 +200,21 @@ function detectIn(landmarker: Landmarker, image: HTMLCanvasElement, region = { x
 }
 
 /**
- * A license portrait is ~10 % of the photo, too small for MediaPipe's
- * detector at full frame, so the photo is also scanned in overlapping tiles.
+ * A license or student-card portrait is ~5–10 % of the photo, too small for MediaPipe's
+ * detector at full frame, so the photo is also scanned in overlapping tiles: half the
+ * short side first, then a third of it drawn twice as large (small printed portraits).
  */
-function detectInTiles(landmarker: Landmarker, image: HTMLCanvasElement): FaceLike[] {
-  const tile = Math.round(Math.min(image.width, image.height) * 0.5);
+function detectInTiles(landmarker: Landmarker, image: HTMLCanvasElement, fraction = 0.5, zoom = 1): WebFace[] {
+  const tile = Math.round(Math.min(image.width, image.height) * fraction);
   const step = Math.round(tile / 2);
-  const faces: FaceLike[] = [];
+  const faces: WebFace[] = [];
   const centers: Point[] = [];
   for (let y = 0; y + tile <= image.height + step - 1; y += step) {
     for (let x = 0; x + tile <= image.width + step - 1; x += step) {
       const tx = Math.min(x, image.width - tile);
       const ty = Math.min(y, image.height - tile);
-      const { element, context } = canvas(tile, tile);
-      context.drawImage(image, tx, ty, tile, tile, 0, 0, tile, tile);
+      const { element, context } = canvas(tile * zoom, tile * zoom);
+      context.drawImage(image, tx, ty, tile, tile, 0, 0, tile * zoom, tile * zoom);
       for (const face of detectIn(landmarker, element, { x: tx, y: ty, w: tile, h: tile })) {
         const eye = face.landmarks!.LEFT_EYE!;
         // Overlapping tiles see the same face more than once.
@@ -223,6 +233,7 @@ async function detectUpright(photo: HTMLImageElement, source: FaceSource) {
     const image = draw(photo, source, degrees);
     let faces = detectIn(landmarker, image);
     if (!faces.length && source === 'document') faces = detectInTiles(landmarker, image);
+    if (!faces.length && source === 'document') faces = detectInTiles(landmarker, image, 1 / 3, 2);
     if (faces.length) return { image, faces };
   }
   throw new FaceCheckError('no_face_detected', MESSAGES.noFace[source]);
@@ -260,6 +271,85 @@ export async function computeFaceEmbedding(photoUri: string, source: FaceSource 
     if (error instanceof FaceCheckError) throw error;
     if (__DEV__) console.warn('[face] pipeline error:', error instanceof Error ? error.message : String(error));
     throw new FaceCheckError('model_unavailable', 'No se pudo procesar la foto en este navegador. Inténtalo de nuevo.');
+  }
+}
+
+/** What leaves the browser for a student-card check: the face's embedding and crops without the face. */
+export type StudentCardAnalysis =
+  | { ok: true; embedding: number[]; crops: string[] }
+  | { ok: false; reason: 'face_not_found' | 'several_faces' | 'face_unusable' | 'nothing_to_read' };
+
+/** Longest side of each crop sent to the server. */
+const CARD_CROP_MAX_SIDE = 1024;
+
+/**
+ * Student card, in the browser: same rules as the phone (faceRecognition.ts). The face is found
+ * once; the crops are cut from the same rotated canvas, around its box, so no face pixels leave
+ * the browser. Any doubt returns a reason and the check goes to manual review.
+ */
+export async function analyzeStudentCard(photoUri: string): Promise<StudentCardAnalysis> {
+  try {
+    const photo = await loadImage(photoUri);
+    let detected: { image: HTMLCanvasElement; faces: WebFace[] };
+    try {
+      detected = await detectUpright(photo, 'document');
+    } catch (error) {
+      if (error instanceof FaceCheckError && error !== UNAVAILABLE) return { ok: false, reason: 'face_not_found' };
+      throw error;
+    }
+    const { image, faces } = detected;
+    if (faces.length !== 1) return { ok: false, reason: 'several_faces' };
+    let face: WebFace;
+    try {
+      face = checkFace(faces, image.width, 'document');
+    } catch {
+      return { ok: false, reason: 'face_unusable' };
+    }
+    const regions = regionsAroundFace(face.box, image.width, image.height);
+    if (!regions.length) return { ok: false, reason: 'nothing_to_read' };
+
+    let embedding: number[];
+    try {
+      const tensor = alignFace(readPixels(image), landmarkPoints(face, 'document'));
+      checkImageQuality(tensor, 'document');
+      embedding = await embed(tensor);
+    } catch {
+      return { ok: false, reason: 'face_unusable' };
+    }
+
+    const crops = regions.map((region) => {
+      const width = region.endX - region.startX;
+      const height = region.endY - region.startY;
+      const shrink = Math.min(1, CARD_CROP_MAX_SIDE / Math.max(width, height));
+      const { element, context } = canvas(Math.round(width * shrink), Math.round(height * shrink));
+      context.drawImage(image, region.startX, region.startY, width, height, 0, 0, element.width, element.height);
+      return element.toDataURL('image/jpeg', 0.8).split(',')[1];
+    });
+    return { ok: true, embedding, crops };
+  } catch (error) {
+    if (__DEV__) console.warn('[face] student card error:', error instanceof Error ? error.message : String(error));
+    throw new FaceCheckError('model_unavailable', 'No se pudo procesar la foto en este navegador. Inténtalo de nuevo.');
+  }
+}
+
+/** A document image to send whole (card without photo, cropped account screenshot): how many faces it shows, and its JPEG. */
+export type DocumentImage = { faceCount: number; jpegBase64: string };
+
+/** Browser version of inspectDocumentImage (faceRecognition.ts): any face found means the image is not sent. */
+export async function inspectDocumentImage(photoUri: string): Promise<DocumentImage> {
+  try {
+    const photo = await loadImage(photoUri);
+    let faceCount = 0;
+    try {
+      faceCount = (await detectUpright(photo, 'document')).faces.length;
+    } catch (error) {
+      if (!(error instanceof FaceCheckError) || error === UNAVAILABLE) throw error;
+    }
+    const upright = draw(photo, 'document', 0);
+    return { faceCount, jpegBase64: upright.toDataURL('image/jpeg', 0.85).split(',')[1] };
+  } catch (error) {
+    if (__DEV__) console.warn('[face] document image error:', error instanceof Error ? error.message : String(error));
+    throw new FaceCheckError('model_unavailable', 'No se pudo procesar la imagen en este navegador. Inténtalo de nuevo.');
   }
 }
 

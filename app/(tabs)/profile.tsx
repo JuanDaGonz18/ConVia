@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import { LanguageSwitcher } from '@/components/settings/LanguageSwitcher';
+import { useMembership } from '@/services/membershipService';
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Notice } from '@/components/ui/Notice';
 import { BrandLogo } from '@/components/brand/Brand';
@@ -36,6 +37,7 @@ const driverStatusLabel = (status: string) => i18n.t(`driverStatus.${status}`);
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
+  const membership = useMembership();
   const currentUser = useAppStore((state) => state.currentUser);
   const logoutStore = useAppStore((state) => state.logout);
   const markFaceVerified = useAppStore((state) => state.markFaceVerified);
@@ -191,6 +193,13 @@ export default function ProfileScreen() {
             onPress={() => router.push('/preferences')}
             subtitle={t('profile.preferencesSubtitle')}
             title={t('profile.preferencesTitle')}
+          />
+          <Divider />
+          <ListItem
+            icon="school-outline"
+            onPress={() => router.push('/institution')}
+            subtitle={membership ? (membership.status === 'verified' && membership.method ? t(`institution.method.${membership.method}`) : t(`institution.status.${membership.status}`)) : undefined}
+            title={membership?.institution?.nombre ?? t('institution.title')}
           />
           <Divider />
           <ListItem

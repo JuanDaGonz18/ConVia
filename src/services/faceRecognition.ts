@@ -31,6 +31,7 @@ import {
   SIZE,
   WORKING_SIZE,
 } from '@/services/faceCore';
+import { regionsAroundFace, toBase64 } from '@/services/studentCard';
 
 export { FaceCheckError };
 export type { FaceSource };
@@ -203,6 +204,111 @@ export async function computeFaceEmbedding(photoUri: string, source: FaceSource 
     // Only the error text is logged (never pixels or embeddings), and only in development.
     if (__DEV__) console.warn('[face] pipeline error:', error instanceof Error ? error.message : String(error));
     throw new FaceCheckError('model_unavailable', 'No se pudo procesar la foto en este teléfono. Inténtalo de nuevo.');
+  } finally {
+    await deleteFiles(tempFiles);
+  }
+}
+
+/** What leaves the phone for a student-card check: the face's embedding and crops without the face. */
+export type StudentCardAnalysis =
+  | { ok: true; embedding: number[]; crops: string[] }
+  | { ok: false; reason: 'face_not_found' | 'several_faces' | 'face_unusable' | 'nothing_to_read' };
+
+/** Longest side of each crop sent to the server (text stays legible, uploads stay small). */
+const CARD_CROP_MAX_SIDE = 1024;
+
+/**
+ * Student card: finds the card's portrait once, computes its embedding (compared with the
+ * user's selfie in the database, like the license) and cuts the card into crops AROUND the
+ * face, from the same upright image the face was found in, so no face pixels are sent. Any
+ * doubt (no face, several faces, unusable face, nothing readable around it) returns a reason
+ * instead, and the check goes to manual review without sending the photo. Deletes the photo
+ * (when it is an app cache copy) and every intermediate file.
+ */
+export async function analyzeStudentCard(photoUri: string): Promise<StudentCardAnalysis> {
+  const tempFiles = [photoUri];
+  try {
+    const { images } = getNatives();
+    const original = await images.loadFromFileAsync(toPath(photoUri));
+    const scale = Math.min(1, WORKING_SIZE.document / Math.max(original.width, original.height));
+    const working = scale < 1
+      ? await original.resizeAsync(Math.round(original.width * scale), Math.round(original.height * scale))
+      : original;
+
+    let detected: { image: Image; faces: Face[] };
+    try {
+      detected = await detectUpright(working, 'document', tempFiles);
+    } catch (error) {
+      if (error instanceof FaceCheckError) return { ok: false, reason: 'face_not_found' };
+      throw error;
+    }
+    const { image, faces } = detected;
+    // A second face (e.g. a small security photo) can't be excluded reliably: manual review.
+    if (faces.length !== 1) return { ok: false, reason: 'several_faces' };
+    let face: Face;
+    try {
+      face = checkFace(faces, image.width, 'document');
+    } catch {
+      return { ok: false, reason: 'face_unusable' };
+    }
+    const regions = regionsAroundFace(face.bounds, image.width, image.height);
+    if (!regions.length) return { ok: false, reason: 'nothing_to_read' };
+
+    let embedding: number[];
+    try {
+      const tensor = alignFace(await readPixels(image), landmarkPoints(face, 'document'));
+      checkImageQuality(tensor, 'document');
+      embedding = await embed(tensor);
+    } catch {
+      return { ok: false, reason: 'face_unusable' };
+    }
+
+    const crops: string[] = [];
+    for (const region of regions) {
+      const crop = await image.cropAsync(region.startX, region.startY, region.endX, region.endY);
+      const shrink = Math.min(1, CARD_CROP_MAX_SIDE / Math.max(crop.width, crop.height));
+      const sized = shrink < 1 ? await crop.resizeAsync(Math.round(crop.width * shrink), Math.round(crop.height * shrink)) : crop;
+      const encoded = await sized.toEncodedImageDataAsync('jpg', 80);
+      crops.push(toBase64(new Uint8Array(encoded.buffer)));
+    }
+    return { ok: true, embedding, crops };
+  } catch (error) {
+    if (__DEV__) console.warn('[face] student card error:', error instanceof Error ? error.message : String(error));
+    throw new FaceCheckError('model_unavailable', 'No se pudo procesar la foto en este teléfono. Inténtalo de nuevo.');
+  } finally {
+    await deleteFiles(tempFiles);
+  }
+}
+
+/** A document image to send whole (card without photo, cropped account screenshot): how many faces it shows, and its JPEG. */
+export type DocumentImage = { faceCount: number; jpegBase64: string };
+
+/**
+ * Before a card without photo or an account screenshot is sent, the device makes sure no face is
+ * in it (a Teams or Outlook profile picture, or a card that does have a photo): any face found
+ * means the image is NOT sent and the user is asked to crop it or use the photo-card path.
+ * Returns the image as JPEG (longest side 1600 px) for the upload.
+ */
+export async function inspectDocumentImage(photoUri: string): Promise<DocumentImage> {
+  const tempFiles = [photoUri];
+  try {
+    const { images } = getNatives();
+    const original = await images.loadFromFileAsync(toPath(photoUri));
+    const scale = Math.min(1, WORKING_SIZE.document / Math.max(original.width, original.height));
+    const working = scale < 1
+      ? await original.resizeAsync(Math.round(original.width * scale), Math.round(original.height * scale))
+      : original;
+    let faceCount = 0;
+    try {
+      faceCount = (await detectUpright(working, 'document', tempFiles)).faces.length;
+    } catch (error) {
+      if (!(error instanceof FaceCheckError)) throw error;
+    }
+    const encoded = await working.toEncodedImageDataAsync('jpg', 85);
+    return { faceCount, jpegBase64: toBase64(new Uint8Array(encoded.buffer)) };
+  } catch (error) {
+    if (__DEV__) console.warn('[face] document image error:', error instanceof Error ? error.message : String(error));
+    throw new FaceCheckError('model_unavailable', 'No se pudo procesar la imagen en este teléfono. Inténtalo de nuevo.');
   } finally {
     await deleteFiles(tempFiles);
   }

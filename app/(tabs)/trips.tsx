@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import { VerifyInstitutionCard } from '@/components/institution/VerifyInstitutionCard';
 import { requirePlus } from '@/components/subscription/PlusGate';
 import { Notice } from '@/components/ui/Notice';
 import { toast } from '@/components/ui/Toast';
@@ -156,6 +157,7 @@ export default function TripsScreen() {
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => void refresh()} refreshing={refreshing} />}
       >
+        <VerifyInstitutionCard />
         {error ? <Notice tone="error">{error}</Notice> : null}
         {loading ? <TripListSkeleton count={3} /> : null}
 

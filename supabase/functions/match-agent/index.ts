@@ -119,7 +119,7 @@ Deno.serve(async (request) => {
     if (typeof body.run_id !== 'string' || typeof body.proposal_hash !== 'string') return json({ error: 'INVALID_BODY' }, 400);
     const runId = body.run_id;
     const { data: run } = await admin.from('agent_runs').select('user_id, status, proposal_hash, pending_action, pending_action_used_at, finished_at').eq('id', runId).maybeSingle();
-    const data = supabaseToolData(userClient, user.id);
+    const data = supabaseToolData(userClient);
     const result = await confirmProposal({ run: run as StoredRun | null, callerId: user.id, hashFromClient: body.proposal_hash, now: new Date() }, {
       readTrip: (tripId) => data.availableTrip(tripId),
       claim: async () => {
@@ -155,8 +155,9 @@ Deno.serve(async (request) => {
   const language = detectLanguage(message, appLanguage);
   if (!message || message.length > 1000) return json({ error: 'INVALID_BODY' }, 400);
 
-  const { data: profile } = await admin.from('profiles').select('institution_id').eq('id', user.id).single();
-  if (!profile?.institution_id) return json({ error: 'INSTITUTION_NOT_VERIFIED' }, 403);
+  // Same rule as publishing or requesting a seat: a VERIFIED membership in the profile's institution.
+  const { data: membership } = await admin.from('institution_memberships').select('status').eq('user_id', user.id).maybeSingle();
+  if (membership?.status !== 'verified') return json({ error: 'INSTITUTION_NOT_VERIFIED' }, 403);
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { count } = await admin.from('agent_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', since);
@@ -179,7 +180,7 @@ Deno.serve(async (request) => {
         const { error } = await admin.from('agent_steps').insert(row);
         if (error) log('trace_error', { detail: error.message });
       };
-      const deps = { ...buildDeps(config, supabaseToolData(userClient, user.id), record, () => Date.now(), user.id), progress: (event: { step: string; status: string }) => send({ type: 'progress', ...event }) };
+      const deps = { ...buildDeps(config, supabaseToolData(userClient), record, () => Date.now(), user.id), progress: (event: { step: string; status: string }) => send({ type: 'progress', ...event }) };
       let outcome: AgentOutcome;
       try {
         outcome = await runAgent(state, deps, language);

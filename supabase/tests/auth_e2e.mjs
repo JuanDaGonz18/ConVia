@@ -1,10 +1,13 @@
 // End-to-end auth and privacy check against the real Supabase project, with the
 // same public key and calls the app makes (register, profile, notifications,
 // session restore, logout/login, password change, direct reads of other
-// users' data). Creates ONE throwaway @unisabana.edu.co account and deletes it
-// at the end through the app's own delete-account Edge Function.
+// users' data). Creates a throwaway @unisabana.edu.co account and one with an
+// e-mail of no institution (open sign-up), and deletes both at the end through
+// the app's own delete-account Edge Function.
 //
 // Run: node --env-file=.env supabase/tests/auth_e2e.mjs
+// Local: EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 EXPO_PUBLIC_SUPABASE_ANON_KEY=<local anon>
+//        node supabase/tests/auth_e2e.mjs (with `npx supabase functions serve` running)
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
@@ -19,6 +22,8 @@ const password = `Prueba-${randomBytes(9).toString('hex')}9`;
 const newPassword = `Nueva-${randomBytes(9).toString('hex')}7`;
 let app = createClient(url, key, opts);
 let created = false;
+const openEmail = `zz.opentest.${Date.now()}@example.com`;
+let openApp = null;
 
 try {
   // Registration (register screen → authService.register)
@@ -29,6 +34,29 @@ try {
   });
   created = !signUpError;
   check(!signUpError && !!signUp.session, 'registration: account created with a session', signUpError?.message);
+
+  // An institutional e-mail is verified at once (my_institution → membershipService).
+  const { data: mine, error: mineError } = await app.rpc('my_institution');
+  check(!mineError && mine?.status === 'verified' && mine?.method === 'institutional_email', 'registration: institutional e-mail verified at once', mineError?.message ?? mine?.status);
+
+  // Open sign-up: any e-mail registers; it has no institution until it chooses and verifies one.
+  openApp = createClient(url, key, opts);
+  const { data: openUp, error: openError } = await openApp.auth.signUp({
+    email: openEmail, password, options: { data: { nombre: 'ZZ Open Test', terms_accepted: true, terms_version: '1.0' } },
+  });
+  if (openError || !openUp.session) openApp = null;
+  check(!openError && !!openUp.session, 'open sign-up: any e-mail creates an account', openError?.message);
+  if (openApp) {
+    const { data: openMine } = await openApp.rpc('my_institution');
+    check(openMine?.status === 'none', 'open sign-up: no institution until it is chosen', openMine?.status);
+    const { data: found } = await openApp.rpc('search_institutions', { p_query: 'sabana' });
+    check(Array.isArray(found) && found.length >= 1, 'open sign-up: institution search works', `${found?.length ?? 0} results`);
+    const { error: listError } = await openApp.from('institutions').select('id').limit(1);
+    check(!!listError, 'open sign-up: the institution list is not readable directly', listError ? listError.code : 'readable!');
+    const { error: chooseError } = await openApp.rpc('choose_institution', { p_institution_id: found?.[0]?.id });
+    const { data: chosen } = await openApp.rpc('my_institution');
+    check(!chooseError && chosen?.status === 'pending', 'open sign-up: chosen institution stays pending', chooseError?.message ?? chosen?.status);
+  }
 
   // Profile immediately after registration (getCurrentUser → get_my_profile)
   let { data: me, error: meError } = await app.rpc('get_my_profile');
@@ -103,6 +131,10 @@ try {
     const { error: deleteError } = await app.functions.invoke('delete-account', { method: 'POST' });
     const { error: goneError } = await createClient(url, key, opts).auth.signInWithPassword({ email, password: newPassword });
     check(!deleteError && !!goneError, 'cleanup: test account deleted', deleteError?.message ?? '');
+  }
+  if (openApp) {
+    const { error: openDeleteError } = await openApp.functions.invoke('delete-account', { method: 'POST' });
+    check(!openDeleteError, 'cleanup: open sign-up account deleted', openDeleteError?.message ?? '');
   }
   const bad = results.filter((line) => line.startsWith('BAD')).length;
   console.log(results.join('\n'));

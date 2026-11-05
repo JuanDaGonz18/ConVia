@@ -15,6 +15,8 @@ import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Notice } from '@/components/ui/Notice';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { InstitutionDomainHint } from '@/components/auth/InstitutionDomainHint';
+import { EMAIL_PATTERN } from '@/utils/emailDomain';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { colors } from '@/constants/colors';
@@ -29,7 +31,6 @@ import { UserRole } from '@/types';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
 import { missingPasswordRules, passwordMeetsRules } from '@/utils/password';
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Field = 'name' | 'email' | 'password' | 'confirm' | 'terms';
 
@@ -214,6 +215,7 @@ export default function RegisterScreen() {
                   placeholder={t('auth.emailPlaceholder')}
                   value={email}
                 />
+                <InstitutionDomainHint email={email} />
                 <PasswordField
                   autoComplete="new-password"
                   error={errors.password}

@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
+import { VerifyInstitutionCard } from '@/components/institution/VerifyInstitutionCard';
 import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { RowSkeleton } from '@/components/ui/Skeleton';
@@ -54,6 +55,7 @@ export default function ChatsScreen() {
         <Text style={styles.kicker}>CONVÍA</Text>
         <Text style={styles.title}>{t('chats.title')}</Text>
         <Text style={styles.subtitle}>{t('chats.subtitle')}</Text>
+        <VerifyInstitutionCard />
       </View>
 
       {loading ? (

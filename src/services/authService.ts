@@ -187,11 +187,8 @@ export const authService = {
   ): Promise<User> {
     if (useSupabase) {
       ensureSupabaseConfigured();
-      const { data: domains, error: domainError } = await supabase.rpc('check_email_domain', {
-        p_email: email,
-      });
-      if (domainError) throw domainError;
-      if (!domains?.length) throw new Error('DOMINIO_NO_PERMITIDO');
+      // Any e-mail can sign up: an institutional domain is verified by the server at once, any
+      // other chooses and verifies its institution after logging in (handle_new_user).
 
       const { data, error } = await supabase.auth.signUp({
         email,

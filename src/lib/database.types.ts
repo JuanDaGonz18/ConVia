@@ -14,12 +14,194 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_runs: {
+        Row: {
+          cached_tokens: number
+          completion_tokens: number
+          confirmed_request_id: string | null
+          cost_usd: number
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          input: string
+          language: string | null
+          latency_ms: number | null
+          pending_action: Json | null
+          pending_action_used_at: string | null
+          prompt_tokens: number
+          proposal_hash: string | null
+          reasoning_tokens: number
+          reply: Json | null
+          role: string
+          spec: Json | null
+          state: Json | null
+          status: string
+          steps: number
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          cached_tokens?: number
+          completion_tokens?: number
+          confirmed_request_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          input: string
+          language?: string | null
+          latency_ms?: number | null
+          pending_action?: Json | null
+          pending_action_used_at?: string | null
+          prompt_tokens?: number
+          proposal_hash?: string | null
+          reasoning_tokens?: number
+          reply?: Json | null
+          role: string
+          spec?: Json | null
+          state?: Json | null
+          status?: string
+          steps?: number
+          user_id: string
+        }
+        Update: {
+          cached_tokens?: number
+          completion_tokens?: number
+          confirmed_request_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          input?: string
+          language?: string | null
+          latency_ms?: number | null
+          pending_action?: Json | null
+          pending_action_used_at?: string | null
+          prompt_tokens?: number
+          proposal_hash?: string | null
+          reasoning_tokens?: number
+          reply?: Json | null
+          role?: string
+          spec?: Json | null
+          state?: Json | null
+          status?: string
+          steps?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_confirmed_request_id_fkey"
+            columns: ["confirmed_request_id"]
+            isOneToOne: false
+            referencedRelation: "trip_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_steps: {
+        Row: {
+          args: Json | null
+          attempts: NonNullable<Json>
+          cached_tokens: number | null
+          completion_tokens: number | null
+          cost_usd: number | null
+          created_at: string
+          error: string | null
+          finish_reason: string | null
+          id: string
+          kind: string
+          latency_ms: number | null
+          model: string | null
+          n: number
+          plan: string | null
+          prompt_tokens: number | null
+          provider: string | null
+          reasoning_tokens: number | null
+          request_id: string | null
+          response_id: string | null
+          result: Json | null
+          run_id: string
+          served_by: Json | null
+          tool_name: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          args?: Json | null
+          attempts?: NonNullable<Json>
+          cached_tokens?: number | null
+          completion_tokens?: number | null
+          cost_usd?: number | null
+          created_at?: string
+          error?: string | null
+          finish_reason?: string | null
+          id?: string
+          kind: string
+          latency_ms?: number | null
+          model?: string | null
+          n: number
+          plan?: string | null
+          prompt_tokens?: number | null
+          provider?: string | null
+          reasoning_tokens?: number | null
+          request_id?: string | null
+          response_id?: string | null
+          result?: Json | null
+          run_id: string
+          served_by?: Json | null
+          tool_name?: string | null
+        }
+        Update: {
+          args?: Json | null
+          attempts?: NonNullable<Json>
+          cached_tokens?: number | null
+          completion_tokens?: number | null
+          cost_usd?: number | null
+          created_at?: string
+          error?: string | null
+          finish_reason?: string | null
+          id?: string
+          kind?: string
+          latency_ms?: number | null
+          model?: string | null
+          n?: number
+          plan?: string | null
+          prompt_tokens?: number | null
+          provider?: string | null
+          reasoning_tokens?: number | null
+          request_id?: string | null
+          response_id?: string | null
+          result?: Json | null
+          run_id?: string
+          served_by?: Json | null
+          tool_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_config: {
         Row: {
           beta_mode: boolean
           id: boolean
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           beta_mode?: boolean
           id?: boolean
@@ -41,6 +223,7 @@ export type Database = {
           trip_id: string | null
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           autor: Database["public"]["Enums"]["message_author"]
           contenido: string
@@ -85,6 +268,7 @@ export type Database = {
           updated_at: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           identity_verified_at?: string | null
@@ -123,6 +307,7 @@ export type Database = {
           model: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           embedding: number[]
@@ -161,6 +346,7 @@ export type Database = {
           updated_at: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           error?: string | null
@@ -203,6 +389,7 @@ export type Database = {
           driver_id: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           driver_id: string
@@ -230,6 +417,33 @@ export type Database = {
           },
         ]
       }
+      institution_domains: {
+        Row: {
+          created_at: string
+          dominio: string
+          institution_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          dominio: string
+          institution_id: string
+        }
+        Update: {
+          created_at?: string
+          dominio?: string
+          institution_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_domains_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institution_identity_providers: {
         Row: {
           activo: boolean
@@ -238,6 +452,7 @@ export type Database = {
           provider: string
           tenant_id: string
         }
+        ComputedFields: never
         Insert: {
           activo?: boolean
           created_at?: string
@@ -262,29 +477,143 @@ export type Database = {
           },
         ]
       }
+      institution_memberships: {
+        Row: {
+          created_at: string
+          institution_id: string
+          method: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          institution_id: string
+          method?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          institution_id?: string
+          method?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_memberships_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "institution_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institution_requests: {
+        Row: {
+          ciudad: string
+          created_at: string
+          estado: string
+          id: string
+          institution_id: string | null
+          motivo: string | null
+          nombre: string
+          reviewed_at: string | null
+          rol: string
+          sitio_web: string | null
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          ciudad: string
+          created_at?: string
+          estado?: string
+          id?: string
+          institution_id?: string | null
+          motivo?: string | null
+          nombre: string
+          reviewed_at?: string | null
+          rol: string
+          sitio_web?: string | null
+          user_id: string
+        }
+        Update: {
+          ciudad?: string
+          created_at?: string
+          estado?: string
+          id?: string
+          institution_id?: string | null
+          motivo?: string | null
+          nombre?: string
+          reviewed_at?: string | null
+          rol?: string
+          sitio_web?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_requests_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "institution_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institutions: {
         Row: {
           activo: boolean
+          ciudad: string | null
           created_at: string
           dominio: string
           id: string
           nombre: string
+          nombre_corto: string | null
+          sitio_web: string | null
           tipo: Database["public"]["Enums"]["community_type"]
         }
+        ComputedFields: never
         Insert: {
           activo?: boolean
+          ciudad?: string | null
           created_at?: string
           dominio: string
           id?: string
           nombre: string
+          nombre_corto?: string | null
+          sitio_web?: string | null
           tipo: Database["public"]["Enums"]["community_type"]
         }
         Update: {
           activo?: boolean
+          ciudad?: string | null
           created_at?: string
           dominio?: string
           id?: string
           nombre?: string
+          nombre_corto?: string | null
+          sitio_web?: string | null
           tipo?: Database["public"]["Enums"]["community_type"]
         }
         Relationships: []
@@ -297,6 +626,7 @@ export type Database = {
           sender_id: string
           trip_id: string
         }
+        ComputedFields: never
         Insert: {
           body: string
           created_at?: string
@@ -334,6 +664,7 @@ export type Database = {
           event: string
           ref_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           event: string
@@ -368,6 +699,7 @@ export type Database = {
           timings: NonNullable<Json>
           trip_id: string
         }
+        ComputedFields: never
         Insert: {
           brand_match?: boolean | null
           brand_read?: string | null
@@ -448,6 +780,7 @@ export type Database = {
           key: string
           tier: string
         }
+        ComputedFields: never
         Insert: {
           beta_unlocked?: boolean
           description: string
@@ -470,6 +803,7 @@ export type Database = {
           tier: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           features?: string[]
           limits?: NonNullable<Json>
@@ -511,6 +845,7 @@ export type Database = {
           verification_status: Database["public"]["Enums"]["verification_status"]
           verified_at: string | null
         }
+        ComputedFields: never
         Insert: {
           avatar_url?: string | null
           created_at?: string
@@ -580,6 +915,7 @@ export type Database = {
           score: number
           trip_id: string
         }
+        ComputedFields: never
         Insert: {
           comentario?: string | null
           created_at?: string
@@ -631,6 +967,7 @@ export type Database = {
           texto: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -678,6 +1015,7 @@ export type Database = {
           updated_at: string
           vehicle_id: string
         }
+        ComputedFields: never
         Insert: {
           activo?: boolean
           avisado_at?: string
@@ -762,6 +1100,7 @@ export type Database = {
           updated_at: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           address?: string
           created_at?: string
@@ -813,6 +1152,7 @@ export type Database = {
           updated_at: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           alerta?: boolean
           created_at?: string
@@ -866,6 +1206,85 @@ export type Database = {
           },
         ]
       }
+      student_id_checks: {
+        Row: {
+          created_at: string
+          decision: string
+          email_domain: string | null
+          expires_on: string | null
+          face_match: boolean | null
+          id: string
+          id_last4: string | null
+          institution_id: string
+          institution_read: string | null
+          kind: string
+          latency_ms: number | null
+          looks_real: boolean | null
+          model: string | null
+          name_similarity: number | null
+          reasons: string[]
+          request_id: string | null
+          review_summary: Json | null
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          decision: string
+          email_domain?: string | null
+          expires_on?: string | null
+          face_match?: boolean | null
+          id?: string
+          id_last4?: string | null
+          institution_id: string
+          institution_read?: string | null
+          kind?: string
+          latency_ms?: number | null
+          looks_real?: boolean | null
+          model?: string | null
+          name_similarity?: number | null
+          reasons?: string[]
+          request_id?: string | null
+          review_summary?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decision?: string
+          email_domain?: string | null
+          expires_on?: string | null
+          face_match?: boolean | null
+          id?: string
+          id_last4?: string | null
+          institution_id?: string
+          institution_read?: string | null
+          kind?: string
+          latency_ms?: number | null
+          looks_real?: boolean | null
+          model?: string | null
+          name_similarity?: number | null
+          reasons?: string[]
+          request_id?: string | null
+          review_summary?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_id_checks_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_id_checks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -878,6 +1297,7 @@ export type Database = {
           updated_at: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           current_period_end?: string | null
@@ -928,6 +1348,7 @@ export type Database = {
           trip_id: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           level: string
@@ -981,6 +1402,7 @@ export type Database = {
           trip_id: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           eta_next_stop_seconds?: number | null
           heading?: number | null
@@ -1028,6 +1450,7 @@ export type Database = {
           trip_id: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           boarded_at?: string | null
           created_at?: string
@@ -1095,6 +1518,7 @@ export type Database = {
           recipients: string[] | null
           trip_id: string
         }
+        ComputedFields: never
         Insert: {
           changed_by: string
           changes: string[]
@@ -1156,6 +1580,7 @@ export type Database = {
           updated_at: string
           vehicle_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           cupos_totales: number
@@ -1249,6 +1674,7 @@ export type Database = {
           updated_at: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           avisar_alertas?: boolean
           avisar_recurrentes?: boolean
@@ -1294,6 +1720,7 @@ export type Database = {
           id: number
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: never
@@ -1326,6 +1753,7 @@ export type Database = {
           status: string
           vehicle_id: string
         }
+        ComputedFields: never
         Insert: {
           brand_match?: boolean | null
           brand_read?: string | null
@@ -1394,6 +1822,7 @@ export type Database = {
           puestos: number
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           activo?: boolean
           color: string
@@ -1463,6 +1892,7 @@ export type Database = {
           vehicle_marca: string | null
           vehicle_placa: string | null
         }
+        ComputedFields: never
         Relationships: []
       }
     }
@@ -1536,6 +1966,10 @@ export type Database = {
           tipo: Database["public"]["Enums"]["community_type"]
         }[]
       }
+      choose_institution: {
+        Args: { p_institution_id: string }
+        Returns: undefined
+      }
       claim_alert_pushes: {
         Args: { p_schedule_id?: string; p_trip_id?: string }
         Returns: {
@@ -1605,6 +2039,7 @@ export type Database = {
           viewer_is_driver: boolean
         }[]
       }
+      my_institution: { Args: Record<PropertyKey, never>; Returns: Json }
       my_trip_requests: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1654,6 +2089,15 @@ export type Database = {
       }
       report_pickup_mismatch: {
         Args: { p_verification_id: string }
+        Returns: undefined
+      }
+      request_institution: {
+        Args: {
+          p_ciudad: string
+          p_nombre: string
+          p_rol: string
+          p_sitio_web: string
+        }
         Returns: undefined
       }
       respond_trip_request: {
@@ -1706,6 +2150,15 @@ export type Database = {
         }
         Returns: Json
       }
+      search_institutions: {
+        Args: { p_query: string }
+        Returns: {
+          ciudad: string
+          id: string
+          nombre: string
+          nombre_corto: string
+        }[]
+      }
       service_check_plan: {
         Args: {
           p_capability: string
@@ -1713,6 +2166,26 @@ export type Database = {
           p_used?: number
           p_user: string
         }
+        Returns: undefined
+      }
+      service_expired_card_review_files: {
+        Args: { p_older_than?: string }
+        Returns: string[]
+      }
+      service_resolve_institution_request: {
+        Args: {
+          p_action: string
+          p_dominios?: string[]
+          p_institution?: string
+          p_motivo?: string
+          p_nombre?: string
+          p_request: string
+          p_tipo?: Database["public"]["Enums"]["community_type"]
+        }
+        Returns: Json
+      }
+      service_set_membership_status: {
+        Args: { p_method?: string; p_status: string; p_user: string }
         Returns: undefined
       }
       service_stale_pickup_clips: {
@@ -1775,6 +2248,10 @@ export type Database = {
         Returns: Json
       }
       submit_license_face: { Args: { p_embedding: number[] }; Returns: Json }
+      submit_student_card_face: {
+        Args: { p_embedding: number[] }
+        Returns: Json
+      }
       switch_role: {
         Args: { p_rol: Database["public"]["Enums"]["user_role"] }
         Returns: {

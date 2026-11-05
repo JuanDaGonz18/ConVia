@@ -4,6 +4,7 @@ import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { membershipService } from '@/services/membershipService';
 import { PlusGateHost } from '@/components/subscription/PlusGate';
 import { ToastHost } from '@/components/ui/Toast';
 import { colors } from '@/constants/colors';
@@ -27,13 +28,15 @@ export default function RootLayout() {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
+        membershipService.clear();
         return;
       }
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
         // Deferred: Supabase advises against awaiting its calls inside this callback.
         setTimeout(() => void notificationService.register(session.user.id), 0);
       }
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && session)) {
+        void membershipService.refresh().catch(() => undefined);
         void authService.getCurrentUser().then(setCurrentUser).catch((error) => {
           console.warn('[Auth] Could not refresh the current profile', error);
         });
