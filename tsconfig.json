@@ -3,6 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "ignoreDeprecations": "6.0",
+    // TypeScript 6 no longer adds every @types package; Node types are needed by the unit tests.
+    "types": ["node"],
     // Unit tests run directly in Node, which needs explicit .ts import paths.
     "allowImportingTsExtensions": true,
     "baseUrl": ".",
