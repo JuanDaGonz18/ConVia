@@ -395,6 +395,10 @@ verify_jwt = true
 [functions.delete-account]
 verify_jwt = true
 
+# Called by the app with the user's JWT.
+[functions.verify-vehicle]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

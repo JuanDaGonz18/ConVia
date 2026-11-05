@@ -15,6 +15,16 @@ export function modelMode(apiKey: string | undefined, allowMock: string | undefi
   return allowMock === 'true' ? 'mock' : 'unavailable';
 }
 
+/**
+ * A positive whole-number limit from an env var, e.g. a daily cap. Empty,
+ * zero, negative or non-numeric values fall back to the default, so a typo
+ * never removes the limit.
+ */
+export function positiveIntEnv(value: string | undefined, fallback: number): number {
+  const parsed = Number(value?.trim());
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 export const MB = 1024 * 1024;
 
 export type BodyResult =
