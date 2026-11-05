@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { Notice } from '@/components/ui/Notice';
 import { TripRoutePreview } from '@/components/map/TripRoutePreview';
@@ -19,17 +20,19 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { DriverTripStatus, TripMember, TripMembers, tripService } from '@/services/tripService';
 import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
+import { localeTag } from '@/i18n';
 
-const STATUS: Record<DriverTripStatus, { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  por_empezar: { label: 'Por empezar', color: colors.primary, icon: 'time-outline' },
-  en_curso: { label: 'En curso', color: colors.primary, icon: 'car-outline' },
-  finalizado: { label: 'Finalizado', color: colors.success, icon: 'checkmark-circle' },
-  cancelado: { label: 'Cancelado', color: colors.error, icon: 'close-circle' },
-  no_iniciado: { label: 'No iniciado', color: colors.textSecondary, icon: 'alert-circle-outline' },
+// Labels come from tripStatus.* in the current language.
+const STATUS: Record<DriverTripStatus, { color: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  por_empezar: { color: colors.primary, icon: 'time-outline' },
+  en_curso: { color: colors.primary, icon: 'car-outline' },
+  finalizado: { color: colors.success, icon: 'checkmark-circle' },
+  cancelado: { color: colors.error, icon: 'close-circle' },
+  no_iniciado: { color: colors.textSecondary, icon: 'alert-circle-outline' },
 };
 
 function formatTime(value: string | null) {
-  return value ? new Date(value).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : '—';
+  return value ? new Date(value).toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' }) : '—';
 }
 
 /**
@@ -37,6 +40,7 @@ function formatTime(value: string | null) {
  * as the closing review: mark who paid, rate passengers, leave comments.
  */
 export default function TripSummaryScreen() {
+  const { t } = useTranslation();
   const { tripId, finished, rate } = useLocalSearchParams<{ tripId: string; finished?: string; rate?: string }>();
   const [rateTarget, setRateTarget] = useState<RateDriverTarget | null>(null);
   const [members, setMembers] = useState<TripMembers | null>(null);
@@ -49,11 +53,11 @@ export default function TripSummaryScreen() {
       setMembers(await tripService.getTripMembers(tripId));
       setError(null);
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudo cargar el viaje.'));
+      setError(errorMessage(loadError, t('tripSummary.loadFailed')));
     } finally {
       setLoading(false);
     }
-  }, [tripId]);
+  }, [tripId, t]);
 
   useEffect(() => {
     const timer = setTimeout(() => void load(), 0);
@@ -94,10 +98,10 @@ export default function TripSummaryScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Pressable accessibilityLabel="Volver" onPress={() => router.back()} style={styles.back}>
+        <Pressable accessibilityLabel={t('tripSummary.back')} onPress={() => router.back()} style={styles.back}>
           <Ionicons color={colors.text} name="arrow-back" size={24} />
         </Pressable>
-        <Text style={styles.kicker}>{finished ? 'RESUMEN DEL VIAJE' : 'HISTORIAL DEL VIAJE'}</Text>
+        <Text style={styles.kicker}>{finished ? t('tripSummary.kickerFinished') : t('tripSummary.kicker')}</Text>
 
         {loading ? <ActivityIndicator color={colors.primary} /> : null}
         {error ? <Notice tone="error">{error}</Notice> : null}
@@ -108,8 +112,8 @@ export default function TripSummaryScreen() {
               <View style={styles.finishedBanner}>
                 <Ionicons color={colors.success} name="checkmark-circle" size={28} />
                 <View style={styles.flex}>
-                  <Text style={styles.finishedTitle}>¡Viaje finalizado!</Text>
-                  <Text style={styles.finishedText}>Avisamos a tus pasajeros. Marca quién pagó y califícalos.</Text>
+                  <Text style={styles.finishedTitle}>{t('tripSummary.finishedTitle')}</Text>
+                  <Text style={styles.finishedText}>{t('tripSummary.finishedText')}</Text>
                 </View>
               </View>
             ) : null}
@@ -117,26 +121,26 @@ export default function TripSummaryScreen() {
             <Text style={styles.title}>{trip.origin.label} → {trip.destination.label}</Text>
             <View style={[styles.statusBadge, { borderColor: status.color }]}>
               <Ionicons color={status.color} name={status.icon} size={16} />
-              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+              <Text style={[styles.statusText, { color: status.color }]}>{t(`tripStatus.${trip.status}`)}</Text>
             </View>
 
             <TripRoutePreview chosenRoute={trip.route} destination={trip.destination} origin={trip.origin} />
 
             <View style={styles.infoCard}>
-              <InfoRow icon="calendar-outline" label="Salida programada" value={formatDateTime(trip.departureAt)} />
-              {trip.startedAt ? <InfoRow icon="play-outline" label="Inició" value={formatTime(trip.startedAt)} /> : null}
-              {trip.finishedAt ? <InfoRow icon="flag-outline" label="Terminó" value={formatTime(trip.finishedAt)} /> : null}
-              <InfoRow icon="cash-outline" label="Precio por cupo" value={formatPrice(trip.price)} />
-              <InfoRow icon="people-outline" label="Cupos ofrecidos" value={String(trip.totalSeats)} />
+              <InfoRow icon="calendar-outline" label={t('tripSummary.scheduled')} value={formatDateTime(trip.departureAt)} />
+              {trip.startedAt ? <InfoRow icon="play-outline" label={t('tripSummary.started')} value={formatTime(trip.startedAt)} /> : null}
+              {trip.finishedAt ? <InfoRow icon="flag-outline" label={t('tripSummary.ended')} value={formatTime(trip.finishedAt)} /> : null}
+              <InfoRow icon="cash-outline" label={t('tripSummary.price')} value={formatPrice(trip.price)} />
+              <InfoRow icon="people-outline" label={t('tripSummary.seats')} value={String(trip.totalSeats)} />
               {trip.vehicle ? (
-                <InfoRow icon="car-outline" label="Vehículo" value={`${trip.vehicle.brand} · ${trip.vehicle.color} · ${trip.vehicle.plate}`} />
+                <InfoRow icon="car-outline" label={t('tripSummary.vehicle')} value={`${trip.vehicle.brand} · ${trip.vehicle.color} · ${trip.vehicle.plate}`} />
               ) : null}
-              {trip.description ? <InfoRow icon="document-text-outline" label="Descripción" value={trip.description} /> : null}
+              {trip.description ? <InfoRow icon="document-text-outline" label={t('tripSummary.description')} value={trip.description} /> : null}
             </View>
 
             {members && !members.viewerIsDriver ? (
               <View style={styles.passengerCard}>
-                <Text style={styles.fieldLabel}>Conductor</Text>
+                <Text style={styles.fieldLabel}>{t('tripSummary.driver')}</Text>
                 <View style={styles.passengerHeader}>
                   <Avatar highlight={members.driver.isPlus} imageUrl={members.driver.avatarUrl} name={members.driver.name} size={44} />
                   <View style={styles.flex}>
@@ -150,25 +154,25 @@ export default function TripSummaryScreen() {
                 {members.myDriverRating ? (
                   <View style={styles.myRating}>
                     <View style={styles.ratingRow}>
-                      <Text style={styles.muted}>Tu calificación</Text>
+                      <Text style={styles.muted}>{t('tripSummary.yourRating')}</Text>
                       <StarRating score={members.myDriverRating.score} size={18} />
                     </View>
                     {members.myDriverRating.comment ? <Text style={styles.muted}>“{members.myDriverRating.comment}”</Text> : null}
                   </View>
                 ) : canRateDriver ? (
-                  <ButtonPrimary icon="star-outline" onPress={openRating} title={`Calificar a ${members.driver.name}`} />
+                  <ButtonPrimary icon="star-outline" onPress={openRating} title={t('tripSummary.rate', { name: members.driver.name })} />
                 ) : null}
               </View>
             ) : null}
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.section}>{trip.status === 'cancelado' ? 'Pasajeros afectados' : 'Pasajeros'}</Text>
+              <Text style={styles.section}>{trip.status === 'cancelado' ? t('tripSummary.affected') : t('tripSummary.passengers')}</Text>
               {canReview && passengers.length ? (
-                <Text style={styles.sectionMeta}>{paidCount} de {passengers.length} pagaron</Text>
+                <Text style={styles.sectionMeta}>{t('tripSummary.paidCount', { paid: paidCount, count: passengers.length })}</Text>
               ) : null}
             </View>
             {passengers.length === 0 ? (
-              <Text style={styles.muted}>Este viaje no tuvo pasajeros aceptados.</Text>
+              <Text style={styles.muted}>{t('tripSummary.noPassengers')}</Text>
             ) : null}
 
             {passengers.map((passenger) => (canReview ? (
@@ -179,20 +183,20 @@ export default function TripSummaryScreen() {
                   <Avatar highlight={passenger.isPlus} imageUrl={passenger.avatarUrl} name={passenger.name} size={44} />
                   <View style={styles.flex}>
                     <View style={styles.nameRow}>
-                      <Text numberOfLines={1} style={styles.nameText}>{passenger.name}{passenger.isMe ? ' (tú)' : ''}</Text>
+                      <Text numberOfLines={1} style={styles.nameText}>{passenger.isMe ? t('tripChat.members.you', { name: passenger.name }) : passenger.name}</Text>
                       {passenger.isPlus ? <PlusBadge /> : null}
                     </View>
                     <Rating score={passenger.rating} />
                   </View>
                 </View>
-                {passenger.pickupAddress ? <Text style={styles.muted}>Recogida: {passenger.pickupAddress}</Text> : null}
+                {passenger.pickupAddress ? <Text style={styles.muted}>{t('tripChat.members.pickup', { address: passenger.pickupAddress })}</Text> : null}
               </View>
             )))}
 
             {finished ? (
               <ButtonPrimary
                 onPress={() => router.replace('/(tabs)/trips')}
-                title={pendingReview ? 'Terminar después' : 'Listo'}
+                title={pendingReview ? t('tripSummary.finishLater') : t('tripSummary.done')}
               />
             ) : null}
           </>
@@ -216,6 +220,7 @@ function InfoRow({ icon, label, value }: Readonly<{ icon: keyof typeof Ionicons.
 
 /** One passenger of a finished trip: payment, rating and an optional comment, saved as they change. */
 function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMember; onChange: (updated: TripMember) => void }>) {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState<'payment' | 'rating' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [commentOpen, setCommentOpen] = useState(!!passenger.myRating?.comment);
@@ -230,7 +235,7 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
       await tripService.setPassengerPayment(passenger.requestId, paid);
       onChange({ ...passenger, paid });
     } catch (saveError) {
-      setError(errorMessage(saveError, 'No se pudo guardar el pago.'));
+      setError(errorMessage(saveError, t('tripSummary.paymentFailed')));
     } finally {
       setSaving(null);
     }
@@ -245,7 +250,7 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
       onChange({ ...passenger, myRating: { score, comment: text } });
       if (text !== null) setCommentSaved(true);
     } catch (saveError) {
-      setError(errorMessage(saveError, 'No se pudo guardar la calificación.'));
+      setError(errorMessage(saveError, t('tripSummary.ratingFailed')));
     } finally {
       setSaving(null);
     }
@@ -263,13 +268,13 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
             <Text numberOfLines={1} style={styles.nameText}>{passenger.name}</Text>
             {passenger.isPlus ? <PlusBadge /> : null}
           </View>
-          <Text style={styles.muted}>{passenger.status === 'abordado' ? 'Abordó con QR' : 'Aceptado (sin escanear QR)'}</Text>
+          <Text style={styles.muted}>{passenger.status === 'abordado' ? t('tripSummary.boarded') : t('tripSummary.notScanned')}</Text>
         </View>
         <Rating score={passenger.rating} />
       </View>
-      {passenger.pickupAddress ? <Text style={styles.muted}>Recogida: {passenger.pickupAddress}</Text> : null}
+      {passenger.pickupAddress ? <Text style={styles.muted}>{t('tripChat.members.pickup', { address: passenger.pickupAddress })}</Text> : null}
 
-      <Text style={styles.fieldLabel}>¿Pagó?</Text>
+      <Text style={styles.fieldLabel}>{t('tripSummary.paidQuestion')}</Text>
       <View style={styles.segment}>
         {([true, false] as const).map((value) => {
           const active = passenger.paid === value;
@@ -287,14 +292,14 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
                 name={value ? 'checkmark-circle-outline' : 'close-circle-outline'}
                 size={18}
               />
-              <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>{value ? 'Pagó' : 'No pagó'}</Text>
+              <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>{value ? t('tripSummary.paid') : t('tripSummary.unpaid')}</Text>
             </Pressable>
           );
         })}
         {saving === 'payment' ? <ActivityIndicator color={colors.primary} size="small" /> : null}
       </View>
 
-      <Text style={styles.fieldLabel}>Calificación</Text>
+      <Text style={styles.fieldLabel}>{t('tripSummary.rating')}</Text>
       <View style={styles.ratingRow}>
         <StarRating
           disabled={saving !== null}
@@ -314,7 +319,7 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
               setComment(text);
               setCommentSaved(false);
             }}
-            placeholder="Escribe un comentario sobre este pasajero"
+            placeholder={t('tripSummary.commentPlaceholder')}
             placeholderTextColor={colors.textSecondary}
             style={styles.commentInput}
             value={comment}
@@ -325,16 +330,16 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
               onPress={() => void saveRating(score, comment.trim() || null)}
               style={[styles.commentButton, !score || comment.trim() === savedComment ? styles.disabled : null]}
             >
-              <Text style={styles.commentButtonText}>Guardar comentario</Text>
+              <Text style={styles.commentButtonText}>{t('tripSummary.saveComment')}</Text>
             </Pressable>
-            {commentSaved ? <Text style={styles.saved}>Guardado</Text> : null}
+            {commentSaved ? <Text style={styles.saved}>{t('tripSummary.saved')}</Text> : null}
           </View>
-          {!score ? <Text style={styles.muted}>Primero elige una calificación.</Text> : null}
+          {!score ? <Text style={styles.muted}>{t('tripSummary.rateFirst')}</Text> : null}
         </View>
       ) : (
         <Pressable onPress={() => setCommentOpen(true)} style={styles.addComment}>
           <Ionicons color={colors.primary} name="chatbox-ellipses-outline" size={16} />
-          <Text style={styles.addCommentText}>Dejar un comentario</Text>
+          <Text style={styles.addCommentText}>{t('tripSummary.addComment')}</Text>
         </Pressable>
       )}
       {error ? <Notice tone="error">{error}</Notice> : null}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { colors } from '@/constants/colors';
@@ -33,6 +34,7 @@ const SAME_SPOT_KM = 0.015;
  * coordinates and a reverse-geocoded address.
  */
 export function MapPickerModal({ visible, title, initial, near, onConfirm, onClose }: MapPickerModalProps) {
+  const { t } = useTranslation();
   const mapRef = useRef<MapHandle>(null);
   const start = initial ?? near;
   const [point, setPoint] = useState<Location | null>(null);
@@ -81,7 +83,7 @@ export function MapPickerModal({ visible, title, initial, near, onConfirm, onClo
 
   const search = async () => {
     if (query.trim().length < 3) {
-      setSearchError('Escribe al menos 3 letras.');
+      setSearchError(t('place.minLetters'));
       return;
     }
     setSearching(true);
@@ -89,9 +91,9 @@ export function MapPickerModal({ visible, title, initial, near, onConfirm, onClo
     try {
       const found = await locationService.search(query, near ?? point);
       setResults(found);
-      if (!found.length) setSearchError('No encontramos ese lugar. Prueba con otro nombre o toca el mapa.');
+      if (!found.length) setSearchError(t('mapPicker.notFound'));
     } catch {
-      setSearchError('No se pudo buscar. Revisa tu conexión o toca el mapa.');
+      setSearchError(t('mapPicker.searchFailed'));
     } finally {
       setSearching(false);
     }
@@ -130,7 +132,7 @@ export function MapPickerModal({ visible, title, initial, near, onConfirm, onClo
 
         <SafeAreaView edges={['top']} style={styles.top}>
           <View style={styles.header}>
-            <Pressable accessibilityLabel="Cerrar mapa" hitSlop={8} onPress={onClose} style={styles.close}>
+            <Pressable accessibilityLabel={t('mapPicker.close')} hitSlop={8} onPress={onClose} style={styles.close}>
               <Ionicons color={colors.text} name="arrow-back" size={22} />
             </Pressable>
             <Text numberOfLines={1} style={styles.title}>{title}</Text>
@@ -143,13 +145,13 @@ export function MapPickerModal({ visible, title, initial, near, onConfirm, onClo
                 setSearchError(null);
               }}
               onSubmitEditing={() => void search()}
-              placeholder="Buscar un lugar o dirección"
+              placeholder={t('mapPicker.placeholder')}
               placeholderTextColor={colors.textSecondary}
               returnKeyType="search"
               style={styles.input}
               value={query}
             />
-            <Pressable accessibilityLabel="Buscar" disabled={searching} onPress={() => void search()} style={styles.searchButton}>
+            <Pressable accessibilityLabel={t('mapPicker.search')} disabled={searching} onPress={() => void search()} style={styles.searchButton}>
               {searching ? <ActivityIndicator color={colors.white} /> : <Ionicons color={colors.white} name="search" size={18} />}
             </Pressable>
           </View>
@@ -170,15 +172,15 @@ export function MapPickerModal({ visible, title, initial, near, onConfirm, onClo
         </SafeAreaView>
 
         <SafeAreaView edges={['bottom']} style={styles.bottom}>
-          <Text style={styles.hint}>Mueve el mapa o tócalo para ubicar el punto exacto.</Text>
+          <Text style={styles.hint}>{t('mapPicker.hint')}</Text>
           <View style={styles.pointCard}>
             {resolving ? <ActivityIndicator color={colors.primary} /> : <Ionicons color="#EF4444" name="location" size={22} />}
             <View style={styles.resultText}>
-              <Text numberOfLines={1} style={styles.resultLabel}>{point?.label ?? 'Elige un punto en el mapa'}</Text>
+              <Text numberOfLines={1} style={styles.resultLabel}>{point?.label ?? t('mapPicker.pickPoint')}</Text>
               {point ? <Text numberOfLines={2} style={styles.resultAddress}>{point.address}</Text> : null}
             </View>
           </View>
-          <ButtonPrimary disabled={!point || resolving} onPress={() => point && onConfirm(point)} title="Confirmar ubicación" />
+          <ButtonPrimary disabled={!point || resolving} onPress={() => point && onConfirm(point)} title={t('mapPicker.confirm')} />
         </SafeAreaView>
       </View>
     </Modal>

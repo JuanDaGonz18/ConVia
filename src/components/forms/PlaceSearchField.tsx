@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { MapPickerModal } from '@/components/map/MapPickerModal';
 import { colors } from '@/constants/colors';
@@ -50,7 +51,7 @@ const TYPING_DELAY_MS = 700;
 
 export function PlaceSearchField({
   label,
-  placeholder = 'Busca una dirección o lugar',
+  placeholder: customPlaceholder,
   value,
   onChange,
   near,
@@ -62,6 +63,8 @@ export function PlaceSearchField({
   leading,
   error: fieldError,
 }: PlaceSearchFieldProps) {
+  const { t } = useTranslation();
+  const placeholder = customPlaceholder ?? t('place.placeholder');
   const bar = variant === 'bar';
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Location[] | null>(null);
@@ -73,7 +76,7 @@ export function PlaceSearchField({
 
   const search = async (text: string, fromTyping = false) => {
     if (text.trim().length < 3) {
-      if (!fromTyping) setError('Escribe al menos 3 letras.');
+      if (!fromTyping) setError(t('place.minLetters'));
       return;
     }
     const id = ++latestSearch.current;
@@ -83,9 +86,9 @@ export function PlaceSearchField({
       const found = await locationService.search(text, near ?? value);
       if (id !== latestSearch.current) return;
       setResults(found);
-      if (!found.length) setError('No encontramos ese lugar. Prueba con más detalle o elígelo en el mapa.');
+      if (!found.length) setError(t('place.notFound'));
     } catch (searchError) {
-      if (id === latestSearch.current) setError(errorMessage(searchError, 'No se pudo buscar el lugar.'));
+      if (id === latestSearch.current) setError(errorMessage(searchError, t('place.searchFailed')));
     } finally {
       if (id === latestSearch.current) setBusy(null);
     }
@@ -108,7 +111,7 @@ export function PlaceSearchField({
       setResults(null);
       setQuery('');
     } catch (gpsError) {
-      setError(errorMessage(gpsError, 'No se pudo obtener tu ubicación.'));
+      setError(errorMessage(gpsError, t('place.gpsFailed')));
     } finally {
       setBusy(null);
     }
@@ -134,7 +137,7 @@ export function PlaceSearchField({
             <Text numberOfLines={1} style={styles.selectedLabel}>{value.label}</Text>
             <Text numberOfLines={bar ? 1 : 2} style={styles.selectedAddress}>{value.address}</Text>
           </View>
-          <Pressable accessibilityLabel="Cambiar lugar" hitSlop={8} onPress={() => onChange(null)}>
+          <Pressable accessibilityLabel={t('place.change')} hitSlop={8} onPress={() => onChange(null)}>
             <Ionicons color={colors.textSecondary} name="close-circle" size={20} />
           </Pressable>
         </View>
@@ -155,7 +158,7 @@ export function PlaceSearchField({
             style={styles.barInput}
             value={query}
           />
-          <Pressable accessibilityLabel="Buscar lugar" disabled={busy !== null} hitSlop={6} onPress={() => void search(query)} style={styles.barIcon}>
+          <Pressable accessibilityLabel={t('place.search')} disabled={busy !== null} hitSlop={6} onPress={() => void search(query)} style={styles.barIcon}>
             {busy === 'search' ? <ActivityIndicator color={colors.primary} size="small" /> : <Ionicons color={colors.primary} name="search" size={20} />}
           </Pressable>
         </View>
@@ -175,7 +178,7 @@ export function PlaceSearchField({
             value={query}
           />
           <Pressable
-            accessibilityLabel="Buscar lugar"
+            accessibilityLabel={t('place.search')}
             disabled={busy !== null}
             onPress={() => void search(query)}
             style={styles.iconButton}
@@ -202,7 +205,7 @@ export function PlaceSearchField({
         >
           {quickPlaces.map((place) => (
             <Pressable
-              accessibilityLabel={`Usar ${place.label}`}
+              accessibilityLabel={t('place.use', { place: place.label })}
               key={place.id}
               onPress={() => select({ ...place, id: `${place.latitude.toFixed(6)},${place.longitude.toFixed(6)}` })}
               style={({ pressed }) => [styles.quickChip, pressed ? styles.quickChipPressed : null]}
@@ -218,13 +221,13 @@ export function PlaceSearchField({
         {allowCurrentLocation && !value ? (
           <Pressable disabled={busy !== null} onPress={() => void pickCurrentLocation()} style={styles.gpsButton}>
             {busy === 'gps' ? <ActivityIndicator color={colors.primary} size="small" /> : <Ionicons color={colors.primary} name="navigate" size={16} />}
-            <Text style={styles.gpsText}>Usar mi ubicación actual</Text>
+            <Text style={styles.gpsText}>{t('place.useCurrent')}</Text>
           </Pressable>
         ) : null}
         {mapLink === 'always' || (mapLink === 'afterSelection' && value) ? (
           <Pressable onPress={() => setShowMap(true)} style={styles.gpsButton}>
             <Ionicons color={colors.primary} name="map-outline" size={16} />
-            <Text style={styles.gpsText}>{value ? 'Ajustar en el mapa' : 'Elegir en el mapa'}</Text>
+            <Text style={styles.gpsText}>{value ? t('place.adjustOnMap') : t('place.pickOnMap')}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -237,7 +240,7 @@ export function PlaceSearchField({
           setShowMap(false);
           select(location);
         }}
-        title={mapTitle ?? label ?? 'Elige el lugar'}
+        title={mapTitle ?? label ?? t('place.pickTitle')}
         visible={showMap}
       />
 

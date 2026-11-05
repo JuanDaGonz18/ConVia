@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { MapPickerModal } from '@/components/map/MapPickerModal';
 import { colors } from '@/constants/colors';
@@ -10,6 +11,7 @@ import { typography } from '@/constants/typography';
 import { AppMap, MapHandle, MapLine, MapMarker } from '@/maps';
 import { locationService, RoutePreview } from '@/services/locationService';
 import { Location, TripRoute } from '@/types';
+import { formatDistance } from '@/utils/format';
 
 const MAX_STOPS = 3;
 const EDGE_PADDING = { top: 40, right: 40, bottom: 40, left: 40 };
@@ -21,10 +23,6 @@ type RoutePickerProps = Readonly<{
   initialRoute?: TripRoute;
   onChange: (route: TripRoute | null) => void;
 }>;
-
-function formatKm(km: number) {
-  return `${km.toFixed(1).replace('.', ',')} km`;
-}
 
 /** The option closest in length to a saved route, to keep the driver's earlier choice. */
 function closestTo(routes: RoutePreview[], km: number) {
@@ -40,6 +38,7 @@ function closestTo(routes: RoutePreview[], km: number) {
  * up to three stops the trip must pass through. Reports the chosen route.
  */
 export function RoutePicker({ origin, destination, initialRoute, onChange }: RoutePickerProps) {
+  const { t } = useTranslation();
   const mapRef = useRef<MapHandle>(null);
   const [stops, setStops] = useState<Location[]>(initialRoute?.via ?? []);
   const [routes, setRoutes] = useState<RoutePreview[]>([]);
@@ -127,23 +126,23 @@ export function RoutePicker({ origin, destination, initialRoute, onChange }: Rou
         {loading ? (
           <View style={styles.mapOverlay}>
             <ActivityIndicator color={colors.primary} />
-            <Text style={styles.overlayText}>Calculando rutas…</Text>
+            <Text style={styles.overlayText}>{t('routePicker.calculating')}</Text>
           </View>
         ) : null}
       </View>
 
       {failed ? (
         <Text style={styles.warning}>
-          No pudimos calcular la ruta por carretera en este momento. Puedes publicar igual; los pasajeros verán una línea recta.
+          {t('routePicker.failed')}
         </Text>
       ) : null}
 
-      {routes.length > 1 ? <Text style={styles.hint}>Toca una opción o una línea gris del mapa para elegirla.</Text> : null}
+      {routes.length > 1 ? <Text style={styles.hint}>{t('routePicker.hint')}</Text> : null}
       {routes.map((route, index) => {
         const active = index === selected;
         return (
           <Pressable
-            accessibilityLabel={`Ruta ${index + 1}: ${formatKm(route.km)}, ${route.minutes} minutos`}
+            accessibilityLabel={t('routePicker.optionLabel', { number: index + 1, distance: formatDistance(route.km), minutes: route.minutes })}
             accessibilityRole="radio"
             accessibilityState={{ selected: active }}
             key={`option-${index}`}
@@ -153,21 +152,21 @@ export function RoutePicker({ origin, destination, initialRoute, onChange }: Rou
             <Ionicons color={active ? colors.primary : colors.textSecondary} name={active ? 'radio-button-on' : 'radio-button-off'} size={20} />
             <View style={styles.optionText}>
               <Text style={styles.optionTitle}>
-                {stops.length ? 'Ruta por tus paradas' : `Ruta ${index + 1}`}
-                {!stops.length && route.minutes === fastest && routes.length > 1 ? ' · más rápida' : ''}
+                {stops.length ? t('routePicker.viaStops') : t('routePicker.option', { number: index + 1 })}
+                {!stops.length && route.minutes === fastest && routes.length > 1 ? t('routePicker.fastest') : ''}
               </Text>
-              <Text style={styles.optionMeta}>{formatKm(route.km)} · unos {route.minutes} min sin tráfico</Text>
+              <Text style={styles.optionMeta}>{t('routePicker.meta', { distance: formatDistance(route.km), minutes: route.minutes })}</Text>
             </View>
           </Pressable>
         );
       })}
 
-      {stops.length ? <Text style={styles.label}>Pasa por</Text> : null}
+      {stops.length ? <Text style={styles.label}>{t('routePicker.passesThrough')}</Text> : null}
       {stops.map((stop, index) => (
         <View key={stop.id} style={styles.stopRow}>
           <View style={[styles.pin, styles.stopPin]}><Text style={styles.stopNumber}>{index + 1}</Text></View>
           <Text numberOfLines={1} style={styles.stopLabel}>{stop.label}</Text>
-          <Pressable accessibilityLabel={`Quitar parada ${stop.label}`} hitSlop={8} onPress={() => setStops(stops.filter((item) => item.id !== stop.id))}>
+          <Pressable accessibilityLabel={t('routePicker.removeStop', { place: stop.label })} hitSlop={8} onPress={() => setStops(stops.filter((item) => item.id !== stop.id))}>
             <Ionicons color={colors.textSecondary} name="close-circle" size={20} />
           </Pressable>
         </View>
@@ -175,7 +174,7 @@ export function RoutePicker({ origin, destination, initialRoute, onChange }: Rou
       {stops.length < MAX_STOPS ? (
         <Pressable onPress={() => setAddingStop(true)} style={styles.addStop}>
           <Ionicons color={colors.primary} name="add-circle-outline" size={18} />
-          <Text style={styles.addStopText}>{stops.length ? 'Agregar otra parada' : 'Pasar por un lugar específico'}</Text>
+          <Text style={styles.addStopText}>{stops.length ? t('routePicker.addAnotherStop') : t('routePicker.addStop')}</Text>
         </Pressable>
       ) : null}
 
@@ -186,7 +185,7 @@ export function RoutePicker({ origin, destination, initialRoute, onChange }: Rou
           setAddingStop(false);
           setStops([...stops, stop]);
         }}
-        title={`Parada ${stops.length + 1}`}
+        title={t('routePicker.stopTitle', { number: stops.length + 1 })}
         visible={addingStop}
       />
     </View>

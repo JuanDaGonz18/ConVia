@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { TextField } from '@/components/forms/TextField';
 import { Avatar } from '@/components/ui/Avatar';
@@ -15,7 +16,6 @@ import { typography } from '@/constants/typography';
 import { tripService } from '@/services/tripService';
 import { errorMessage } from '@/utils/format';
 
-const SCORE_LABELS = ['', 'Muy mala', 'Mala', 'Regular', 'Buena', 'Excelente'];
 
 export type RateDriverTarget = {
   tripId: string;
@@ -32,6 +32,7 @@ type RateDriverModalProps = Readonly<{
 
 /** The passenger rates the driver of a finished trip: stars plus an optional comment. */
 export function RateDriverModal({ target, onClose, onRated }: RateDriverModalProps) {
+  const { t } = useTranslation();
   const [score, setScore] = useState(0);
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
@@ -57,13 +58,13 @@ export function RateDriverModal({ target, onClose, onRated }: RateDriverModalPro
     setError(null);
     try {
       await tripService.rateDriver(target.tripId, score, comment.trim() || null);
-      toast.success(`¡Gracias por calificar a ${target.driver.name}!`);
+      toast.success(t('rateDriver.thanks', { name: target.driver.name }));
       onRated(target.tripId, score);
       setScore(0);
       setComment('');
       onClose();
     } catch (saveError) {
-      setError(errorMessage(saveError, 'No se pudo guardar la calificación. Inténtalo de nuevo.'));
+      setError(errorMessage(saveError, t('rateDriver.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -72,12 +73,12 @@ export function RateDriverModal({ target, onClose, onRated }: RateDriverModalPro
   return (
     <Modal animationType="fade" onRequestClose={close} statusBarTranslucent transparent visible={target !== null}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
-        <Pressable accessibilityLabel="Cerrar" onPress={close} style={styles.overlay}>
+        <Pressable accessibilityLabel={t('common.close')} onPress={close} style={styles.overlay}>
           <Pressable onPress={() => undefined} style={styles.dialog}>
             {target ? (
               <>
                 <Avatar imageUrl={target.driver.avatarUrl} name={target.driver.name} size={56} />
-                <Text style={styles.title}>¿Cómo te fue con {target.driver.name}?</Text>
+                <Text style={styles.title}>{t('rateDriver.question', { name: target.driver.name })}</Text>
                 <Text style={styles.trip}>{target.tripLabel}</Text>
 
                 <View style={styles.stars}>
@@ -91,18 +92,18 @@ export function RateDriverModal({ target, onClose, onRated }: RateDriverModalPro
                     size={38}
                   />
                   <Text style={[styles.scoreLabel, scoreMissing ? styles.scoreMissing : null]}>
-                    {scoreMissing ? 'Elige de 1 a 5 estrellas.' : SCORE_LABELS[score] || 'Toca una estrella'}
+                    {scoreMissing ? t('rateDriver.pickStars') : score ? t(`rateDriver.score.${score}`) : t('rateDriver.tapStar')}
                   </Text>
                 </View>
 
                 <View style={styles.field}>
                   <TextField
-                    hint="Opcional. Lo verá el conductor."
-                    label="Comentario"
+                    hint={t('rateDriver.commentHint')}
+                    label={t('rateDriver.commentLabel')}
                     maxLength={500}
                     multiline
                     onChangeText={setComment}
-                    placeholder="Cuéntanos cómo fue el viaje"
+                    placeholder={t('rateDriver.commentPlaceholder')}
                     style={styles.comment}
                     value={comment}
                   />
@@ -111,8 +112,8 @@ export function RateDriverModal({ target, onClose, onRated }: RateDriverModalPro
                 {error ? <Notice tone="error">{error}</Notice> : null}
 
                 <View style={styles.actions}>
-                  <ButtonPrimary loading={saving} loadingTitle="Enviando…" onPress={() => void submit()} title="Enviar calificación" />
-                  <ButtonSecondary disabled={saving} onPress={close} title="Ahora no" />
+                  <ButtonPrimary loading={saving} loadingTitle={t('rateDriver.sending')} onPress={() => void submit()} title={t('rateDriver.send')} />
+                  <ButtonSecondary disabled={saving} onPress={close} title={t('rateDriver.notNow')} />
                 </View>
               </>
             ) : null}

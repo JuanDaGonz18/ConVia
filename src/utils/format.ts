@@ -1,3 +1,4 @@
+import i18n, { localeTag } from '@/i18n';
 import { CAPABILITIES, capabilityFromError, LIMIT_INFO, planLimitFromError } from '@/subscription/plans';
 
 function toDate(value: string | Date) {
@@ -12,7 +13,7 @@ function isSameDay(a: Date, b: Date) {
 export function formatDateTime(value: string) {
   const date = toDate(value);
   if (!date) return value;
-  return date.toLocaleString('es-CO', {
+  return date.toLocaleString(localeTag(), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -26,29 +27,36 @@ export function formatMessageTime(value: string) {
   const date = toDate(value);
   if (!date) return '';
   const now = new Date();
-  if (isSameDay(date, now)) return date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+  if (isSameDay(date, now)) return date.toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' });
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  if (isSameDay(date, yesterday)) return 'ayer';
-  return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+  if (isSameDay(date, yesterday)) return i18n.t('common.yesterday');
+  return date.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' });
+}
+
+/** "350 m", "3,2 km" ("3.2 km" in English); never below 50 m. */
+export function formatDistance(km: number) {
+  if (km < 1) return i18n.t('distance.meters', { value: Math.max(50, Math.round((km * 1000) / 50) * 50) });
+  return i18n.t('distance.km', { value: km.toLocaleString(localeTag(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) });
 }
 
 export function formatPrice(value: number) {
-  return `$${value.toLocaleString('es-CO')}`;
+  // Pesos with the language's digit grouping: $12.000 in Spanish, $12,000 in English.
+  return `$${value.toLocaleString(localeTag())}`;
 }
 
 // Technical errors from the network, Supabase or Postgres, mapped to messages a
 // user can act on. Messages raised by our own database functions are already in
-// Spanish and are shown as they are.
+// Spanish and are shown as they are. The second value is a key under errors.*.
 const FRIENDLY_ERRORS: [RegExp, string][] = [
-  [/network request failed|failed to fetch|fetch failed|networkerror|timed? ?out|aborted/i, 'Sin conexión. Revisa tu internet e inténtalo de nuevo.'],
-  [/jwt|refresh token|session (?:not found|expired|missing)|auth_required|not authenticated/i, 'Tu sesión expiró. Cierra sesión y vuelve a ingresar.'],
-  [/row-level security|permission denied|not authorized|unauthorized/i, 'No tienes permiso para realizar esta acción.'],
-  [/duplicate key|already exists|unique constraint/i, 'Ese registro ya existe.'],
-  [/rate limit|too many requests/i, 'Demasiados intentos. Espera un momento e inténtalo de nuevo.'],
-  [/supabase_env_missing|supabase_required/i, 'La app no está conectada al servidor. Contacta al administrador.'],
-  [/PERFIL_NO_ENCONTRADO/, 'Tu cuenta no tiene perfil en ConVía. Contacta al administrador.'],
-  [/DOMINIO_NO_PERMITIDO/, 'Usa el correo de tu institución (por ejemplo @unisabana.edu.co).'],
+  [/network request failed|failed to fetch|fetch failed|networkerror|timed? ?out|aborted/i, 'offline'],
+  [/jwt|refresh token|session (?:not found|expired|missing)|auth_required|not authenticated/i, 'session'],
+  [/row-level security|permission denied|not authorized|unauthorized/i, 'permission'],
+  [/duplicate key|already exists|unique constraint/i, 'duplicate'],
+  [/rate limit|too many requests/i, 'rateLimit'],
+  [/supabase_env_missing|supabase_required/i, 'notConnected'],
+  [/PERFIL_NO_ENCONTRADO/, 'noProfile'],
+  [/DOMINIO_NO_PERMITIDO/, 'domain'],
 ];
 
 // Signs that a message is an internal/technical one we should not show verbatim.
@@ -61,7 +69,7 @@ export function rawErrorMessage(error: unknown) {
   return '';
 }
 
-/** A message safe to show to the user, in Spanish. */
+/** A message safe to show to the user, in their language (server messages stay in Spanish). */
 export function errorMessage(error: unknown, fallback: string) {
   const message = rawErrorMessage(error).trim();
   if (!message) return fallback;
@@ -73,8 +81,8 @@ export function errorMessage(error: unknown, fallback: string) {
   const capability = capabilityFromError(message);
   if (capability) return `${CAPABILITIES[capability].title} es parte de ConVía+.`;
 
-  for (const [pattern, friendly] of FRIENDLY_ERRORS) {
-    if (pattern.test(message)) return friendly;
+  for (const [pattern, key] of FRIENDLY_ERRORS) {
+    if (pattern.test(message)) return i18n.t(`errors.${key}`);
   }
   if (TECHNICAL_ERROR.test(message)) {
     if (__DEV__) console.warn('[error]', message);

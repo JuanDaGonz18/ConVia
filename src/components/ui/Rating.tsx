@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
@@ -10,12 +11,13 @@ type RatingProps = {
 };
 
 export function Rating({ score }: RatingProps) {
+  const { t } = useTranslation();
   // Nobody has rated this person yet; "0.0" would read as a bad rating.
   const rated = score > 0;
   return (
-    <View accessibilityLabel={rated ? `Calificación ${score.toFixed(1)} de 5` : 'Sin calificaciones todavía'} style={styles.container}>
+    <View accessibilityLabel={rated ? t('rating.label', { score: score.toFixed(1) }) : t('rating.none')} style={styles.container}>
       <Ionicons color={rated ? colors.warning : colors.textSecondary} name={rated ? 'star' : 'star-outline'} size={16} />
-      <Text style={styles.score}>{rated ? score.toFixed(1) : 'Nuevo'}</Text>
+      <Text style={styles.score}>{rated ? score.toFixed(1) : t('rating.new')}</Text>
     </View>
   );
 }

@@ -1,6 +1,7 @@
 import { FaceVerificationFailureReason, FaceVerificationResult, FaceVerificationTrigger } from '@/types';
 import { ensureSupabaseConfigured, isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { computeFaceEmbedding, FaceCheckError } from '@/services/faceRecognition';
+import i18n from '@/i18n';
 
 type SubmitResponse = {
   result: 'verified' | 'not_verified';
@@ -30,14 +31,14 @@ const errorResult = (message: string, failureReason: FaceVerificationResult['fai
  */
 export const faceVerificationService = {
   async verifyPhoto(_userId: string, uri: string, trigger: FaceVerificationTrigger): Promise<FaceVerificationResult> {
-    if (!isSupabaseEnabled) return errorResult('La verificación facial requiere conexión con Supabase.', 'network_error');
+    if (!isSupabaseEnabled) return errorResult(i18n.t('face.needsServer'), 'network_error');
 
     let embedding: number[];
     try {
       embedding = await computeFaceEmbedding(uri);
     } catch (error) {
       if (error instanceof FaceCheckError) return errorResult(error.message, error.reason);
-      return errorResult('No se pudo procesar la foto. Inténtalo de nuevo.', 'model_unavailable');
+      return errorResult(i18n.t('face.processFailed'), 'model_unavailable');
     }
 
     try {
@@ -58,15 +59,11 @@ export const faceVerificationService = {
         similarity: response.similarity ?? 1,
         failureReason: verified ? undefined : 'face_mismatch',
         message: verified
-          ? response.enrolled ? 'Rostro registrado.' : againstLicense ? 'Tu identidad coincide con la foto de tu licencia.' : 'Identidad verificada.'
-          : response.reason === 'LICENSE_PHOTO_RECAPTURE'
-            ? 'Parece una foto de la licencia, no una selfie en vivo. Toma la selfie directamente a tu rostro.'
-            : againstLicense
-              ? 'Tu rostro no coincide con la foto de tu licencia. Inténtalo de frente y con buena luz.'
-              : 'El rostro no coincide con el registrado. Inténtalo de frente y con buena luz.',
+          ? i18n.t(response.enrolled ? 'face.enrolled' : againstLicense ? 'face.matchesLicense' : 'face.verified')
+          : i18n.t(response.reason === 'LICENSE_PHOTO_RECAPTURE' ? 'face.recapture' : againstLicense ? 'face.licenseMismatch' : 'face.mismatch'),
       };
     } catch {
-      return errorResult('No se pudo conectar con el servidor. Revisa tu conexión.', 'network_error');
+      return errorResult(i18n.t('face.connectFailed'), 'network_error');
     }
   },
 
@@ -77,13 +74,13 @@ export const faceVerificationService = {
    * the license is authentic or officially registered.
    */
   async submitLicensePhoto(uri: string): Promise<{ ok: true } | { ok: false; message: string; reason: FaceVerificationFailureReason }> {
-    if (!isSupabaseEnabled) return { ok: false, message: 'Esta función requiere conexión con Supabase.', reason: 'network_error' };
+    if (!isSupabaseEnabled) return { ok: false, message: i18n.t('face.featureNeedsServer'), reason: 'network_error' };
     let embedding: number[];
     try {
       embedding = await computeFaceEmbedding(uri, 'document');
     } catch (error) {
       if (error instanceof FaceCheckError) return { ok: false, message: error.message, reason: error.reason };
-      return { ok: false, message: 'No se pudo procesar la foto. Inténtalo de nuevo.', reason: 'model_unavailable' };
+      return { ok: false, message: i18n.t('face.processFailed'), reason: 'model_unavailable' };
     }
     try {
       ensureSupabaseConfigured();
@@ -94,7 +91,7 @@ export const faceVerificationService = {
       }
       return { ok: true };
     } catch {
-      return { ok: false, message: 'No se pudo conectar con el servidor. Revisa tu conexión.', reason: 'network_error' };
+      return { ok: false, message: i18n.t('face.connectFailed'), reason: 'network_error' };
     }
   },
 };
@@ -103,5 +100,5 @@ export const faceVerificationService = {
 function serverError(message: string): FaceVerificationResult {
   if (message.includes('Demasiados intentos')) return errorResult(message, 'too_many_attempts');
   if (/licencia|suspendido/i.test(message)) return errorResult(message, 'storage_error');
-  return errorResult('No se pudo registrar la verificación. Revisa tu conexión e inténtalo de nuevo.', 'network_error');
+  return errorResult(i18n.t('face.recordFailed'), 'network_error');
 }

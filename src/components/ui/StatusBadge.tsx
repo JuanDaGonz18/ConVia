@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
@@ -6,24 +7,15 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { TripStatus } from '@/types';
 
-const labels: Record<TripStatus, string> = {
-  pending: 'Programado',
-  accepted: 'Aceptado',
-  driver_arriving: 'En camino',
-  started: 'Iniciado',
-  completed: 'Finalizado',
-  cancelled: 'Cancelado',
-  not_started: 'No iniciado',
-};
-
 type StatusBadgeProps = {
   status: TripStatus;
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.badge}>
-      <Text style={styles.text}>{labels[status]}</Text>
+      <Text style={styles.text}>{t(`tripCardStatus.${status}`)}</Text>
     </View>
   );
 }

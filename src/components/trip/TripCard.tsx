@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Avatar } from '@/components/ui/Avatar';
@@ -23,6 +24,7 @@ type TripCardProps = {
 };
 
 export function TripCard({ trip, onChatPress, onTripPress, match }: TripCardProps) {
+  const { t } = useTranslation();
   const highlighted = !!match && (match.level === 'excellent' || match.level === 'good');
   return (
     <Pressable disabled={!onTripPress} onPress={onTripPress} style={[styles.card, highlighted ? styles.cardHighlighted : null]}>
@@ -42,7 +44,7 @@ export function TripCard({ trip, onChatPress, onTripPress, match }: TripCardProp
         <View style={styles.headerRight}>
           {onChatPress ? (
             <Pressable
-              accessibilityLabel="Abrir chat con conductor"
+              accessibilityLabel={t('tripCard.chat')}
               onPress={onChatPress}
               style={styles.chatIconBtn}
             >
@@ -54,9 +56,9 @@ export function TripCard({ trip, onChatPress, onTripPress, match }: TripCardProp
       </View>
 
       <View style={styles.route}>
-        <Text style={styles.routeLabel}>Origen</Text>
+        <Text style={styles.routeLabel}>{t('tripCard.origin')}</Text>
         <Text style={styles.routeText}>{trip.origin.address}</Text>
-        <Text style={styles.routeLabel}>Destino</Text>
+        <Text style={styles.routeLabel}>{t('tripCard.destination')}</Text>
         <Text style={styles.routeText}>{trip.destination.address}</Text>
       </View>
 
@@ -74,7 +76,7 @@ export function TripCard({ trip, onChatPress, onTripPress, match }: TripCardProp
       ) : null}
 
       <View style={styles.footer}>
-        <Text style={styles.meta}>{formatDateTime(trip.departureTime)} • {trip.seatsAvailable} cupos</Text>
+        <Text style={styles.meta}>{formatDateTime(trip.departureTime)} • {t('tripCard.seats', { count: trip.seatsAvailable })}</Text>
         <Text style={styles.price}>{formatPrice(trip.price)}</Text>
       </View>
     </Pressable>

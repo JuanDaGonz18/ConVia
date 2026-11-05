@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
@@ -14,10 +15,11 @@ type StarRatingProps = Readonly<{
 }>;
 
 export function StarRating({ score, total = 5, size = 16, onChange, disabled = false }: StarRatingProps) {
+  const { t } = useTranslation();
   const stars = Array.from({ length: total }, (_, index) => index + 1);
   if (!onChange) {
     return (
-      <View accessibilityLabel={`${score} de ${total}`} style={styles.container}>
+      <View accessibilityLabel={t('stars.outOf', { score, total })} style={styles.container}>
         {stars.map((value) => (
           <Ionicons color={value <= Math.round(score) ? colors.warning : colors.lightGray} key={value} name="star" size={size} />
         ))}
@@ -28,7 +30,7 @@ export function StarRating({ score, total = 5, size = 16, onChange, disabled = f
     <View accessibilityRole="adjustable" accessibilityValue={{ min: 0, max: total, now: score }} style={styles.container}>
       {stars.map((value) => (
         <Pressable
-          accessibilityLabel={`${value} estrella${value === 1 ? '' : 's'}`}
+          accessibilityLabel={t('stars.star', { count: value })}
           disabled={disabled}
           hitSlop={4}
           key={value}

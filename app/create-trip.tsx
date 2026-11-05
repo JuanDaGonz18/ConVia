@@ -4,6 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
+import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { requirePlus } from '@/components/subscription/PlusGate';
@@ -30,6 +31,7 @@ import { useAppStore } from '@/store/appStore';
 import { usePlan } from '@/subscription/usePlan';
 import { Location, TripRoute, Vehicle } from '@/types';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
+import i18n, { localeTag } from '@/i18n';
 
 type PickerMode = 'date' | 'time' | 'end' | null;
 
@@ -77,6 +79,7 @@ function fromLocalDate(value: string) {
 }
 
 export default function CreateTripScreen() {
+  const { t } = useTranslation();
   // ?repeatFrom=<id> copies a previous trip; ?edit=<id> edits a published one;
   // ?recurring=<id> edits a weekly schedule.
   // ?weekly=1 starts a new weekly schedule.
@@ -131,7 +134,7 @@ export default function CreateTripScreen() {
         // Keep the driver's choice while it still exists; otherwise the newest vehicle.
         setVehicleId((current) => (current && saved.some((item) => item.id === current) ? current : saved[0]?.id ?? null));
         if (saved[0]) setSeats((current) => current || String(Math.min(saved[0].seats ?? 1, MAX_SEATS)));
-      }).catch(() => setError('No se pudieron cargar tus vehículos.'))
+      }).catch(() => setError(i18n.t('createTrip.vehiclesFailed')))
         .finally(() => setVehicleLoaded(true));
     }, []),
   );
@@ -141,7 +144,7 @@ export default function CreateTripScreen() {
     const latitude = Number(destLat);
     const longitude = Number(destLng);
     if (sourceId || recurring || !destLat || !destLng || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-    const label = destLabel || 'Destino elegido en el mapa';
+    const label = destLabel || i18n.t('createTrip.mapDestination');
     const timer = setTimeout(() => setDestination({
       id: `${latitude.toFixed(6)},${longitude.toFixed(6)}`,
       label,
@@ -160,7 +163,7 @@ export default function CreateTripScreen() {
       if (!active) return;
       const schedule = schedules.find((item) => item.id === recurring);
       if (!schedule) {
-        setError('No se encontró el viaje recurrente.');
+        setError(i18n.t('createTrip.recurringNotFound'));
         return;
       }
       setOrigin(schedule.origin);
@@ -179,7 +182,7 @@ export default function CreateTripScreen() {
       setDeparture(first);
       setDays(schedule.days);
       setEndDate(schedule.endDate ? fromLocalDate(schedule.endDate) : null);
-    }).catch((loadError) => active && setError(errorMessage(loadError, 'No se pudo cargar el viaje recurrente.')));
+    }).catch((loadError) => active && setError(errorMessage(loadError, i18n.t('createTrip.recurringLoadFailed'))));
     return () => { active = false; };
   }, [recurring]);
 
@@ -201,7 +204,7 @@ export default function CreateTripScreen() {
     void tripService.getTripTemplate(sourceId).then((template) => {
       if (!active) return;
       if (!template) {
-        setError('No se encontró el viaje.');
+        setError(i18n.t('createTrip.tripNotFound'));
         return;
       }
       const templateOrigin = templatePlace(template.origin);
@@ -220,13 +223,13 @@ export default function CreateTripScreen() {
         setAcceptedCount(template.acceptedCount);
         if (template.status !== 'por_empezar') {
           setEditable(false);
-          setError('Este viaje ya empezó o terminó, así que no se puede editar.');
+          setError(i18n.t('createTrip.notEditable'));
         }
       } else {
         setDeparture(nextOccurrence(template.departureAt));
       }
       setRepeated(true);
-    }).catch((loadError) => active && setError(errorMessage(loadError, 'No se pudo cargar el viaje.')));
+    }).catch((loadError) => active && setError(errorMessage(loadError, i18n.t('createTrip.tripLoadFailed'))));
     return () => { active = false; };
   }, [edit, sourceId]);
 
@@ -251,25 +254,25 @@ export default function CreateTripScreen() {
     const parsedPrice = Number(price);
     const parsedSeats = Number(seats);
     const found: FieldErrors = {};
-    if (!vehicle) found.vehicle = vehicles.length ? 'Elige el vehículo del viaje.' : 'Registra un vehículo antes de publicar un viaje.';
-    else if (!vehicle.photoUrl && !edit) found.vehicle = 'Agrega una foto de este vehículo: los pasajeros la ven antes de pedir un cupo.';
-    if (!origin) found.origin = 'Elige el punto de salida.';
-    if (!destination) found.destination = 'Elige el destino.';
-    else if (origin && locationService.distanceKm(origin, destination) < 0.3) found.destination = 'El destino debe ser distinto al punto de salida.';
+    if (!vehicle) found.vehicle = vehicles.length ? t('createTrip.errors.pickVehicle') : t('createTrip.errors.noVehicle');
+    else if (!vehicle.photoUrl && !edit) found.vehicle = t('createTrip.errors.vehiclePhoto');
+    if (!origin) found.origin = t('createTrip.errors.origin');
+    if (!destination) found.destination = t('createTrip.errors.destination');
+    else if (origin && locationService.distanceKm(origin, destination) < 0.3) found.destination = t('createTrip.errors.sameEnds');
     if (weekly) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      if (departure < today) found.departure = 'La fecha de inicio no puede estar en el pasado.';
-      if (!days.length) found.days = 'Elige al menos un día de la semana.';
+      if (departure < today) found.departure = t('createTrip.errors.startPast');
+      if (!days.length) found.days = t('createTrip.errors.days');
       else if (endDate && endDate < new Date(departure.getFullYear(), departure.getMonth(), departure.getDate())) {
-        found.days = 'La fecha final debe ser después del inicio.';
+        found.days = t('createTrip.errors.endBeforeStart');
       }
-    } else if (departure <= new Date()) found.departure = 'La salida debe ser en el futuro.';
-    if (!price.trim()) found.price = 'Escribe el precio por cupo.';
-    else if (!Number.isInteger(parsedPrice) || parsedPrice < 0) found.price = 'Escribe solo números, sin puntos ni decimales.';
-    if (!Number.isInteger(parsedSeats) || parsedSeats < 1 || parsedSeats > MAX_SEATS) found.seats = `Elige entre 1 y ${MAX_SEATS} cupos.`;
+    } else if (departure <= new Date()) found.departure = t('createTrip.errors.departurePast');
+    if (!price.trim()) found.price = t('createTrip.errors.price');
+    else if (!Number.isInteger(parsedPrice) || parsedPrice < 0) found.price = t('createTrip.errors.priceNumber');
+    if (!Number.isInteger(parsedSeats) || parsedSeats < 1 || parsedSeats > MAX_SEATS) found.seats = t('createTrip.errors.seatsRange', { max: MAX_SEATS });
     else if (vehicle && parsedSeats > (vehicle.seats ?? MAX_SEATS)) {
-      found.seats = `Tu vehículo tiene ${vehicle.seats} puesto${vehicle.seats === 1 ? '' : 's'} para pasajeros. Actualízalo para ofrecer ${parsedSeats} cupos.`;
+      found.seats = t('createTrip.errors.seatsVehicle', { count: vehicle.seats, seats: parsedSeats });
     }
     return found;
   };
@@ -321,56 +324,56 @@ export default function CreateTripScreen() {
           description: description.trim() || undefined,
         }, recurring);
         toast.success(result.created
-          ? `Listo. Publicamos ${result.created} viaje${result.created === 1 ? '' : 's'} de los próximos 7 días`
-          : 'Viaje recurrente guardado. Publicaremos cada viaje 7 días antes');
+          ? t('createTrip.recurringCreated', { count: result.created })
+          : t('createTrip.recurringSaved'));
         router.replace('/recurring-trips');
         return;
       }
       if (edit) {
         const { changes, notified } = await tripService.updateTrip(edit, input);
         if (!changes.length) {
-          setNotice('No hiciste cambios.');
+          setNotice(t('createTrip.noChanges'));
           return;
         }
         setNotice(notified
-          ? `Viaje actualizado. Avisamos a ${notified} pasajero${notified === 1 ? '' : 's'}: ${changes.join('; ')}.`
-          : 'Viaje actualizado.');
+          ? t('createTrip.updatedNotified', { count: notified, changes: changes.join('; ') })
+          : t('createTrip.updated'));
         setTimeout(() => router.back(), 1800);
         return;
       }
       await tripService.createTrip(input);
-      toast.success('¡Viaje publicado! Te avisaremos cuando alguien pida un cupo');
+      toast.success(t('createTrip.published'));
       router.replace('/(tabs)/trips');
     } catch (publishError) {
       setError(rawErrorMessage(publishError).includes('row-level security')
-        ? 'Solo conductores con identidad verificada pueden publicar viajes. Verifícate desde tu perfil.'
-        : errorMessage(publishError, 'No se pudo publicar el viaje.'));
+        ? t('createTrip.notVerified')
+        : errorMessage(publishError, t('createTrip.publishFailed')));
     } finally {
       setLoading(false);
     }
   };
 
-  const dateLabel = departure.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-  const timeLabel = departure.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+  const dateLabel = departure.toLocaleDateString(localeTag(), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const timeLabel = departure.toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' });
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <ScreenHeader
-          kicker={edit ? 'VIAJE PUBLICADO' : recurring ? 'VIAJE RECURRENTE' : repeatFrom ? 'REPETIR VIAJE' : 'NUEVO VIAJE'}
-          title={edit ? 'Editar viaje' : recurring ? 'Editar horario semanal' : 'Publicar viaje'}
+          kicker={t(`createTrip.kicker.${edit ? 'edit' : recurring ? 'recurring' : repeatFrom ? 'repeat' : 'new'}`)}
+          title={t(`createTrip.title.${edit ? 'edit' : recurring ? 'recurring' : 'new'}`)}
         />
         {repeated && !edit ? (
           <View style={styles.repeatBanner}>
             <Ionicons color={colors.primary} name="repeat" size={20} />
-            <Text style={styles.repeatText}>Copiamos tu viaje anterior. Revisa la fecha y la hora, cambia lo que necesites y publícalo.</Text>
+            <Text style={styles.repeatText}>{t('createTrip.repeated')}</Text>
           </View>
         ) : null}
         {edit && acceptedCount > 0 ? (
           <View style={styles.repeatBanner}>
             <Ionicons color={colors.warning} name="notifications-outline" size={20} />
             <Text style={styles.repeatText}>
-              Tienes {acceptedCount} pasajero{acceptedCount === 1 ? '' : 's'} aceptado{acceptedCount === 1 ? '' : 's'}. Les avisaremos qué cambiaste.
+              {t('createTrip.accepted', { count: acceptedCount })}
             </Text>
           </View>
         ) : null}
@@ -378,10 +381,10 @@ export default function CreateTripScreen() {
         {driverStatus !== 'aprobado' ? <DriverApprovalNotice status={driverStatus} /> : null}
         {error ? <Notice tone="error">{error}</Notice> : null}
 
-        <Text style={styles.label}>Vehículo</Text>
-        {!vehicleLoaded ? <Text style={styles.subtitle}>Cargando tus vehículos…</Text> : null}
+        <Text style={styles.label}>{t('createTrip.vehicle')}</Text>
+        {!vehicleLoaded ? <Text style={styles.subtitle}>{t('createTrip.loadingVehicles')}</Text> : null}
         {vehicleLoaded && !vehicles.length ? (
-          <ButtonSecondary onPress={() => router.push('/vehicle')} title="Registrar un vehículo" />
+          <ButtonSecondary onPress={() => router.push('/vehicle')} title={t('createTrip.registerVehicle')} />
         ) : null}
         {vehicles.length ? (
           <ScrollView contentContainerStyle={styles.vehicleRow} horizontal showsHorizontalScrollIndicator={false} style={styles.vehicleScroll}>
@@ -389,7 +392,7 @@ export default function CreateTripScreen() {
               const selected = item.id === vehicleId;
               return (
                 <Pressable
-                  accessibilityLabel={`Vehículo ${item.brand} ${item.plate}`}
+                  accessibilityLabel={t('createTrip.vehicleOption', { brand: item.brand, plate: item.plate })}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
                   key={item.id}
@@ -407,18 +410,18 @@ export default function CreateTripScreen() {
                     </View>
                   )}
                   <Text numberOfLines={1} style={styles.vehicleName}>{item.brand}</Text>
-                  <Text style={styles.vehicleMeta}>{item.plate} · {item.seats} puestos</Text>
+                  <Text style={styles.vehicleMeta}>{item.seats ? t('createTrip.vehicleSeats', { plate: item.plate, count: item.seats }) : item.plate}</Text>
                 </Pressable>
               );
             })}
             {!vehiclesFull || !isPlus ? (
               <Pressable
-                accessibilityLabel="Agregar vehículo"
+                accessibilityLabel={t('createTrip.addVehicle')}
                 onPress={() => (vehiclesFull ? requirePlus({ limit: 'vehicles' }) : router.push('/vehicle'))}
                 style={[styles.vehicleCard, styles.vehicleAdd]}
               >
                 <Ionicons color={colors.primary} name="add-circle-outline" size={28} />
-                <Text style={styles.vehicleMeta}>Agregar</Text>
+                <Text style={styles.vehicleMeta}>{t('createTrip.add')}</Text>
                 {vehiclesFull ? <PlusBadge /> : null}
               </Pressable>
             ) : null}
@@ -428,33 +431,33 @@ export default function CreateTripScreen() {
         {vehicle && !vehicle.photoUrl ? (
           <Pressable onPress={() => router.push({ pathname: '/vehicle', params: { id: vehicle.id } })} style={styles.seatWarning}>
             <Ionicons color={colors.error} name="camera-outline" size={18} />
-            <Text style={styles.seatWarningText}>Este vehículo no tiene foto. Toca aquí para agregarla antes de publicar.</Text>
+            <Text style={styles.seatWarningText}>{t('createTrip.noPhoto')}</Text>
           </Pressable>
         ) : null}
 
         <PlaceSearchField
           allowCurrentLocation
           error={fieldErrors.origin}
-          label="Salida"
-          mapTitle="Punto de salida"
+          label={t('createTrip.originLabel')}
+          mapTitle={t('createTrip.originMapTitle')}
           onChange={(place) => {
             setOrigin(place);
             clearFieldError('origin');
           }}
-          placeholder="Busca el punto de salida"
+          placeholder={t('createTrip.originPlaceholder')}
           quickPlaces={savedPlaces}
           value={origin}
         />
         <PlaceSearchField
           error={fieldErrors.destination}
-          label="Destino"
-          mapTitle="Destino del viaje"
+          label={t('createTrip.destinationLabel')}
+          mapTitle={t('createTrip.destinationMapTitle')}
           near={origin}
           onChange={(place) => {
             setDestination(place);
             clearFieldError('destination');
           }}
-          placeholder="Busca el destino del viaje"
+          placeholder={t('createTrip.destinationPlaceholder')}
           // Don't offer the place already chosen as the departure.
           quickPlaces={savedPlaces.filter((place) => !origin || locationService.distanceKm(place, origin) >= 0.3)}
           value={destination}
@@ -462,8 +465,8 @@ export default function CreateTripScreen() {
 
         {origin && destination ? (
           <>
-            <Text style={styles.label}>Ruta</Text>
-            <Text style={styles.subtitle}>Elige por dónde vas. Los pasajeros verán esta ruta antes de pedir un cupo.</Text>
+            <Text style={styles.label}>{t('createTrip.route')}</Text>
+            <Text style={styles.subtitle}>{t('createTrip.routeHint')}</Text>
             <RoutePicker
               destination={destination}
               initialRoute={templateRoute?.key === `${origin.id}>${destination.id}` ? templateRoute.route : undefined}
@@ -474,13 +477,13 @@ export default function CreateTripScreen() {
           </>
         ) : null}
 
-        <Text style={styles.label}>{weekly ? 'Primer día y hora de salida' : 'Fecha y hora de salida'}</Text>
+        <Text style={styles.label}>{weekly ? t('createTrip.firstDeparture') : t('createTrip.departure')}</Text>
         <View style={styles.dateRow}>
-          <Pressable accessibilityLabel="Elegir fecha" onPress={() => setPicker('date')} style={[styles.dateButton, fieldErrors.departure ? fieldErrorBox : null]}>
+          <Pressable accessibilityLabel={t('createTrip.pickDate')} onPress={() => setPicker('date')} style={[styles.dateButton, fieldErrors.departure ? fieldErrorBox : null]}>
             <Ionicons color={colors.primary} name="calendar-outline" size={20} />
             <Text style={styles.dateText}>{dateLabel}</Text>
           </Pressable>
-          <Pressable accessibilityLabel="Elegir hora" onPress={() => setPicker('time')} style={[styles.dateButton, fieldErrors.departure ? fieldErrorBox : null]}>
+          <Pressable accessibilityLabel={t('createTrip.pickTime')} onPress={() => setPicker('time')} style={[styles.dateButton, fieldErrors.departure ? fieldErrorBox : null]}>
             <Ionicons color={colors.primary} name="time-outline" size={20} />
             <Text style={styles.dateText}>{timeLabel}</Text>
           </Pressable>
@@ -493,17 +496,17 @@ export default function CreateTripScreen() {
               <Ionicons color={colors.primary} name="sync-outline" size={20} />
               <View style={styles.flex}>
                 <View style={styles.weeklyTitleRow}>
-                  <Text style={styles.weeklyTitle}>Repetir cada semana</Text>
+                  <Text style={styles.weeklyTitle}>{t('createTrip.weekly')}</Text>
                   {!can('recurring_trips') || isBetaPerk('recurring_trips') ? <PlusBadge compact /> : null}
                 </View>
                 <Text style={styles.weeklyText}>
                   {weekly
-                    ? `Publicamos cada viaje 7 días antes. ${days.length ? `${capitalize(describeDays(days))}, ${timeLabel}` : 'Elige los días.'}`
-                    : 'Publicamos este viaje automáticamente los días que elijas.'}
+                    ? t('createTrip.weeklyOn', { when: days.length ? `${capitalize(describeDays(days))}, ${timeLabel}` : t('createTrip.weeklyPickDays') })
+                    : t('createTrip.weeklyOff')}
                 </Text>
               </View>
               <Switch
-                accessibilityLabel="Repetir cada semana"
+                accessibilityLabel={t('createTrip.weekly')}
                 disabled={!!recurring}
                 onValueChange={toggleWeekly}
                 thumbColor={weekly ? colors.primary : undefined}
@@ -535,17 +538,17 @@ export default function CreateTripScreen() {
                 </View>
                 <FieldError message={fieldErrors.days} />
                 <View style={styles.endRow}>
-                  <Pressable accessibilityLabel="Elegir fecha final" onPress={() => setPicker('end')} style={styles.endButton}>
+                  <Pressable accessibilityLabel={t('createTrip.pickEndDate')} onPress={() => setPicker('end')} style={styles.endButton}>
                     <Ionicons color={colors.primary} name="flag-outline" size={16} />
                     <Text style={styles.endText}>
                       {endDate
-                        ? `Hasta el ${endDate.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}`
-                        : 'Sin fecha final'}
+                        ? t('createTrip.until', { date: endDate.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short', year: 'numeric' }) })
+                        : t('createTrip.noEndDate')}
                     </Text>
                   </Pressable>
                   {endDate ? (
                     <Pressable hitSlop={8} onPress={() => setEndDate(null)}>
-                      <Text style={styles.endClear}>Quitar</Text>
+                      <Text style={styles.endClear}>{t('common.remove')}</Text>
                     </Pressable>
                   ) : null}
                 </View>
@@ -562,10 +565,10 @@ export default function CreateTripScreen() {
               mode="date"
               onDismiss={() => setPicker(null)}
               onValueChange={(_event, picked) => (Platform.OS === 'ios' ? setEndDate(picked) : applyEndDate(picked))}
-              positiveButton={{ label: 'Aceptar' }}
+              positiveButton={{ label: t('common.accept') }}
               value={endDate ?? departure}
             />
-            {Platform.OS === 'ios' ? <ButtonSecondary onPress={() => setPicker(null)} title="Listo" /> : null}
+            {Platform.OS === 'ios' ? <ButtonSecondary onPress={() => setPicker(null)} title={t('common.done')} /> : null}
           </View>
         ) : null}
         {picker && picker !== 'end' ? (
@@ -590,32 +593,32 @@ export default function CreateTripScreen() {
                   applyPicked(picked);
                 }
               }}
-              positiveButton={{ label: 'Aceptar' }}
+              positiveButton={{ label: t('common.accept') }}
               value={departure}
             />
-            {Platform.OS === 'ios' ? <ButtonSecondary onPress={() => setPicker(null)} title="Listo" /> : null}
+            {Platform.OS === 'ios' ? <ButtonSecondary onPress={() => setPicker(null)} title={t('common.done')} /> : null}
           </View>
         ) : null}
 
         <TextField
           error={fieldErrors.price}
-          hint="En pesos colombianos, solo números."
+          hint={t('createTrip.priceHint')}
           keyboardType="number-pad"
-          label="Precio por cupo (COP)"
+          label={t('createTrip.priceLabel')}
           onChangeText={(text) => {
             setPrice(text);
             clearFieldError('price');
           }}
-          placeholder="Valor por cupo"
+          placeholder={t('createTrip.pricePlaceholder')}
           value={price}
         />
-        <Text style={styles.label}>Cupos para pasajeros</Text>
+        <Text style={styles.label}>{t('createTrip.seatsLabel')}</Text>
         <View accessibilityRole="radiogroup" style={styles.seatRow}>
           {Array.from({ length: MAX_SEATS }, (_, index) => String(index + 1)).map((value) => {
             const selected = seats === value;
             return (
               <Pressable
-                accessibilityLabel={`${value} cupo${value === '1' ? '' : 's'}`}
+                accessibilityLabel={t('createTrip.seats', { count: Number(value) })}
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
                 key={value}
@@ -635,16 +638,16 @@ export default function CreateTripScreen() {
           <Pressable onPress={() => router.push({ pathname: '/vehicle', params: { id: vehicle.id } })} style={styles.seatWarning}>
             <Ionicons color={colors.primary} name="car-outline" size={18} />
             <Text style={styles.seatWarningText}>
-              Tu vehículo tiene {vehicle.seats} puesto{vehicle.seats === 1 ? '' : 's'} registrados. Toca aquí para actualizarlo.
+              {t('createTrip.vehicleSeatsWarning', { count: vehicle.seats })}
             </Text>
           </Pressable>
         ) : null}
-        <TextField label="Descripción (opcional)" onChangeText={setDescription} placeholder="Punto de encuentro y detalles" value={description} />
+        <TextField label={t('createTrip.descriptionLabel')} onChangeText={setDescription} placeholder={t('createTrip.descriptionPlaceholder')} value={description} />
         <ButtonPrimary
           disabled={driverStatus !== 'aprobado' || !editable}
           loading={loading}
           onPress={publishTrip}
-          title={edit || recurring ? 'Guardar cambios' : weekly ? 'Guardar viaje recurrente' : 'Publicar viaje'}
+          title={edit || recurring ? t('createTrip.saveChanges') : weekly ? t('createTrip.saveRecurring') : t('createTrip.publish')}
         />
       </ScrollView>
     </SafeAreaView>

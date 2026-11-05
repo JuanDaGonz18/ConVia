@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -20,6 +21,7 @@ import { FavoriteDriver } from '@/types';
 import { errorMessage } from '@/utils/format';
 
 export default function FavoriteDriversScreen() {
+  const { t } = useTranslation();
   const setFavoriteDriverIds = useAppStore((state) => state.setFavoriteDriverIds);
   const [drivers, setDrivers] = useState<FavoriteDriver[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,10 +36,10 @@ export default function FavoriteDriversScreen() {
         setDrivers(items);
         setFavoriteDriverIds(items.map((item) => item.id));
       })
-      .catch((loadError) => active && setError(errorMessage(loadError, 'No se pudieron cargar tus favoritos.')))
+      .catch((loadError) => active && setError(errorMessage(loadError, t('favoriteDrivers.loadFailed'))))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [setFavoriteDriverIds]);
+  }, [setFavoriteDriverIds, t]);
 
   const remove = async (driver: FavoriteDriver) => {
     setBusyId(driver.id);
@@ -47,9 +49,9 @@ export default function FavoriteDriversScreen() {
       const remaining = drivers.filter((item) => item.id !== driver.id);
       setDrivers(remaining);
       setFavoriteDriverIds(remaining.map((item) => item.id));
-      toast.info(`${driver.name} ya no está en tus favoritos`);
+      toast.info(t('favoriteDrivers.removed', { name: driver.name }));
     } catch (removeError) {
-      setError(errorMessage(removeError, 'No se pudo quitar de favoritos.'));
+      setError(errorMessage(removeError, t('favoriteDrivers.removeFailed')));
     } finally {
       setBusyId(null);
     }
@@ -58,8 +60,8 @@ export default function FavoriteDriversScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ScreenHeader kicker="PERSONALIZACIÓN" title="Conductores favoritos" />
-        <Text style={styles.subtitle}>Sus viajes aparecen destacados y antes que los demás. Para agregar uno, toca la estrella en el detalle de un viaje.</Text>
+        <ScreenHeader kicker={t('favoriteDrivers.kicker')} title={t('favoriteDrivers.title')} />
+        <Text style={styles.subtitle}>{t('favoriteDrivers.subtitle')}</Text>
 
         {error ? <Notice tone="error">{error}</Notice> : null}
         {loading ? <RowSkeleton count={3} /> : null}
@@ -67,8 +69,8 @@ export default function FavoriteDriversScreen() {
           <EmptyState
             compact
             icon="star-outline"
-            message="Cuando viajes con alguien de confianza, márcalo con la estrella para ver sus viajes primero."
-            title="Aún no tienes favoritos"
+            message={t('favoriteDrivers.emptyText')}
+            title={t('favoriteDrivers.emptyTitle')}
           />
         ) : null}
 
@@ -77,7 +79,7 @@ export default function FavoriteDriversScreen() {
             <Avatar imageUrl={driver.avatarUrl} name={driver.name} size={44} />
             <Text numberOfLines={1} style={styles.name}>{driver.name}</Text>
             <Pressable
-              accessibilityLabel={`Quitar a ${driver.name} de favoritos`}
+              accessibilityLabel={t('favoriteDrivers.remove', { name: driver.name })}
               disabled={busyId === driver.id}
               hitSlop={8}
               onPress={() => void remove(driver)}

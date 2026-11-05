@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -15,16 +16,15 @@ import { LEGAL_COMPANY, LEGAL_UPDATED_AT, LEGAL_VERSION, LegalBlock, PRIVACY, TE
 
 type Tab = 'terms' | 'privacy';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'terms', label: 'Términos' },
-  { id: 'privacy', label: 'Privacidad' },
-];
+const TABS: Tab[] = ['terms', 'privacy'];
 
 /** Terms and Conditions + Privacy Policy. Reachable signed in or out (registration, profile). */
 export default function LegalScreen() {
+  const { t, i18n } = useTranslation();
   const params = useLocalSearchParams<{ doc?: string }>();
   const [tab, setTab] = useState<Tab>(params.doc === 'privacy' ? 'privacy' : 'terms');
   const scrollRef = useRef<ScrollView>(null);
+  // The legal documents exist only in Spanish, the version that applies.
   const document = tab === 'terms' ? TERMS : PRIVACY;
 
   const changeTab = (next: Tab) => {
@@ -36,23 +36,25 @@ export default function LegalScreen() {
     <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} ref={scrollRef}>
         <ScreenHeader
-          kicker="LEGAL"
-          subtitle={`Versión ${LEGAL_VERSION} · Actualizada el ${LEGAL_UPDATED_AT}`}
+          kicker={t('legal.kicker')}
+          subtitle={t('legal.version', { version: LEGAL_VERSION, date: LEGAL_UPDATED_AT })}
           title={document.title}
         />
 
+        {i18n.language !== 'es' ? <Text style={styles.summaryNote}>{t('legal.spanishOnly')}</Text> : null}
+
         <View accessibilityRole="tablist" style={styles.tabs}>
           {TABS.map((item) => {
-            const active = item.id === tab;
+            const active = item === tab;
             return (
               <Pressable
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
-                key={item.id}
-                onPress={() => changeTab(item.id)}
+                key={item}
+                onPress={() => changeTab(item)}
                 style={[styles.tab, active ? styles.tabActive : null]}
               >
-                <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>{item.label}</Text>
+                <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>{t(`legal.tabs.${item}`)}</Text>
               </Pressable>
             );
           })}
@@ -61,7 +63,7 @@ export default function LegalScreen() {
         <View style={styles.summary}>
           <View style={styles.summaryHeader}>
             <Ionicons color={colors.primary} name="information-circle" size={20} />
-            <Text style={styles.summaryTitle}>En resumen</Text>
+            <Text style={styles.summaryTitle}>{t('legal.summary')}</Text>
           </View>
           {document.summary.map((point) => (
             <View key={point} style={styles.bulletRow}>
@@ -69,7 +71,7 @@ export default function LegalScreen() {
               <Text style={styles.summaryText}>{point}</Text>
             </View>
           ))}
-          <Text style={styles.summaryNote}>Este resumen no reemplaza el texto completo, que es el que aplica.</Text>
+          <Text style={styles.summaryNote}>{t('legal.summaryNote')}</Text>
         </View>
 
         {document.sections.map((section) => (
@@ -82,18 +84,18 @@ export default function LegalScreen() {
         <View style={styles.contact}>
           <Ionicons color={colors.textSecondary} name="mail-outline" size={18} />
           <Text style={styles.contactText}>
-            ¿Preguntas sobre estos documentos o tus datos? Escríbenos a {LEGAL_COMPANY.email}.
+            {t('legal.contact', { email: LEGAL_COMPANY.email })}
           </Text>
         </View>
 
         {tab === 'terms' ? (
           <Pressable onPress={() => changeTab('privacy')} style={styles.next}>
-            <Text style={styles.nextText}>Leer también la Política de Privacidad</Text>
+            <Text style={styles.nextText}>{t('legal.readPrivacy')}</Text>
             <Ionicons color={colors.primary} name="arrow-forward" size={18} />
           </Pressable>
         ) : null}
 
-        <ButtonPrimary onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} title="Entendido" />
+        <ButtonPrimary onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} title={t('legal.understood')} />
       </ScrollView>
     </SafeAreaView>
   );

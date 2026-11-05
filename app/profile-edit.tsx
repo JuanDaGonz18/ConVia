@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 
 import { PasswordChecklist, PasswordField } from '@/components/forms/PasswordField';
 import { TextField } from '@/components/forms/TextField';
@@ -21,20 +22,13 @@ import { isSupabaseEnabled } from '@/lib/supabase';
 import { compressPhoto, PHOTO_MAX_SIDE } from '@/services/imageCompression';
 import { profileService } from '@/services/profileService';
 import { useAppStore } from '@/store/appStore';
-import { errorMessage, rawErrorMessage } from '@/utils/format';
-import { passwordFieldErrors } from '@/utils/password';
+import { errorMessage } from '@/utils/format';
+import { passwordErrorMessage, passwordFieldErrors } from '@/utils/password';
 
 const PHONE_PATTERN = /^\+?[\d\s-]{7,20}$/;
 
-function passwordErrorMessage(error: unknown) {
-  const raw = rawErrorMessage(error);
-  if (/different from the old/i.test(raw)) return 'La nueva contraseña debe ser diferente a la actual.';
-  if (/reauthentication|recent/i.test(raw)) return 'Por seguridad, cierra sesión, vuelve a entrar y cambia la contraseña de inmediato.';
-  if (/weak|at least|characters/i.test(raw)) return 'La contraseña es muy débil. Revisa los requisitos.';
-  return errorMessage(error, 'No pudimos cambiar tu contraseña. Inténtalo de nuevo.');
-}
-
 export default function ProfileEditScreen() {
+  const { t } = useTranslation();
   const currentUser = useAppStore((state) => state.currentUser);
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const [name, setName] = useState(currentUser?.name ?? '');
@@ -59,10 +53,10 @@ export default function ProfileEditScreen() {
       setPhone(profile.phone);
       setProfileLoaded(true);
     }).catch((loadError) => {
-      if (active) setError(errorMessage(loadError, 'No pudimos cargar tu perfil.'));
+      if (active) setError(errorMessage(loadError, t('profileEdit.loadFailed')));
     });
     return () => { active = false; };
-  }, [userId]);
+  }, [userId, t]);
 
   const pickAvatar = async () => {
     if (!currentUser || !isSupabaseEnabled) return;
@@ -76,9 +70,9 @@ export default function ProfileEditScreen() {
       const photo = await compressPhoto(asset, PHOTO_MAX_SIDE.avatar);
       const avatarUrl = await profileService.uploadAvatar(currentUser.id, photo.uri, photo.mimeType);
       setCurrentUser({ ...currentUser, avatarUrl });
-      toast.success('Foto de perfil actualizada');
+      toast.success(t('profileEdit.photoUpdated'));
     } catch (uploadError) {
-      setError(errorMessage(uploadError, 'No pudimos subir la foto. Inténtalo con otra imagen.'));
+      setError(errorMessage(uploadError, t('profileEdit.photoFailed')));
     } finally {
       setUploading(false);
     }
@@ -86,8 +80,8 @@ export default function ProfileEditScreen() {
 
   const saveProfile = async () => {
     const errors: { name?: string; phone?: string } = {};
-    if (name.trim().length < 3) errors.name = 'Escribe tu nombre y apellido.';
-    if (phone.trim() && !PHONE_PATTERN.test(phone.trim())) errors.phone = 'Escribe un número de teléfono válido, solo con números.';
+    if (name.trim().length < 3) errors.name = t('profileEdit.nameRequired');
+    if (phone.trim() && !PHONE_PATTERN.test(phone.trim())) errors.phone = t('profileEdit.phoneInvalid');
     setProfileErrors(errors);
     if (Object.keys(errors).length || !currentUser) return;
     setError(null);
@@ -95,9 +89,9 @@ export default function ProfileEditScreen() {
     try {
       await profileService.updateProfile(currentUser.id, { name: name.trim(), phone: phone.trim() });
       setCurrentUser({ ...currentUser, name: name.trim() });
-      toast.success('Datos guardados');
+      toast.success(t('profileEdit.saved'));
     } catch (saveError) {
-      setError(errorMessage(saveError, 'No pudimos guardar tus datos.'));
+      setError(errorMessage(saveError, t('profileEdit.saveFailed')));
     } finally {
       setSaving(null);
     }
@@ -113,7 +107,7 @@ export default function ProfileEditScreen() {
       await profileService.changePassword(password);
       setPassword('');
       setConfirm('');
-      toast.success('Contraseña actualizada');
+      toast.success(t('profileEdit.passwordUpdated'));
     } catch (changeError) {
       setError(passwordErrorMessage(changeError));
     } finally {
@@ -125,20 +119,20 @@ export default function ProfileEditScreen() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <ScreenHeader kicker="TU CUENTA" subtitle={currentUser?.email} title="Información personal" />
+          <ScreenHeader kicker={t('profileEdit.kicker')} subtitle={currentUser?.email} title={t('profileEdit.title')} />
           {error ? <Notice onDismiss={() => setError(null)} tone="error">{error}</Notice> : null}
 
           <View style={styles.card}>
             <View style={styles.avatarRow}>
-              <Avatar imageUrl={currentUser?.avatarUrl} name={name || 'Usuario'} size={72} />
+              <Avatar imageUrl={currentUser?.avatarUrl} name={name || t('profileEdit.user')} size={72} />
               <View style={styles.flex}>
-                <ButtonSecondary icon="camera-outline" loading={uploading} onPress={() => void pickAvatar()} title="Cambiar foto" />
+                <ButtonSecondary icon="camera-outline" loading={uploading} onPress={() => void pickAvatar()} title={t('profileEdit.changePhoto')} />
               </View>
             </View>
             <TextField
               autoCapitalize="words"
               error={profileErrors.name}
-              label="Nombre completo"
+              label={t('profileEdit.name')}
               onChangeText={(text) => {
                 setName(text);
                 if (profileErrors.name) setProfileErrors((current) => ({ ...current, name: undefined }));
@@ -147,50 +141,50 @@ export default function ProfileEditScreen() {
             />
             <TextField
               error={profileErrors.phone}
-              hint="Opcional. Solo lo ven los integrantes de tus viajes."
+              hint={t('profileEdit.phoneHint')}
               keyboardType="phone-pad"
-              label="Teléfono"
+              label={t('profileEdit.phone')}
               onChangeText={(text) => {
                 setPhone(text);
                 if (profileErrors.phone) setProfileErrors((current) => ({ ...current, phone: undefined }));
               }}
-              placeholder="Tu número de celular"
+              placeholder={t('profileEdit.phonePlaceholder')}
               value={phone}
             />
             <ButtonPrimary
               disabled={!profileLoaded}
               loading={saving === 'profile'}
-              loadingTitle="Guardando…"
+              loadingTitle={t('profileEdit.saving')}
               onPress={() => void saveProfile()}
-              title="Guardar datos"
+              title={t('profileEdit.save')}
             />
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Cambiar contraseña</Text>
-            <Text style={styles.sectionHint}>Escribe la nueva contraseña dos veces. La usarás la próxima vez que inicies sesión.</Text>
+            <Text style={styles.sectionTitle}>{t('profileEdit.passwordTitle')}</Text>
+            <Text style={styles.sectionHint}>{t('profileEdit.passwordHint')}</Text>
             <PasswordField
               autoComplete="new-password"
               error={passwordErrors?.password}
-              label="Nueva contraseña"
+              label={t('profileEdit.newPassword')}
               onChangeText={(text) => {
                 setPassword(text);
                 // After the first attempt, errors update (and disappear) as the user types.
                 if (passwordErrors) setPasswordErrors(passwordFieldErrors(text, confirm));
               }}
-              placeholder="Crea una contraseña"
+              placeholder={t('profileEdit.newPasswordPlaceholder')}
               textContentType="newPassword"
               value={password}
             />
             <PasswordField
               autoComplete="new-password"
               error={passwordErrors?.confirm}
-              label="Confirma la nueva contraseña"
+              label={t('profileEdit.confirmPassword')}
               onChangeText={(text) => {
                 setConfirm(text);
                 if (passwordErrors) setPasswordErrors(passwordFieldErrors(password, text));
               }}
-              placeholder="Escribe la contraseña otra vez"
+              placeholder={t('profileEdit.confirmPasswordPlaceholder')}
               textContentType="newPassword"
               value={confirm}
             />
@@ -199,11 +193,11 @@ export default function ProfileEditScreen() {
               icon="lock-closed-outline"
               loading={saving === 'password'}
               onPress={() => void changePassword()}
-              title="Actualizar contraseña"
+              title={t('profileEdit.updatePassword')}
             />
           </View>
 
-          <ButtonSecondary onPress={() => router.back()} title="Volver al perfil" />
+          <ButtonSecondary onPress={() => router.back()} title={t('profileEdit.back')} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

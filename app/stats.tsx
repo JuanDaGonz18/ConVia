@@ -3,6 +3,8 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { requirePlus } from '@/components/subscription/PlusGate';
@@ -19,11 +21,12 @@ import { DriverStats, PassengerStats, statsService, TripStats } from '@/services
 import { useAppStore } from '@/store/appStore';
 import { usePlan } from '@/subscription/usePlan';
 import { errorMessage, formatPrice } from '@/utils/format';
+import { localeTag } from '@/i18n';
 
-const km = (value: number) => `${value.toLocaleString('es-CO', { maximumFractionDigits: 1 })} km`;
+const km = (value: number) => `${value.toLocaleString(localeTag(), { maximumFractionDigits: 1 })} km`;
 const percent = (part: number, total: number) => (total > 0 ? `${Math.round((part / total) * 100)} %` : '—');
-const rating = (value: number, count: number) => (count > 0 ? `${value.toFixed(1).replace('.', ',')} ★` : '—');
-const ratingHint = (count: number) => (count > 0 ? `${count} calificaci${count === 1 ? 'ón' : 'ones'}` : 'Sin calificaciones aún');
+const rating = (value: number, count: number) => (count > 0 ? `${value.toLocaleString(localeTag(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ★` : '—');
+const ratingHint = (count: number, t: TFunction) => (count > 0 ? t('stats.ratings', { count }) : t('stats.noRatings'));
 
 function Stat({ label, value, hint }: Readonly<{ label: string; value: string; hint?: string }>) {
   return (
@@ -48,39 +51,42 @@ function Section({ icon, title, children }: Readonly<{ icon: keyof typeof Ionico
 }
 
 function PassengerSection({ stats }: Readonly<{ stats: PassengerStats }>) {
+  const { t } = useTranslation();
   return (
-    <Section icon="person-outline" title="Como pasajero">
-      <Stat label="Viajes realizados" value={String(stats.completed)} />
-      <Stat label="Próximos" value={String(stats.upcoming)} />
-      <Stat hint="Tu tramo de cada ruta" label="Distancia aprox." value={km(stats.km)} />
-      <Stat hint="Precio acordado de tus cupos" label="Aportes a conductores" value={formatPrice(stats.spent)} />
-      <Stat label="Conductores distintos" value={String(stats.drivers)} />
-      <Stat hint={ratingHint(stats.ratingCount)} label="Tu calificación" value={rating(stats.rating, stats.ratingCount)} />
-      <Stat hint="Incluye rechazadas y canceladas" label="Solicitudes" value={String(stats.requests)} />
-      <Stat label="No se realizaron" value={String(stats.cancelled)} />
+    <Section icon="person-outline" title={t('stats.asPassenger')}>
+      <Stat label={t('stats.passenger.completed')} value={String(stats.completed)} />
+      <Stat label={t('stats.passenger.upcoming')} value={String(stats.upcoming)} />
+      <Stat hint={t('stats.passenger.distanceHint')} label={t('stats.distance')} value={km(stats.km)} />
+      <Stat hint={t('stats.passenger.spentHint')} label={t('stats.passenger.spent')} value={formatPrice(stats.spent)} />
+      <Stat label={t('stats.passenger.drivers')} value={String(stats.drivers)} />
+      <Stat hint={ratingHint(stats.ratingCount, t)} label={t('stats.yourRating')} value={rating(stats.rating, stats.ratingCount)} />
+      <Stat hint={t('stats.passenger.requestsHint')} label={t('stats.passenger.requests')} value={String(stats.requests)} />
+      <Stat label={t('stats.passenger.cancelled')} value={String(stats.cancelled)} />
     </Section>
   );
 }
 
 function DriverSection({ stats }: Readonly<{ stats: DriverStats }>) {
+  const { t } = useTranslation();
   return (
-    <Section icon="car-outline" title="Como conductor">
-      <Stat label="Viajes finalizados" value={String(stats.completed)} />
-      <Stat label="Publicados" value={String(stats.published)} />
-      <Stat label="Pasajeros llevados" value={String(stats.passengers)} />
-      <Stat hint="Pasajeros sobre cupos ofrecidos" label="Ocupación" value={percent(stats.passengers, stats.seatsOffered)} />
-      <Stat hint="Según la ruta de cada viaje" label="Distancia aprox." value={km(stats.km)} />
-      <Stat hint="Precio × pasajeros" label="Aportes acordados" value={formatPrice(stats.agreed)} />
-      <Stat hint="Los que marcaste como recibidos" label="Aportes recibidos" value={formatPrice(stats.paid)} />
-      <Stat label="Solicitudes aceptadas" value={percent(stats.accepted, stats.accepted + stats.rejected)} />
-      <Stat hint="Finalizados sobre los que no se cancelaron" label="Viajes completados" value={percent(stats.completed, stats.completed + stats.cancelled)} />
-      <Stat hint={ratingHint(stats.ratingCount)} label="Tu calificación" value={rating(stats.rating, stats.ratingCount)} />
+    <Section icon="car-outline" title={t('stats.asDriver')}>
+      <Stat label={t('stats.driver.completed')} value={String(stats.completed)} />
+      <Stat label={t('stats.driver.published')} value={String(stats.published)} />
+      <Stat label={t('stats.driver.passengers')} value={String(stats.passengers)} />
+      <Stat hint={t('stats.driver.occupancyHint')} label={t('stats.driver.occupancy')} value={percent(stats.passengers, stats.seatsOffered)} />
+      <Stat hint={t('stats.driver.distanceHint')} label={t('stats.distance')} value={km(stats.km)} />
+      <Stat hint={t('stats.driver.agreedHint')} label={t('stats.driver.agreed')} value={formatPrice(stats.agreed)} />
+      <Stat hint={t('stats.driver.paidHint')} label={t('stats.driver.paid')} value={formatPrice(stats.paid)} />
+      <Stat label={t('stats.driver.accepted')} value={percent(stats.accepted, stats.accepted + stats.rejected)} />
+      <Stat hint={t('stats.driver.completionHint')} label={t('stats.driver.completion')} value={percent(stats.completed, stats.completed + stats.cancelled)} />
+      <Stat hint={ratingHint(stats.ratingCount, t)} label={t('stats.yourRating')} value={rating(stats.rating, stats.ratingCount)} />
     </Section>
   );
 }
 
 /** Informational summary from the user's own trips (computed by the server). */
 export default function StatsScreen() {
+  const { t } = useTranslation();
   const canDrive = useAppStore((state) => state.currentUser?.driverStatus != null);
   const { can, isBetaPerk } = usePlan();
   const [stats, setStats] = useState<TripStats | null>(null);
@@ -92,9 +98,9 @@ export default function StatsScreen() {
       setStats(await statsService.getMyStats());
       setError(null);
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudieron cargar tus estadísticas.'));
+      setError(errorMessage(loadError, t('stats.loadFailed')));
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
@@ -106,15 +112,15 @@ export default function StatsScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => { setRefreshing(true); void load().finally(() => setRefreshing(false)); }} refreshing={refreshing} />}
       >
-        <ScreenHeader kicker="TUS VIAJES" title="Estadísticas" />
+        <ScreenHeader kicker={t('stats.kicker')} title={t('stats.title')} />
         <View style={styles.introRow}>
-          <Text style={styles.subtitle}>Un resumen de tus viajes en ConVía. Las distancias son aproximadas y los aportes son los precios acordados; los pagos ocurren fuera de la app.</Text>
+          <Text style={styles.subtitle}>{t('stats.subtitle')}</Text>
           {isBetaPerk('advanced_trip_stats') ? <PlusBadge compact /> : null}
         </View>
         {error ? <Notice tone="error">{error}</Notice> : null}
         {!stats && !error ? <RowSkeleton count={3} /> : null}
         {locked ? (
-          <ButtonSecondary icon="sparkles-outline" onPress={() => requirePlus({ capability: 'advanced_trip_stats' })} title="Ver estadísticas con ConVía+" />
+          <ButtonSecondary icon="sparkles-outline" onPress={() => requirePlus({ capability: 'advanced_trip_stats' })} title={t('stats.unlock')} />
         ) : null}
         {stats?.passenger ? <PassengerSection stats={stats.passenger} /> : null}
         {stats?.driver && (canDrive || stats.driver.published > 0) ? <DriverSection stats={stats.driver} /> : null}

@@ -24,10 +24,11 @@ import { useAppStore } from '@/store/appStore';
 import { usePlan } from '@/subscription/usePlan';
 import { Vehicle } from '@/types';
 import { errorMessage, formatPrice } from '@/utils/format';
+import { localeTag } from '@/i18n';
 
 function formatDay(value: string) {
   const [year, month, day] = value.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+  return new Date(year, month - 1, day).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' });
 }
 
 /** The driver's weekly schedules: what is published, pause/resume, edit and delete. */

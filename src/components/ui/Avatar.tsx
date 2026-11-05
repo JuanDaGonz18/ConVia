@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
 import { typography } from '@/constants/typography';
+import i18n from '@/i18n';
 
 type AvatarProps = {
   name: string;
@@ -22,7 +23,7 @@ export function Avatar({ name, imageUrl, size = 48, highlight = false }: AvatarP
 
   const avatar = imageUrl ? (
     <Image
-      accessibilityLabel={`Avatar de ${name}`}
+      accessibilityLabel={i18n.t('avatar.label', { name })}
       source={{ uri: imageUrl }}
       style={[styles.avatar, { height: size, width: size }]}
     />
@@ -33,7 +34,7 @@ export function Avatar({ name, imageUrl, size = 48, highlight = false }: AvatarP
   );
 
   if (!highlight) return avatar;
-  return <View accessibilityLabel="Perfil ConVía+" style={styles.ring}>{avatar}</View>;
+  return <View accessibilityLabel={i18n.t('avatar.plus')} style={styles.ring}>{avatar}</View>;
 }
 
 const styles = StyleSheet.create({

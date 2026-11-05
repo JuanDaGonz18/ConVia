@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { requirePlus } from '@/components/subscription/PlusGate';
@@ -14,7 +15,7 @@ import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
-import { DEFAULT_PREFERENCES, PLACE_KIND_LABELS, personalizationService } from '@/services/personalizationService';
+import { DEFAULT_PREFERENCES, personalizationService } from '@/services/personalizationService';
 import { useAppStore } from '@/store/appStore';
 import { usePlan } from '@/subscription/usePlan';
 import { UserPreferences } from '@/types';
@@ -22,21 +23,9 @@ import { errorMessage } from '@/utils/format';
 
 type Option<T> = { value: T; label: string };
 
-const TIMES: Option<UserPreferences['time']>[] = [
-  { value: 'any', label: 'Cualquier momento' },
-  { value: 'soon', label: 'Lo antes posible' },
-  { value: 'today', label: 'Hoy' },
-  { value: 'tomorrow', label: 'Mañana' },
-];
-const SORTS: Option<UserPreferences['sort']>[] = [
-  { value: 'match', label: 'Más compatibles' },
-  { value: 'departure', label: 'Salen primero' },
-  { value: 'price', label: 'Más económicos' },
-];
-const DISTANCES: Option<number | null>[] = [null, 0.5, 1, 2].map((value) => ({
-  value,
-  label: value === null ? 'Sin límite' : value < 1 ? `${value * 1000} m` : `${value} km`,
-}));
+const TIMES: UserPreferences['time'][] = ['any', 'soon', 'today', 'tomorrow'];
+const SORTS: UserPreferences['sort'][] = ['match', 'departure', 'price'];
+const DISTANCES: (number | null)[] = [null, 0.5, 1, 2];
 
 function Chips<T>({ label, hint, options, value, onChange }: Readonly<{
   label: string; hint?: string; options: Option<T>[]; value: T; onChange: (value: T) => void;
@@ -71,6 +60,7 @@ function Chips<T>({ label, hint, options, value, onChange }: Readonly<{
  * incompatible trip appear.
  */
 export default function PreferencesScreen() {
+  const { t } = useTranslation();
   const stored = useAppStore((state) => state.preferences);
   const setPreferences = useAppStore((state) => state.setPreferences);
   const savedPlaces = useAppStore((state) => state.savedPlaces);
@@ -93,81 +83,85 @@ export default function PreferencesScreen() {
     try {
       await personalizationService.savePreferences(draft);
       setPreferences(draft);
-      toast.success('Preferencias guardadas');
+      toast.success(t('preferences.saved'));
       router.back();
     } catch (saveError) {
-      setError(errorMessage(saveError, 'No se pudieron guardar tus preferencias.'));
+      setError(errorMessage(saveError, t('preferences.saveFailed')));
     } finally {
       setSaving(false);
     }
   };
 
   const pickupOptions: Option<string | null>[] = [
-    { value: null, label: 'Mi ubicación actual' },
-    ...savedPlaces.map((place) => ({ value: place.id, label: place.kind === 'other' ? place.label : PLACE_KIND_LABELS[place.kind] })),
+    { value: null, label: t('preferences.currentLocation') },
+    ...savedPlaces.map((place) => ({ value: place.id, label: place.kind === 'other' ? place.label : t(`placeKinds.${place.kind}`) })),
   ];
+  const times = TIMES.map((value) => ({ value, label: t(`preferences.times.${value}`) }));
+  const sorts = SORTS.map((value) => ({ value, label: t(`preferences.sorts.${value}`) }));
+  const distances = DISTANCES.map((value) => ({
+    value,
+    label: value === null ? t('preferences.noLimit') : value < 1 ? `${value * 1000} m` : `${value} km`,
+  }));
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ScreenHeader kicker="TU CUENTA" title="Preferencias" />
+        <ScreenHeader kicker={t('preferences.kicker')} title={t('preferences.title')} />
         <View style={styles.introRow}>
-          <Text style={styles.subtitle}>
-            Así empieza cada búsqueda. Siempre ves primero los viajes más compatibles; esto solo ajusta el resto.
-          </Text>
+          <Text style={styles.subtitle}>{t('preferences.subtitle')}</Text>
           {!allowed || isBetaPerk('advanced_preferences') ? <PlusBadge compact /> : null}
         </View>
         {error ? <Notice tone="error">{error}</Notice> : null}
 
         <Chips
-          hint={savedPlaces.length ? undefined : 'Guarda tu casa o tu trabajo en Mis lugares para elegirlos aquí.'}
-          label="Dónde te recogen normalmente"
+          hint={savedPlaces.length ? undefined : t('preferences.pickupHint')}
+          label={t('preferences.pickup')}
           onChange={(pickupPlaceId) => set({ pickupPlaceId })}
           options={pickupOptions}
           value={draft.pickupPlaceId}
         />
-        <Chips label="Cuándo sueles salir" onChange={(time) => set({ time })} options={TIMES} value={draft.time} />
+        <Chips label={t('preferences.time')} onChange={(time) => set({ time })} options={times} value={draft.time} />
         <Chips
-          hint="Viajes que te recojan más lejos no se muestran."
-          label="Caminar máximo para subir"
+          hint={t('preferences.maxPickupHint')}
+          label={t('preferences.maxPickup')}
           onChange={(maxPickupKm) => set({ maxPickupKm })}
-          options={DISTANCES}
+          options={distances}
           value={draft.maxPickupKm}
         />
         <Chips
-          hint="Desde donde te bajas hasta tu destino."
-          label="Caminar máximo al bajarte"
+          hint={t('preferences.maxDropoffHint')}
+          label={t('preferences.maxDropoff')}
           onChange={(maxDropoffKm) => set({ maxDropoffKm })}
-          options={DISTANCES}
+          options={distances}
           value={draft.maxDropoffKm}
         />
         <Chips
-          hint="Dentro de cada nivel de compatibilidad."
-          label="Ordenar viajes"
+          hint={t('preferences.sortHint')}
+          label={t('preferences.sort')}
           onChange={(sort) => set({ sort })}
-          options={SORTS}
+          options={sorts}
           value={draft.sort}
         />
 
-        <Text style={styles.label}>Avisos</Text>
+        <Text style={styles.label}>{t('preferences.notices')}</Text>
         <View style={styles.switchCard}>
           <SwitchRow
-            label="Viajes nuevos de tus rutas"
+            label={t('preferences.notifyAlerts')}
             onChange={(notifyAlerts) => set({ notifyAlerts })}
-            subtitle="Cuando una alerta encuentra un viaje compatible (máximo 3 al día)."
+            subtitle={t('preferences.notifyAlertsHint')}
             value={draft.notifyAlerts}
           />
           <View style={styles.divider} />
           <SwitchRow
-            label="Viajes recurrentes publicados"
+            label={t('preferences.notifyRecurring')}
             onChange={(notifyRecurring) => set({ notifyRecurring })}
-            subtitle="Un resumen cuando publicamos los viajes de tu horario semanal."
+            subtitle={t('preferences.notifyRecurringHint')}
             value={draft.notifyRecurring}
           />
         </View>
-        <Text style={styles.hint}>Las solicitudes, respuestas, mensajes y cambios de tus viajes siguen el interruptor de Notificaciones de tu perfil.</Text>
+        <Text style={styles.hint}>{t('preferences.pushHint')}</Text>
 
-        <ButtonPrimary disabled={!allowed} loading={saving} onPress={() => void save()} title="Guardar preferencias" />
+        <ButtonPrimary disabled={!allowed} loading={saving} onPress={() => void save()} title={t('preferences.save')} />
       </ScrollView>
     </SafeAreaView>
   );

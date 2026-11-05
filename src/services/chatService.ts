@@ -2,6 +2,7 @@ import { ensureSupabaseConfigured, isSupabaseEnabled, supabase } from '@/lib/sup
 import { notificationService } from '@/services/notificationService';
 import { ChatConversation, ChatMessage } from '@/types';
 import { formatMessageTime } from '@/utils/format';
+import i18n from '@/i18n';
 
 type MessageRow = {
   id: string;
@@ -27,7 +28,7 @@ function mapMessage(row: MessageRow, currentUserId: string, names: Record<string
   return {
     id: row.id,
     senderId: row.sender_id,
-    senderName: row.sender_id === currentUserId ? 'Yo' : names[row.sender_id] || 'Participante',
+    senderName: row.sender_id === currentUserId ? i18n.t('chats.me') : names[row.sender_id] || i18n.t('chats.participant'),
     text: row.body,
     timestamp: formatMessageTime(row.created_at),
     isMe: row.sender_id === currentUserId,
@@ -89,12 +90,12 @@ export const chatService = {
         id: tripId,
         tripId,
         participantId: isDriver ? '' : trip.driver_id,
-        participantName: isDriver ? 'Pasajeros del viaje' : trip.driver_nombre || 'Conductor',
+        participantName: isDriver ? i18n.t('chats.tripPassengers') : trip.driver_nombre || i18n.t('chats.driver'),
         participantRole: isDriver ? 'client' : 'driver',
         participantAvatar: isDriver ? undefined : trip.driver_avatar_url ?? undefined,
         participantNames: names,
         vehicleInfo: `${trip.origen_nombre} → ${trip.destino_nombre}`,
-        lastMessage: last?.body ?? 'Sin mensajes todavía',
+        lastMessage: last?.body ?? i18n.t('chats.noMessages'),
         lastMessageTime: last ? formatMessageTime(last.created_at) : '',
         unreadCount: 0,
         messages: rows.map((row) => mapMessage(row, userId, names)),

@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { MatchSummary } from '@/components/trip/MatchSummary';
 import { PlusBadge } from '@/components/subscription/PlusBadge';
@@ -22,6 +23,7 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { tripService, TripRequestRecord, TripRequestStatus } from '@/services/tripService';
+import i18n from '@/i18n';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, formatDateTime, formatMessageTime } from '@/utils/format';
 
@@ -42,15 +44,11 @@ function MetaRow({ icon, text }: Readonly<{ icon: keyof typeof Ionicons.glyphMap
   );
 }
 
-const STATUS_LABELS: Record<TripRequestStatus, string> = {
-  pendiente: 'Pendiente',
-  aceptado: 'Aceptada',
-  negado: 'Rechazada',
-  abordado: 'Abordó',
-  cancelado: 'Cancelada',
-};
+/** A request status in the current language. */
+const statusLabel = (status: TripRequestStatus) => i18n.t(`requestStatus.${status}`);
 
 export default function RequestsScreen() {
+  const { t } = useTranslation();
   const role = useAppStore((state) => state.currentUser?.role);
   const userId = useAppStore((state) => state.currentUser?.id);
   // Request waiting for the driver's face check before it is accepted.
@@ -69,7 +67,7 @@ export default function RequestsScreen() {
     try {
       setRequests(isDriver ? await tripService.getDriverRequests() : await tripService.getPassengerRequests());
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudieron cargar las solicitudes.'));
+      setError(errorMessage(loadError, i18n.t('requests.loadFailed')));
     } finally {
       setLoading(false);
     }
@@ -126,8 +124,8 @@ export default function RequestsScreen() {
             if (requestId) {
               void runAction(requestId, async () => {
                 await tripService.respondToRequest(requestId, true);
-                toast.success('Solicitud aceptada. Ya puede ver su código de abordaje');
-              }, 'No se pudo aceptar la solicitud.');
+                toast.success(t('requests.accepted'));
+              }, t('requests.acceptFailed'));
             }
           }}
           trigger="driver_activate"
@@ -137,25 +135,25 @@ export default function RequestsScreen() {
       ) : null}
       <ScrollView contentContainerStyle={styles.content}>
         <ScreenHeader
-          kicker={isDriver ? 'CONDUCTOR' : 'PASAJERO'}
-          subtitle={isDriver ? 'Acepta o rechaza a quienes quieren unirse a tus viajes.' : 'El estado de tus cupos y tus códigos de abordaje.'}
-          title="Solicitudes"
+          kicker={isDriver ? t('requests.kickerDriver') : t('requests.kickerPassenger')}
+          subtitle={isDriver ? t('requests.subtitleDriver') : t('requests.subtitlePassenger')}
+          title={t('requests.title')}
         />
-        {isDriver ? <ButtonSecondary icon="qr-code-outline" onPress={() => router.push('/qr-scanner')} title="Escanear QR de abordaje" /> : null}
+        {isDriver ? <ButtonSecondary icon="qr-code-outline" onPress={() => router.push('/qr-scanner')} title={t('requests.scanQr')} /> : null}
         {loading ? <RowSkeleton count={3} /> : null}
-        {error ? <Notice action={{ label: 'Reintentar', onPress: () => void load() }} tone="error">{error}</Notice> : null}
+        {error ? <Notice action={{ label: t('common.retry'), onPress: () => void load() }} tone="error">{error}</Notice> : null}
         {!loading && !error && !requests.length ? (
           <EmptyState
-            action={isDriver ? undefined : { label: 'Buscar un viaje', icon: 'search-outline', onPress: () => router.push('/(tabs)') }}
+            action={isDriver ? undefined : { label: t('requests.findTrip'), icon: 'search-outline', onPress: () => router.push('/(tabs)') }}
             icon={isDriver ? 'people-outline' : 'paper-plane-outline'}
             message={isDriver
-              ? 'Cuando alguien pida un cupo en tus viajes próximos, aparecerá aquí y te enviaremos una notificación.'
-              : 'Cuando pidas un cupo en un viaje verás aquí si el conductor te aceptó y tu código de abordaje.'}
-            title={isDriver ? 'Aún no hay solicitudes' : 'Todavía no has pedido cupos'}
+              ? t('requests.emptyDriver')
+              : t('requests.emptyPassenger')}
+            title={isDriver ? t('requests.emptyDriverTitle') : t('requests.emptyPassengerTitle')}
           />
         ) : null}
         {isDriver && requests.some((request) => request.passengerIsPlus && request.estado === 'pendiente') ? (
-          <Notice tone="info">Las solicitudes de pasajeros ConVía+ aparecen primero y tienen prioridad para los cupos que quedan.</Notice>
+          <Notice tone="info">{t('requests.plusFirst')}</Notice>
         ) : null}
         {/* The server already orders them: compatibility, then ConVía+, then newest. */}
         {requests.map((request) => {
@@ -165,24 +163,24 @@ export default function RequestsScreen() {
               <View style={styles.cardHeader}>
                 <View style={styles.titleRow}>
                   <Text style={styles.cardTitleText}>
-                    {isDriver ? request.passengerName || 'Pasajero' : request.tripLabel ?? 'Viaje'}
+                    {isDriver ? request.passengerName || t('requests.passenger') : request.tripLabel ?? t('requests.trip')}
                   </Text>
                   {isDriver && request.passengerIsPlus ? <PlusBadge /> : null}
                 </View>
                 <Text style={[styles.badge, { backgroundColor: STATUS_COLORS[request.estado].background, color: STATUS_COLORS[request.estado].color }]}>
-                  {STATUS_LABELS[request.estado]}
+                  {statusLabel(request.estado)}
                 </Text>
               </View>
               {isDriver && request.match ? <MatchSummary match={request.match} maxReasons={2} /> : null}
-              <MetaRow icon="location-outline" text={`Recogida: ${request.direccion}`} />
-              {request.dropoffLabel ? <MetaRow icon="flag-outline" text={`Se baja en: ${request.dropoffLabel}`} /> : null}
+              <MetaRow icon="location-outline" text={t('requests.pickup', { place: request.direccion })} />
+              {request.dropoffLabel ? <MetaRow icon="flag-outline" text={t('requests.dropoff', { place: request.dropoffLabel })} /> : null}
               {isDriver && request.tripLabel ? <MetaRow icon="navigate-outline" text={request.tripLabel} /> : null}
               {request.tripDepartureAt ? <MetaRow icon="time-outline" text={formatDateTime(request.tripDepartureAt)} /> : null}
               {!isDriver && request.lastUpdate ? (
                 <View style={styles.update}>
                   <View style={styles.updateHeader}>
                     <Ionicons color={colors.warning} name="alert-circle" size={16} />
-                    <Text style={styles.updateTitle}>El conductor cambió el viaje · {formatMessageTime(request.lastUpdate.at)}</Text>
+                    <Text style={styles.updateTitle}>{t('requests.tripChanged', { time: formatMessageTime(request.lastUpdate.at) })}</Text>
                   </View>
                   {request.lastUpdate.changes.map((change) => (
                     <Text key={change} style={styles.updateLine}>• {change}</Text>
@@ -195,7 +193,7 @@ export default function RequestsScreen() {
                     <ButtonSecondary
                       disabled={busy}
                       onPress={() => setConfirm({ requestId: request.id, kind: 'reject' })}
-                      title="Rechazar"
+                      title={t('requests.reject')}
                       tone="danger"
                     />
                   </View>
@@ -205,7 +203,7 @@ export default function RequestsScreen() {
                       icon="checkmark"
                       loading={busy}
                       onPress={() => setPendingAccept(request.id)}
-                      title="Aceptar"
+                      title={t('requests.accept')}
                     />
                   </View>
                 </View>
@@ -215,12 +213,12 @@ export default function RequestsScreen() {
                   <ButtonPrimary
                     icon="qr-code-outline"
                     onPress={() => router.push({ pathname: '/boarding-qr', params: { requestId: request.id } })}
-                    title="Mostrar mi código de abordaje"
+                    title={t('requests.showCode')}
                   />
                   <ButtonSecondary
                     icon="chatbubbles-outline"
                     onPress={() => router.push({ pathname: '/chat/[tripId]', params: { tripId: request.trip_id } })}
-                    title="Escribirle al conductor"
+                    title={t('requests.messageDriver')}
                   />
                 </>
               ) : null}
@@ -228,7 +226,7 @@ export default function RequestsScreen() {
                 <ButtonSecondary
                   disabled={busy}
                   onPress={() => setConfirm({ requestId: request.id, kind: 'cancel' })}
-                  title="Cancelar solicitud"
+                  title={t('requests.cancel')}
                 />
               ) : null}
             </View>
@@ -237,12 +235,12 @@ export default function RequestsScreen() {
       </ScrollView>
 
       <ConfirmDialog
-        cancelLabel="Volver"
-        confirmLabel={confirm?.kind === 'reject' ? 'Sí, rechazar' : 'Sí, cancelar'}
+        cancelLabel={t('common.back')}
+        confirmLabel={confirm?.kind === 'reject' ? t('requests.confirmReject') : t('requests.confirmCancel')}
         tone="danger"
         message={confirm?.kind === 'reject'
-          ? 'Se le avisará al pasajero que no puede unirse a este viaje.'
-          : 'Liberarás tu cupo y el conductor recibirá un aviso.'}
+          ? t('requests.rejectMessage')
+          : t('requests.cancelMessage')}
         onCancel={() => setConfirm(null)}
         onConfirm={() => {
           if (!confirm) return;
@@ -251,14 +249,14 @@ export default function RequestsScreen() {
           void (kind === 'reject'
             ? runAction(requestId, async () => {
               await tripService.respondToRequest(requestId, false);
-              toast.info('Solicitud rechazada. Le avisamos al pasajero');
-            }, 'No se pudo rechazar la solicitud.')
+              toast.info(t('requests.rejected'));
+            }, t('requests.rejectFailed'))
             : runAction(requestId, async () => {
               await tripService.cancelRequest(requestId);
-              toast.info('Cancelaste tu solicitud y liberaste el cupo');
-            }, 'No se pudo cancelar la solicitud.'));
+              toast.info(t('requests.cancelled'));
+            }, t('requests.cancelFailed')));
         }}
-        title={confirm?.kind === 'reject' ? '¿Rechazar esta solicitud?' : '¿Cancelar tu solicitud?'}
+        title={confirm?.kind === 'reject' ? t('requests.rejectTitle') : t('requests.cancelTitle')}
         visible={confirm !== null}
       />
     </SafeAreaView>

@@ -13,6 +13,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { ChatMessageItem } from '@/components/chat/ChatMessageItem';
 import { QuickReplies } from '@/components/chat/QuickReplies';
@@ -32,6 +33,7 @@ import { errorMessage, rawErrorMessage } from '@/utils/format';
 const MAX_LENGTH = 2000;
 
 export default function ChatScreen() {
+  const { t } = useTranslation();
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const userId = useAppStore((state) => state.currentUser?.id);
   const insets = useSafeAreaInsets();
@@ -55,14 +57,14 @@ export default function ChatScreen() {
       if (!found) {
         const reason = await chatService.getClosedReason(tripId);
         setEnded(reason === 'ended');
-        setLoadError('El chat se habilita cuando el conductor acepta tu solicitud, y se cierra cuando el viaje termina.');
+        setLoadError(t('tripChat.notOpen'));
       }
     } catch (error) {
-      setLoadError(errorMessage(error, 'No se pudo cargar la conversación.'));
+      setLoadError(errorMessage(error, t('tripChat.loadFailed')));
     } finally {
       setLoading(false);
     }
-  }, [tripId]);
+  }, [tripId, t]);
 
   useEffect(() => {
     const timer = setTimeout(() => void load(), 0);
@@ -101,7 +103,7 @@ export default function ChatScreen() {
         void load();
         return;
       }
-      setSendError(errorMessage(error, 'No se pudo enviar el mensaje. Inténtalo de nuevo.'));
+      setSendError(errorMessage(error, t('tripChat.sendFailed')));
     } finally {
       setSending(false);
     }
@@ -112,13 +114,13 @@ export default function ChatScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.header}>
-        <Pressable accessibilityLabel="Volver a los chats" hitSlop={8} onPress={() => router.back()} style={styles.back}>
+        <Pressable accessibilityLabel={t('tripChat.back')} hitSlop={8} onPress={() => router.back()} style={styles.back}>
           <Ionicons color={colors.text} name="arrow-back" size={24} />
         </Pressable>
         {conversation ? (
           <>
             {/* Tapping the header opens "Pasajeros del viaje" too. */}
-            <Pressable accessibilityLabel="Ver los integrantes del viaje" onPress={() => setShowMembers(true)} style={styles.headerMain}>
+            <Pressable accessibilityLabel={t('tripChat.seeMembers')} onPress={() => setShowMembers(true)} style={styles.headerMain}>
               <Avatar imageUrl={conversation.participantAvatar} name={conversation.participantName} size={40} />
               <View style={styles.headerText}>
                 <Text numberOfLines={1} style={styles.headerName}>{conversation.participantName}</Text>
@@ -131,17 +133,17 @@ export default function ChatScreen() {
               </View>
             </Pressable>
             <Pressable
-              accessibilityLabel="Pasajeros del viaje"
+              accessibilityLabel={t('chats.tripPassengers')}
               hitSlop={6}
               onPress={() => setShowMembers(true)}
               style={styles.membersButton}
             >
               <Ionicons color={colors.primary} name="people" size={20} />
-              <Text style={styles.membersText}>Grupo</Text>
+              <Text style={styles.membersText}>{t('tripChat.group')}</Text>
             </Pressable>
           </>
         ) : (
-          <Text style={styles.headerName}>Chat del viaje</Text>
+          <Text style={styles.headerName}>{t('tripChat.title')}</Text>
         )}
       </View>
 
@@ -156,19 +158,19 @@ export default function ChatScreen() {
       ) : !conversation && ended ? (
         <View style={styles.centered}>
           <EmptyState
-            action={{ icon: 'document-text-outline', label: 'Ver el viaje', onPress: () => router.replace({ pathname: '/trip-summary', params: { tripId } }) }}
+            action={{ icon: 'document-text-outline', label: t('tripChat.seeTrip'), onPress: () => router.replace({ pathname: '/trip-summary', params: { tripId } }) }}
             icon="lock-closed-outline"
-            message="El viaje terminó, así que su chat se cerró y ya no se pueden enviar mensajes."
-            title="Este chat ya no está disponible"
+            message={t('tripChat.closedText')}
+            title={t('tripChat.closedTitle')}
           />
         </View>
       ) : !conversation ? (
         <View style={styles.centered}>
           <EmptyState
-            action={{ icon: 'refresh', label: 'Reintentar', onPress: () => void load() }}
+            action={{ icon: 'refresh', label: t('chats.retry'), onPress: () => void load() }}
             icon="chatbubbles-outline"
-            message={loadError ?? 'Revisa tu conexión e inténtalo de nuevo.'}
-            title="No pudimos abrir el chat"
+            message={loadError ?? t('tripChat.checkConnection')}
+            title={t('tripChat.openFailed')}
           />
         </View>
       ) : (
@@ -183,8 +185,8 @@ export default function ChatScreen() {
             ListEmptyComponent={(
               <View style={styles.emptyState}>
                 <Ionicons color={colors.primary} name="chatbubbles-outline" size={40} />
-                <Text style={styles.emptyTitle}>Coordinen el viaje</Text>
-                <Text style={styles.emptyText}>Acuerden el punto de encuentro y la hora. Los mensajes solo los ven los participantes del viaje.</Text>
+                <Text style={styles.emptyTitle}>{t('tripChat.emptyTitle')}</Text>
+                <Text style={styles.emptyText}>{t('tripChat.emptyText')}</Text>
               </View>
             )}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
@@ -199,17 +201,17 @@ export default function ChatScreen() {
             {text.length === 0 ? <QuickReplies disabled={sending} onSelect={(reply) => void send(reply, true)} /> : null}
             <View style={styles.composer}>
               <TextInput
-                accessibilityLabel="Mensaje"
+                accessibilityLabel={t('tripChat.message')}
                 maxLength={MAX_LENGTH}
                 multiline
                 onChangeText={setText}
-                placeholder="Escribe un mensaje…"
+                placeholder={t('tripChat.placeholder')}
                 placeholderTextColor={colors.textSecondary}
                 style={styles.input}
                 value={text}
               />
               <Pressable
-                accessibilityLabel="Enviar mensaje"
+                accessibilityLabel={t('tripChat.send')}
                 accessibilityState={{ disabled: !canSend }}
                 disabled={!canSend}
                 onPress={() => void send(text)}

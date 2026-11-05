@@ -1,6 +1,7 @@
 import { forwardRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { TextField, TextFieldProps } from '@/components/forms/TextField';
 import { colors } from '@/constants/colors';
@@ -10,6 +11,7 @@ import { PASSWORD_RULES } from '@/utils/password';
 
 /** Password input with an eye button to show or hide what was typed. */
 export const PasswordField = forwardRef<TextInput, Omit<TextFieldProps, 'secureTextEntry' | 'right'>>(function PasswordField(props, ref) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   return (
     <TextField
@@ -18,7 +20,7 @@ export const PasswordField = forwardRef<TextInput, Omit<TextFieldProps, 'secureT
       ref={ref}
       right={(
         <Pressable
-          accessibilityLabel={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          accessibilityLabel={visible ? t('password.hide') : t('password.show')}
           accessibilityRole="button"
           hitSlop={8}
           onPress={() => setVisible(!visible)}
@@ -39,12 +41,14 @@ export const PasswordField = forwardRef<TextInput, Omit<TextFieldProps, 'secureT
  * Rules turn green as they are met, so the person knows what is still missing.
  */
 export function PasswordChecklist({ password, confirm }: Readonly<{ password: string; confirm: string }>) {
+  // Re-renders on a language change; the rule labels read the current language.
+  const { t } = useTranslation();
   const items = [
     ...PASSWORD_RULES.map((rule) => ({ label: rule.label, ok: rule.test(password) })),
-    { label: 'Las dos contraseñas coinciden', ok: !!confirm && confirm === password },
+    { label: t('password.match'), ok: !!confirm && confirm === password },
   ];
   return (
-    <View accessibilityLabel="Requisitos de la contraseña" style={styles.list}>
+    <View accessibilityLabel={t('password.checklistLabel')} style={styles.list}>
       {items.map((item) => (
         <View key={item.label} style={styles.item}>
           <Ionicons

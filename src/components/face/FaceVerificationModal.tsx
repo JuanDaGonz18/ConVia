@@ -1,8 +1,10 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
+import i18n from '@/i18n';
 import { spacing } from '@/constants/spacing';
 import { preloadFaceModel } from '@/services/faceRecognition';
 import { faceVerificationService } from '@/services/faceVerificationService';
@@ -23,25 +25,19 @@ export type FaceVerificationModalProps = Readonly<{
   onClose: () => void;
 }>;
 
-const INITIAL_MESSAGE = 'Centra tu rostro, mira de frente y mantén una expresión neutral.';
-
-const TITLES: Record<FaceVerificationTrigger, string> = {
-  register: 'Registra tu rostro',
-  trip_request: 'Confirma tu identidad para pedir el cupo',
-  driver_activate: 'Confirma tu identidad para aceptar al pasajero',
-  driver_identity: 'Confirma que eres la persona de tu licencia',
-};
+const initialMessage = () => i18n.t('face.initial');
 
 /**
  * Captures a selfie with expo-camera and verifies it on the device
  * (ML Kit + SFace); only the face embedding is sent to Supabase.
  */
 export function FaceVerificationModal({ visible, trigger, userId, onSuccess, onFailure, onClose }: FaceVerificationModalProps) {
+  const { t } = useTranslation();
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
   const [state, setState] = useState<FaceVerificationState>('IDLE');
-  const [message, setMessage] = useState(INITIAL_MESSAGE);
+  const [message, setMessage] = useState(initialMessage);
   const [processing, setProcessing] = useState(false);
   const setFaceVerificationState = useAppStore((store) => store.setFaceVerificationState);
 
@@ -55,7 +51,7 @@ export function FaceVerificationModal({ visible, trigger, userId, onSuccess, onF
       setCameraReady(false);
       setProcessing(false);
       setState(permission?.granted ? 'FACE_DETECTED' : 'CAMERA_PERMISSION');
-      setMessage(INITIAL_MESSAGE);
+      setMessage(initialMessage());
     }, 0);
     return () => clearTimeout(timer);
   }, [permission?.granted, visible]);
@@ -69,30 +65,30 @@ export function FaceVerificationModal({ visible, trigger, userId, onSuccess, onF
 
   const retry = () => {
     setState('RETRY');
-    setMessage(INITIAL_MESSAGE);
+    setMessage(initialMessage());
   };
 
   const capture = async () => {
     if (!cameraRef.current || !cameraReady || processing) return;
     setProcessing(true);
     setState('CAPTURING');
-    setMessage('Capturando...');
+    setMessage(t('face.capturing'));
     try {
       const photo = await cameraRef.current.takePictureAsync({ base64: false, quality: 0.85, exif: false });
-      if (!photo?.uri) throw new Error('No se pudo capturar la foto.');
+      if (!photo?.uri) throw new Error(t('face.captureFailed'));
       setState('PROCESSING');
-      setMessage('Analizando tu rostro en el teléfono...');
+      setMessage(t('face.analyzing'));
       const result = await faceVerificationService.verifyPhoto(userId, photo.uri, trigger);
       if (result.status !== 'verified') {
-        fail(result.failureReason ?? 'face_mismatch', result.message ?? 'No pudimos verificar tu identidad. Busca buena luz e inténtalo de nuevo.');
+        fail(result.failureReason ?? 'face_mismatch', result.message ?? t('face.notVerified'));
         return;
       }
       setProcessing(false);
       setState('SUCCESS');
-      setMessage(result.message ?? 'Verificación completada.');
+      setMessage(result.message ?? t('face.done'));
       onSuccess(result);
     } catch (error) {
-      fail('storage_error', error instanceof Error ? error.message : 'No se pudo completar la verificación.');
+      fail('storage_error', error instanceof Error ? error.message : t('face.failed'));
     }
   };
 
@@ -103,33 +99,33 @@ export function FaceVerificationModal({ visible, trigger, userId, onSuccess, onF
       <View style={styles.root}>
         {state === 'CAMERA_PERMISSION' ? (
           <View style={styles.centered}>
-            <Text style={styles.title}>Necesitamos acceso a la cámara</Text>
+            <Text style={styles.title}>{t('face.cameraTitle')}</Text>
             {permission && !permission.canAskAgain ? (
-              <Text style={styles.body}>Activa el permiso de cámara para ConVía desde los ajustes del teléfono.</Text>
+              <Text style={styles.body}>{t('face.cameraSettings')}</Text>
             ) : (
-              <Pressable onPress={() => void requestPermission()} style={styles.primaryButton}><Text style={styles.primaryText}>Permitir cámara</Text></Pressable>
+              <Pressable onPress={() => void requestPermission()} style={styles.primaryButton}><Text style={styles.primaryText}>{t('face.allowCamera')}</Text></Pressable>
             )}
-            <Pressable onPress={onClose} style={styles.secondaryButton}><Text style={styles.secondaryText}>Cancelar</Text></Pressable>
+            <Pressable onPress={onClose} style={styles.secondaryButton}><Text style={styles.secondaryText}>{t('common.cancel')}</Text></Pressable>
           </View>
         ) : (
           <>
             <CameraView facing="front" mode="picture" onCameraReady={() => setCameraReady(true)} ref={cameraRef} style={StyleSheet.absoluteFill} />
             <View style={styles.overlay}>
-              <Pressable accessibilityLabel="Cerrar verificación facial" onPress={onClose} style={styles.close}><Text style={styles.closeText}>✕</Text></Pressable>
+              <Pressable accessibilityLabel={t('face.closeLabel')} onPress={onClose} style={styles.close}><Text style={styles.closeText}>✕</Text></Pressable>
               <View style={styles.textBlock}>
-                <Text style={styles.overlayTitle}>{TITLES[trigger]}</Text>
+                <Text style={styles.overlayTitle}>{t(`face.title.${trigger}`)}</Text>
                 <Text style={styles.instruction}>{message}</Text>
               </View>
               {processing ? <ActivityIndicator color={colors.white} size="large" /> : null}
               {canCapture ? (
-                <Pressable accessibilityLabel="Capturar selfie" disabled={!cameraReady || processing} onPress={() => void capture()} style={styles.shutter}>
+                <Pressable accessibilityLabel={t('face.shutter')} disabled={!cameraReady || processing} onPress={() => void capture()} style={styles.shutter}>
                   <View style={styles.shutterInner} />
                 </Pressable>
               ) : null}
               {state === 'FAILED' ? (
                 <View style={styles.actions}>
-                  <Pressable onPress={retry} style={styles.primaryButton}><Text style={styles.primaryText}>Reintentar</Text></Pressable>
-                  <Pressable onPress={onClose} style={styles.secondaryButton}><Text style={styles.closeText}>Cerrar</Text></Pressable>
+                  <Pressable onPress={retry} style={styles.primaryButton}><Text style={styles.primaryText}>{t('common.retry')}</Text></Pressable>
+                  <Pressable onPress={onClose} style={styles.secondaryButton}><Text style={styles.closeText}>{t('common.close')}</Text></Pressable>
                 </View>
               ) : null}
             </View>

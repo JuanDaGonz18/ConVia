@@ -17,6 +17,7 @@ import { typography } from '@/constants/typography';
 import { subscriptionService } from '@/services/subscriptionService';
 import { CAPABILITIES, Capability, DEFAULT_PLANS, LIMIT_INFO, Plan, PlanLimit, PlanTier } from '@/subscription/plans';
 import { refreshPlan, usePlan } from '@/subscription/usePlan';
+import { localeTag } from '@/i18n';
 
 type Row = { label: string; free: string | boolean; plus: string | boolean };
 
@@ -85,7 +86,7 @@ export default function PlusScreen() {
 
   const lapsed = !isPlus && (plan.status === 'expired' || plan.status === 'canceled' || plan.status === 'past_due');
   const until = plan.currentPeriodEnd
-    ? new Date(plan.currentPeriodEnd).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
+    ? new Date(plan.currentPeriodEnd).toLocaleDateString(localeTag(), { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
 
   return (

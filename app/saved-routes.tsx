@@ -3,6 +3,8 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, S
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { requirePlus } from '@/components/subscription/PlusGate';
@@ -23,18 +25,20 @@ import { describeDays, formatClock } from '@/services/recurringTripService';
 import { matchTrip, TripMatch } from '@/services/tripMatching';
 import { tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
-import { LIMIT_INFO } from '@/subscription/plans';
 import { usePlan } from '@/subscription/usePlan';
 import { SavedRoute, Trip } from '@/types';
 import { errorMessage } from '@/utils/format';
 
-function describeWhen(route: SavedRoute) {
-  const days = route.days.length ? describeDays(route.days) : 'Cualquier día';
-  return route.timeFrom && route.timeTo ? `${days} · ${formatClock(route.timeFrom)} a ${formatClock(route.timeTo)}` : `${days} · cualquier hora`;
+function describeWhen(route: SavedRoute, t: TFunction) {
+  const days = route.days.length ? describeDays(route.days) : t('savedRoutes.anyDay');
+  return route.timeFrom && route.timeTo
+    ? t('savedRoutes.between', { days, from: formatClock(route.timeFrom), to: formatClock(route.timeTo) })
+    : t('savedRoutes.anyTime', { days });
 }
 
 /** Saved routes (search shortcuts and alerts) and the trips the alerts found. */
 export default function SavedRoutesScreen() {
+  const { t } = useTranslation();
   const routes = useAppStore((state) => state.savedRoutes);
   const setSavedRoutes = useAppStore((state) => state.setSavedRoutes);
   const setTripSearch = useAppStore((state) => state.setTripSearch);
@@ -63,11 +67,11 @@ export default function SavedRoutesScreen() {
       }));
       setError(null);
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudieron cargar tus rutas.'));
+      setError(errorMessage(loadError, t('savedRoutes.loadFailed')));
     } finally {
       setLoading(false);
     }
-  }, [setSavedRoutes]);
+  }, [setSavedRoutes, t]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
@@ -92,9 +96,9 @@ export default function SavedRoutesScreen() {
     try {
       await personalizationService.setRouteAlert(route.id, alert);
       setSavedRoutes(routes.map((item) => (item.id === route.id ? { ...item, alert } : item)));
-      toast.info(alert ? 'Te avisaremos de viajes compatibles nuevos' : 'Alerta desactivada');
+      toast.info(alert ? t('savedRoutes.alertOn') : t('savedRoutes.alertOff'));
     } catch (toggleError) {
-      setError(errorMessage(toggleError, 'No se pudo cambiar la alerta.'));
+      setError(errorMessage(toggleError, t('savedRoutes.alertFailed')));
     } finally {
       setBusyId(null);
     }
@@ -106,9 +110,9 @@ export default function SavedRoutesScreen() {
     try {
       await personalizationService.deleteRoute(route.id);
       setSavedRoutes(routes.filter((item) => item.id !== route.id));
-      toast.info('Ruta eliminada');
+      toast.info(t('savedRoutes.deleted'));
     } catch (removeError) {
-      setError(errorMessage(removeError, 'No se pudo eliminar la ruta.'));
+      setError(errorMessage(removeError, t('savedRoutes.deleteFailed')));
     } finally {
       setBusyId(null);
     }
@@ -125,15 +129,13 @@ export default function SavedRoutesScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => { setRefreshing(true); void load().finally(() => setRefreshing(false)); }} refreshing={refreshing} />}
       >
-        <ScreenHeader kicker="TUS VIAJES" title="Rutas y alertas" />
-        <Text style={styles.subtitle}>
-          Guarda los trayectos que haces seguido para buscarlos con un toque. Con la alerta activa te avisamos cuando se publica un viaje compatible.
-        </Text>
+        <ScreenHeader kicker={t('savedRoutes.kicker')} title={t('savedRoutes.title')} />
+        <Text style={styles.subtitle}>{t('savedRoutes.subtitle')}</Text>
         {error ? <Notice tone="error">{error}</Notice> : null}
         {loading ? <ActivityIndicator color={colors.primary} /> : null}
 
         {!loading && !routes.length ? (
-          <EmptyState compact icon="git-branch-outline" message="Por ejemplo, de tu casa a la universidad entre las 6 y las 7 a. m." title="Aún no tienes rutas" />
+          <EmptyState compact icon="git-branch-outline" message={t('savedRoutes.emptyText')} title={t('savedRoutes.emptyTitle')} />
         ) : null}
 
         {routes.map((route) => (
@@ -144,7 +146,7 @@ export default function SavedRoutesScreen() {
                 {route.name !== `${route.origin.label} → ${route.destination.label}` ? (
                   <Text numberOfLines={2} style={styles.meta}>{route.origin.label} → {route.destination.label}</Text>
                 ) : null}
-                <Text style={styles.meta}>{describeWhen(route)}</Text>
+                <Text style={styles.meta}>{describeWhen(route, t)}</Text>
               </View>
               {busyId === route.id ? (
                 <ActivityIndicator color={colors.primary} />
@@ -152,7 +154,7 @@ export default function SavedRoutesScreen() {
                 <View style={styles.alertSwitch}>
                   <Ionicons color={route.alert ? colors.primary : colors.textSecondary} name={route.alert ? 'notifications' : 'notifications-off-outline'} size={16} />
                   <Switch
-                    accessibilityLabel={route.alert ? 'Desactivar alerta' : 'Activar alerta'}
+                    accessibilityLabel={route.alert ? t('savedRoutes.disableAlert') : t('savedRoutes.enableAlert')}
                     onValueChange={(value) => void toggleAlert(route, value)}
                     thumbColor={route.alert ? colors.primary : undefined}
                     trackColor={{ true: colors.primaryLight }}
@@ -164,15 +166,15 @@ export default function SavedRoutesScreen() {
             <View style={styles.actions}>
               <Pressable accessibilityRole="button" onPress={() => search(route)} style={styles.action}>
                 <Ionicons color={colors.primary} name="search-outline" size={16} />
-                <Text style={styles.actionText}>Buscar viajes</Text>
+                <Text style={styles.actionText}>{t('savedRoutes.search')}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/route', params: { id: route.id } })} style={styles.action}>
                 <Ionicons color={colors.primary} name="create-outline" size={16} />
-                <Text style={styles.actionText}>Editar</Text>
+                <Text style={styles.actionText}>{t('savedRoutes.edit')}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" onPress={() => setToDelete(route)} style={styles.action}>
                 <Ionicons color={colors.error} name="trash-outline" size={16} />
-                <Text style={[styles.actionText, styles.danger]}>Eliminar</Text>
+                <Text style={[styles.actionText, styles.danger]}>{t('savedRoutes.delete')}</Text>
               </Pressable>
             </View>
           </View>
@@ -182,19 +184,19 @@ export default function SavedRoutesScreen() {
           <View style={styles.planRow}>
             {isBetaPerk('smart_match_alerts') ? <PlusBadge compact /> : null}
             <Text style={styles.planText}>
-              {full ? LIMIT_INFO.saved_routes.reachedText(routeLimit) : `Puedes guardar hasta ${routeLimit} rutas.`}
-              {isBetaPerk('smart_match_alerts') ? ' Las alertas son de ConVía+ y están abiertas durante la beta.' : ''}
+              {full ? t('savedRoutes.limitReached', { count: routeLimit }) : t('savedRoutes.limit', { count: routeLimit })}
+              {isBetaPerk('smart_match_alerts') ? ` ${t('savedRoutes.betaAlerts')}` : ''}
             </Text>
           </View>
         ) : null}
-        <ButtonPrimary icon="add-circle-outline" onPress={add} title="Nueva ruta" />
+        <ButtonPrimary icon="add-circle-outline" onPress={add} title={t('savedRoutes.new')} />
 
-        <Text style={styles.sectionTitle}>Viajes que encontraron tus alertas</Text>
+        <Text style={styles.sectionTitle}>{t('savedRoutes.found')}</Text>
         {!loading && !found.length ? (
           <Text style={styles.meta}>
             {routes.some((route) => route.alert)
-              ? 'Aún no hay viajes nuevos compatibles con tus rutas. Te avisaremos apenas se publique uno.'
-              : 'Activa la alerta de una ruta para ver aquí los viajes compatibles que se publiquen.'}
+              ? t('savedRoutes.foundNone')
+              : t('savedRoutes.foundNoAlerts')}
           </Text>
         ) : null}
         {found.map(({ trip }) => (
@@ -211,13 +213,13 @@ export default function SavedRoutesScreen() {
       </ScrollView>
 
       <ConfirmDialog
-        cancelLabel="Volver"
-        confirmLabel="Sí, eliminar"
+        cancelLabel={t('savedRoutes.back')}
+        confirmLabel={t('savedRoutes.confirmDelete')}
         icon="trash-outline"
-        message="Dejarás de recibir alertas de esta ruta."
+        message={t('savedRoutes.deleteText')}
         onCancel={() => setToDelete(null)}
         onConfirm={() => toDelete && void remove(toDelete)}
-        title={`¿Eliminar "${toDelete?.name ?? 'esta ruta'}"?`}
+        title={toDelete ? t('savedRoutes.deleteTitle', { name: toDelete.name }) : ''}
         tone="danger"
         visible={toDelete !== null}
       />

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { AppModal } from '@/components/ui/AppModal';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
@@ -9,39 +10,36 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { DEFAULT_FILTERS, type TripFilters } from '@/services/tripFilters';
+import { formatDistance, formatPrice } from '@/utils/format';
+import i18n from '@/i18n';
 
 type Option<T> = { value: T; label: string };
 
-const LEVELS: Option<TripFilters['minLevel']>[] = [
-  { value: 'fair', label: 'Todos los compatibles' },
-  { value: 'good', label: 'Compatibles' },
-  { value: 'excellent', label: 'Muy compatibles' },
-];
+// Options are built when the sheet renders, so they follow the current language.
+const levels = (): Option<TripFilters['minLevel']>[] => (['fair', 'good', 'excellent'] as const)
+  .map((value) => ({ value, label: i18n.t(`filters.level.${value}`) }));
 
 /** Departure windows in minutes after midnight ("from-to"; "" = any time). */
-const WINDOWS: Option<string>[] = [
-  { value: '', label: 'Cualquier hora' },
-  { value: '300-540', label: '5 a 9 a. m.' },
-  { value: '540-720', label: '9 a. m. a 12 m.' },
-  { value: '720-960', label: '12 a 4 p. m.' },
-  { value: '960-1200', label: '4 a 8 p. m.' },
-  { value: '1200-1439', label: 'Después de las 8 p. m.' },
-];
+const windows = (): Option<string>[] => ([
+  ['', 'any'],
+  ['300-540', 'early'],
+  ['540-720', 'morning'],
+  ['720-960', 'afternoon'],
+  ['960-1200', 'evening'],
+  ['1200-1439', 'night'],
+] as const).map(([value, key]) => ({ value, label: i18n.t(`filters.window.${key}`) }));
 
-const SEATS: Option<number>[] = [1, 2, 3, 4].map((value) => ({ value, label: value === 1 ? '1 cupo' : `${value} cupos` }));
-const PRICES: Option<number | null>[] = [null, 5000, 10000, 15000, 20000].map((value) => ({
+const seats = (): Option<number>[] => [1, 2, 3, 4].map((value) => ({ value, label: i18n.t('filters.seats', { count: value }) }));
+const prices = (): Option<number | null>[] => [null, 5000, 10000, 15000, 20000].map((value) => ({
   value,
-  label: value === null ? 'Sin límite' : `Hasta $${value.toLocaleString('es-CO')}`,
+  label: value === null ? i18n.t('filters.noLimit') : i18n.t('filters.upTo', { price: formatPrice(value) }),
 }));
-const DISTANCES: Option<number | null>[] = [null, 0.5, 1, 2].map((value) => ({
+const distances = (): Option<number | null>[] => [null, 0.5, 1, 2].map((value) => ({
   value,
-  label: value === null ? 'Sin límite' : value < 1 ? `${value * 1000} m` : `${value} km`,
+  label: value === null ? i18n.t('filters.noLimit') : formatDistance(value),
 }));
-const SORTS: Option<TripFilters['sort']>[] = [
-  { value: 'match', label: 'Más compatibles' },
-  { value: 'departure', label: 'Salen primero' },
-  { value: 'price', label: 'Más económicos' },
-];
+const sorts = (): Option<TripFilters['sort']>[] => (['match', 'departure', 'price'] as const)
+  .map((value) => ({ value, label: i18n.t(`filters.sort.${value}`) }));
 
 function Chips<T>({ options, value, onChange, label }: Readonly<{ options: Option<T>[]; value: T; onChange: (value: T) => void; label: string }>) {
   return (
@@ -77,6 +75,7 @@ export function TripFiltersSheet({ visible, value, onApply, onClose }: Readonly<
   onApply: (filters: TripFilters) => void;
   onClose: () => void;
 }>) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(value);
   // Start from the applied filters every time the sheet opens.
   const [wasVisible, setWasVisible] = useState(visible);
@@ -90,38 +89,38 @@ export function TripFiltersSheet({ visible, value, onApply, onClose }: Readonly<
   return (
     <AppModal onRequestClose={onClose} visible={visible}>
       <View style={styles.sheet}>
-        <Text style={styles.title}>Filtros</Text>
-        <Text style={styles.subtitle}>Solo ves viajes compatibles con tu trayecto; los filtros los acotan.</Text>
+        <Text style={styles.title}>{t('filters.title')}</Text>
+        <Text style={styles.subtitle}>{t('filters.subtitle')}</Text>
         <ScrollView contentContainerStyle={styles.body} style={styles.scroll}>
-          <Chips label="Compatibilidad" onChange={(minLevel) => set({ minLevel })} options={LEVELS} value={draft.minLevel} />
+          <Chips label={t('filters.compatibility')} onChange={(minLevel) => set({ minLevel })} options={levels()} value={draft.minLevel} />
           <Chips
-            label="Hora de salida"
+            label={t('filters.departure')}
             onChange={(next) => {
               const [from, to] = next ? next.split('-').map(Number) : [null, null];
               set({ departFrom: from, departTo: to });
             }}
-            options={WINDOWS}
+            options={windows()}
             value={window}
           />
-          <Chips label="Cupos que necesitas" onChange={(minSeats) => set({ minSeats })} options={SEATS} value={draft.minSeats} />
-          <Chips label="Precio por cupo" onChange={(maxPrice) => set({ maxPrice })} options={PRICES} value={draft.maxPrice} />
-          <Chips label="Te recogen a máximo" onChange={(maxPickupKm) => set({ maxPickupKm })} options={DISTANCES} value={draft.maxPickupKm} />
-          <Chips label="Te dejan a máximo de tu destino" onChange={(maxDropoffKm) => set({ maxDropoffKm })} options={DISTANCES} value={draft.maxDropoffKm} />
+          <Chips label={t('filters.seatsLabel')} onChange={(minSeats) => set({ minSeats })} options={seats()} value={draft.minSeats} />
+          <Chips label={t('filters.price')} onChange={(maxPrice) => set({ maxPrice })} options={prices()} value={draft.maxPrice} />
+          <Chips label={t('filters.pickup')} onChange={(maxPickupKm) => set({ maxPickupKm })} options={distances()} value={draft.maxPickupKm} />
+          <Chips label={t('filters.dropoff')} onChange={(maxDropoffKm) => set({ maxDropoffKm })} options={distances()} value={draft.maxDropoffKm} />
           <View style={styles.switchRow}>
-            <Text style={styles.groupLabel}>Solo conductores favoritos</Text>
+            <Text style={styles.groupLabel}>{t('filters.favoritesOnly')}</Text>
             <Switch
-              accessibilityLabel="Solo conductores favoritos"
+              accessibilityLabel={t('filters.favoritesOnly')}
               onValueChange={(favoritesOnly) => set({ favoritesOnly })}
               thumbColor={draft.favoritesOnly ? colors.primary : undefined}
               trackColor={{ true: colors.primaryLight }}
               value={draft.favoritesOnly}
             />
           </View>
-          <Chips label="Ordenar dentro de cada nivel" onChange={(sort) => set({ sort })} options={SORTS} value={draft.sort} />
+          <Chips label={t('filters.sortLabel')} onChange={(sort) => set({ sort })} options={sorts()} value={draft.sort} />
         </ScrollView>
         <View style={styles.actions}>
-          <ButtonPrimary onPress={() => onApply(draft)} title="Ver viajes" />
-          <ButtonSecondary onPress={() => onApply(DEFAULT_FILTERS)} title="Quitar filtros" />
+          <ButtonPrimary onPress={() => onApply(draft)} title={t('filters.apply')} />
+          <ButtonSecondary onPress={() => onApply(DEFAULT_FILTERS)} title={t('filters.clear')} />
         </View>
       </View>
     </AppModal>

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { colors } from '@/constants/colors';
@@ -9,28 +10,24 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { DriverStatus } from '@/types';
 
-const COPY: Record<DriverStatus | 'none', { title: string; body: string; action?: string }> = {
-  none: { title: 'Verifica tu identidad de conductor', body: 'Para publicar viajes, toma una foto de tu licencia y una selfie para confirmar que eres tú.', action: 'Verificar identidad' },
-  pendiente: { title: 'Falta verificar tu identidad', body: 'Sube la foto de tu licencia y tómate una selfie. Podrás publicar viajes cuando tu rostro coincida con la licencia.', action: 'Continuar' },
-  rechazado: { title: 'Verificación no aprobada', body: 'Sube de nuevo la foto de tu licencia y verifica tu identidad.', action: 'Intentar de nuevo' },
-  suspendido: { title: 'Permiso suspendido', body: 'Tu permiso de conductor está suspendido. Contacta al administrador de tu institución.' },
-  aprobado: { title: '', body: '' },
-};
+/** Statuses with a button to the license screen (texts in driverApproval.<status>). */
+const WITH_ACTION = new Set<string>(['none', 'pendiente', 'rechazado']);
 
 /** Shown instead of publishing actions while the driver permission is not approved. */
 export function DriverApprovalNotice({ status }: Readonly<{ status: DriverStatus | null | undefined }>) {
-  const copy = COPY[status ?? 'none'];
+  const { t } = useTranslation();
+  const key = status ?? 'none';
   const blocked = status === 'suspendido' || status === 'rechazado';
   return (
     <View style={[styles.card, blocked ? styles.cardBlocked : null]}>
       <View style={styles.row}>
         <Ionicons color={blocked ? colors.error : colors.primary} name={status === 'pendiente' ? 'time-outline' : 'id-card-outline'} size={22} />
         <View style={styles.text}>
-          <Text style={[styles.title, blocked ? styles.titleBlocked : null]}>{copy.title}</Text>
-          <Text style={styles.body}>{copy.body}</Text>
+          <Text style={[styles.title, blocked ? styles.titleBlocked : null]}>{t(`driverApproval.${key}.title`)}</Text>
+          <Text style={styles.body}>{t(`driverApproval.${key}.body`)}</Text>
         </View>
       </View>
-      {copy.action ? <ButtonSecondary onPress={() => router.push('/driver-license')} title={copy.action} /> : null}
+      {WITH_ACTION.has(key) ? <ButtonSecondary onPress={() => router.push('/driver-license')} title={t(`driverApproval.${key}.action`)} /> : null}
     </View>
   );
 }

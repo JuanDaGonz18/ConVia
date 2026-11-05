@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
+import { useTranslation } from 'react-i18next';
 
 import { FieldError } from '@/components/forms/FieldError';
 import { PlaceSearchField } from '@/components/forms/PlaceSearchField';
@@ -49,6 +50,7 @@ function paramPlace(label?: string, lat?: string, lng?: string): Location | null
 
 /** Create or edit a saved route (a search shortcut) and its alert. */
 export default function RouteScreen() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{
     id?: string;
     originLabel?: string; originLat?: string; originLng?: string;
@@ -97,10 +99,10 @@ export default function RouteScreen() {
 
   const save = async () => {
     const found: FieldErrors = {};
-    if (!origin) found.origin = 'Elige dónde te recogen.';
-    if (!destination) found.destination = 'Elige a dónde vas.';
-    else if (origin && locationService.distanceKm(origin, destination) < 0.3) found.destination = 'El destino debe ser distinto al punto de partida.';
-    if ((timeFrom === null) !== (timeTo === null) || (timeFrom && timeTo && timeFrom >= timeTo)) found.time = 'La hora final debe ser después de la inicial.';
+    if (!origin) found.origin = t('routeEditor.errors.origin');
+    if (!destination) found.destination = t('routeEditor.errors.destination');
+    else if (origin && locationService.distanceKm(origin, destination) < 0.3) found.destination = t('routeEditor.errors.samePlace');
+    if ((timeFrom === null) !== (timeTo === null) || (timeFrom && timeTo && timeFrom >= timeTo)) found.time = t('routeEditor.errors.time');
     setFieldErrors(found);
     if (Object.values(found).some(Boolean) || !origin || !destination) return;
     setSaving(true);
@@ -108,12 +110,12 @@ export default function RouteScreen() {
     try {
       const saved = await personalizationService.saveRoute({ name, origin, destination, days, timeFrom, timeTo, alert }, existing?.id);
       setSavedRoutes(existing ? routes.map((route) => (route.id === saved.id ? saved : route)) : [...routes, saved]);
-      toast.success(alert ? 'Ruta guardada. Te avisaremos cuando aparezca un viaje compatible' : 'Ruta guardada');
+      toast.success(alert ? t('routeEditor.savedWithAlert') : t('routeEditor.saved'));
       router.back();
     } catch (saveError) {
       const limit = planLimitFromError(rawErrorMessage(saveError));
       if (limit?.key === 'saved_routes') requirePlus({ limit: 'saved_routes' });
-      setError(errorMessage(saveError, 'No se pudo guardar la ruta.'));
+      setError(errorMessage(saveError, t('routeEditor.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -122,33 +124,33 @@ export default function RouteScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <ScreenHeader kicker="TUS RUTAS" title={existing ? 'Editar ruta' : 'Nueva ruta'} />
-        <Text style={styles.subtitle}>Úsala para buscar con un toque y, si quieres, te avisamos cuando se publique un viaje compatible.</Text>
+        <ScreenHeader kicker={t('routeEditor.kicker')} title={existing ? t('routeEditor.editTitle') : t('routeEditor.newTitle')} />
+        <Text style={styles.subtitle}>{t('routeEditor.subtitle')}</Text>
         {error ? <Notice tone="error">{error}</Notice> : null}
 
-        <TextField label="Nombre (opcional)" maxLength={40} onChangeText={setName} placeholder="Por ejemplo: Casa a la universidad" value={name} />
+        <TextField label={t('routeEditor.name')} maxLength={40} onChangeText={setName} placeholder={t('routeEditor.namePlaceholder')} value={name} />
         <PlaceSearchField
           allowCurrentLocation
           error={fieldErrors.origin}
-          label="Desde"
-          mapTitle="Dónde te recogen"
+          label={t('routeEditor.from')}
+          mapTitle={t('routeEditor.fromMap')}
           onChange={(place) => { setOrigin(place); setFieldErrors((current) => ({ ...current, origin: undefined })); }}
-          placeholder="Busca dónde te recogen"
+          placeholder={t('routeEditor.fromPlaceholder')}
           quickPlaces={savedPlaces}
           value={origin}
         />
         <PlaceSearchField
           error={fieldErrors.destination}
-          label="Hacia"
-          mapTitle="A dónde vas"
+          label={t('routeEditor.to')}
+          mapTitle={t('routeEditor.toMap')}
           near={origin}
           onChange={(place) => { setDestination(place); setFieldErrors((current) => ({ ...current, destination: undefined })); }}
-          placeholder="Busca a dónde vas"
+          placeholder={t('routeEditor.toPlaceholder')}
           quickPlaces={savedPlaces.filter((place) => !origin || locationService.distanceKm(place, origin) >= 0.3)}
           value={destination}
         />
 
-        <Text style={styles.label}>Días</Text>
+        <Text style={styles.label}>{t('routeEditor.days')}</Text>
         <View style={styles.dayRow}>
           {WEEKDAYS.map(({ day, short, long }) => {
             const selected = days.includes(day);
@@ -166,23 +168,23 @@ export default function RouteScreen() {
             );
           })}
         </View>
-        <Text style={styles.hint}>{days.length ? 'Solo esos días.' : 'Sin días elegidos: cualquier día.'}</Text>
+        <Text style={styles.hint}>{days.length ? t('routeEditor.onlyThoseDays') : t('routeEditor.anyDay')}</Text>
 
-        <Text style={styles.label}>Hora de salida</Text>
+        <Text style={styles.label}>{t('routeEditor.departure')}</Text>
         <View style={styles.timeRow}>
-          <Pressable accessibilityLabel="Desde qué hora" onPress={() => setPicker('from')} style={styles.timeButton}>
+          <Pressable accessibilityLabel={t('routeEditor.fromTime')} onPress={() => setPicker('from')} style={styles.timeButton}>
             <Ionicons color={colors.primary} name="time-outline" size={18} />
-            <Text style={styles.timeText}>{timeFrom ? `Desde ${formatClock(timeFrom)}` : 'Cualquier hora'}</Text>
+            <Text style={styles.timeText}>{timeFrom ? t('routeEditor.fromClock', { time: formatClock(timeFrom) }) : t('routeEditor.anyTime')}</Text>
           </Pressable>
           {timeFrom ? (
-            <Pressable accessibilityLabel="Hasta qué hora" onPress={() => setPicker('to')} style={styles.timeButton}>
-              <Text style={styles.timeText}>{timeTo ? `Hasta ${formatClock(timeTo)}` : 'Hasta…'}</Text>
+            <Pressable accessibilityLabel={t('routeEditor.toTime')} onPress={() => setPicker('to')} style={styles.timeButton}>
+              <Text style={styles.timeText}>{timeTo ? t('routeEditor.toClock', { time: formatClock(timeTo) }) : t('routeEditor.toOpen')}</Text>
             </Pressable>
           ) : null}
         </View>
         {timeFrom ? (
           <Pressable hitSlop={8} onPress={() => { setTimeFrom(null); setTimeTo(null); }}>
-            <Text style={styles.clear}>Cualquier hora</Text>
+            <Text style={styles.clear}>{t('routeEditor.anyTime')}</Text>
           </Pressable>
         ) : null}
         <FieldError message={fieldErrors.time} />
@@ -194,10 +196,10 @@ export default function RouteScreen() {
               mode="time"
               onDismiss={() => setPicker(null)}
               onValueChange={(_event, picked) => pick(picked)}
-              positiveButton={{ label: 'Aceptar' }}
+              positiveButton={{ label: t('routeEditor.ok') }}
               value={fromClock((picker === 'from' ? timeFrom : timeTo) ?? '07:00')}
             />
-            {Platform.OS === 'ios' ? <ButtonSecondary onPress={() => setPicker(null)} title="Listo" /> : null}
+            {Platform.OS === 'ios' ? <ButtonSecondary onPress={() => setPicker(null)} title={t('routeEditor.done')} /> : null}
           </View>
         ) : null}
 
@@ -205,13 +207,13 @@ export default function RouteScreen() {
           <Ionicons color={colors.primary} name="notifications-outline" size={20} />
           <View style={styles.flex}>
             <View style={styles.alertTitleRow}>
-              <Text style={styles.alertTitle}>Avisarme de viajes nuevos</Text>
+              <Text style={styles.alertTitle}>{t('routeEditor.alert')}</Text>
               {!can('smart_match_alerts') || isBetaPerk('smart_match_alerts') ? <PlusBadge compact /> : null}
             </View>
-            <Text style={styles.hint}>Solo viajes compatibles con esta ruta y horario. Como máximo 3 avisos al día.</Text>
+            <Text style={styles.hint}>{t('routeEditor.alertHint')}</Text>
           </View>
           <Switch
-            accessibilityLabel="Avisarme de viajes nuevos"
+            accessibilityLabel={t('routeEditor.alert')}
             onValueChange={toggleAlert}
             thumbColor={alert ? colors.primary : undefined}
             trackColor={{ true: colors.primaryLight }}
@@ -219,7 +221,7 @@ export default function RouteScreen() {
           />
         </View>
 
-        <ButtonPrimary loading={saving} onPress={() => void save()} title={existing ? 'Guardar cambios' : 'Guardar ruta'} />
+        <ButtonPrimary loading={saving} onPress={() => void save()} title={existing ? t('routeEditor.saveChanges') : t('routeEditor.save')} />
       </ScrollView>
     </SafeAreaView>
   );

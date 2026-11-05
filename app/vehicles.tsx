@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { requirePlus } from '@/components/subscription/PlusGate';
@@ -24,8 +25,10 @@ import { LIMIT_INFO } from '@/subscription/plans';
 import { refreshPlan, usePlan } from '@/subscription/usePlan';
 import { Vehicle } from '@/types';
 import { errorMessage } from '@/utils/format';
+import i18n from '@/i18n';
 
 export default function VehiclesScreen() {
+  const { t } = useTranslation();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +44,7 @@ export default function VehiclesScreen() {
       setVehicles(await vehicleService.getMyVehicles());
       setError(null);
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudieron cargar tus vehículos.'));
+      setError(errorMessage(loadError, i18n.t('vehicles.loadFailed')));
     } finally {
       setLoading(false);
     }
@@ -67,9 +70,9 @@ export default function VehiclesScreen() {
     try {
       await vehicleService.deactivateVehicle(vehicle.id);
       setVehicles((items) => items.filter((item) => item.id !== vehicle.id));
-      toast.info(`Quitaste el vehículo ${vehicle.plate}`);
+      toast.info(t('vehicles.removed', { plate: vehicle.plate }));
     } catch (removeError) {
-      setError(errorMessage(removeError, 'No se pudo quitar el vehículo.'));
+      setError(errorMessage(removeError, t('vehicles.removeFailed')));
     } finally {
       setBusyId(null);
     }
@@ -78,8 +81,8 @@ export default function VehiclesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ScreenHeader kicker="CONDUCTOR" title="Mis vehículos" />
-        <Text style={styles.subtitle}>Al publicar un viaje eliges con cuál vas. Los pasajeros ven su foto antes de pedir un cupo.</Text>
+        <ScreenHeader kicker={t('vehicle.kicker')} title={t('vehicles.title')} />
+        <Text style={styles.subtitle}>{t('vehicles.subtitle')}</Text>
 
         {error ? <Notice tone="error">{error}</Notice> : null}
         {loading ? <RowSkeleton count={2} /> : null}
@@ -87,30 +90,30 @@ export default function VehiclesScreen() {
           <EmptyState
             compact
             icon="car-outline"
-            message="Registra tu carro o moto para poder publicar viajes."
-            title="Aún no tienes vehículos"
+            message={t('vehicles.emptyMessage')}
+            title={t('vehicles.emptyTitle')}
           />
         ) : null}
 
         {vehicles.map((vehicle) => (
           <View key={vehicle.id} style={styles.card}>
             {vehicle.photoUrl ? (
-              <Image accessibilityLabel={`Foto de ${vehicle.brand}`} source={{ uri: vehicle.photoUrl }} style={styles.photo} />
+              <Image accessibilityLabel={t('vehicles.photoOf', { brand: vehicle.brand })} source={{ uri: vehicle.photoUrl }} style={styles.photo} />
             ) : (
               <Pressable onPress={() => router.push({ pathname: '/vehicle', params: { id: vehicle.id } })} style={[styles.photo, styles.photoMissing]}>
                 <Ionicons color={colors.error} name="camera-outline" size={28} />
-                <Text style={styles.photoMissingText}>Falta la foto: agrégala para publicar viajes</Text>
+                <Text style={styles.photoMissingText}>{t('vehicles.photoMissing')}</Text>
               </Pressable>
             )}
             <View style={styles.cardBody}>
               <View style={styles.cardText}>
                 <Text style={styles.cardTitle}>{vehicle.brand}</Text>
                 <Text style={styles.cardMeta}>
-                  {vehicle.plate} · {vehicle.color} · {vehicle.seats} puesto{vehicle.seats === 1 ? '' : 's'}
+                  {[vehicle.plate, vehicle.color, vehicle.seats ? t('vehicles.seats', { count: vehicle.seats }) : null].filter(Boolean).join(' · ')}
                 </Text>
               </View>
               <Pressable
-                accessibilityLabel={`Editar ${vehicle.plate}`}
+                accessibilityLabel={t('vehicles.edit', { plate: vehicle.plate })}
                 hitSlop={6}
                 onPress={() => router.push({ pathname: '/vehicle', params: { id: vehicle.id } })}
                 style={styles.iconButton}
@@ -118,7 +121,7 @@ export default function VehiclesScreen() {
                 <Ionicons color={colors.primary} name="create-outline" size={20} />
               </Pressable>
               <Pressable
-                accessibilityLabel={`Quitar ${vehicle.plate}`}
+                accessibilityLabel={t('vehicles.remove', { plate: vehicle.plate })}
                 disabled={busyId === vehicle.id}
                 hitSlop={6}
                 onPress={() => setToRemove(vehicle)}
@@ -137,34 +140,34 @@ export default function VehiclesScreen() {
             {isPlus || betaVehicles ? <PlusBadge /> : null}
             <Text style={styles.planText}>
               {isPlus
-                ? `Usas ${vehicles.length} de ${vehicleLimit} vehículos de tu plan.`
+                ? t('vehicles.planUsage', { count: vehicles.length, limit: vehicleLimit })
                 : betaVehicles
-                  ? `Durante la beta puedes registrar hasta ${vehicleLimit} vehículos. Después, el plan gratis permitirá ${planLimit('vehicles') ?? 1} y varios vehículos serán de ConVía+.`
+                  ? t('vehicles.planBeta', { limit: vehicleLimit, free: planLimit('vehicles') ?? 1 })
                   : vehicles.length > vehicleLimit
-                  ? `${LIMIT_INFO.vehicles.freeText(vehicleLimit)} Puedes seguir usando los que ya tienes, pero para agregar otro necesitas ConVía+.`
+                  ? `${LIMIT_INFO.vehicles.freeText(vehicleLimit)} ${t('vehicles.planOver')}`
                   : LIMIT_INFO.vehicles.freeText(vehicleLimit)}
             </Text>
           </View>
         ) : null}
 
         {!full ? (
-          <ButtonPrimary onPress={addVehicle} title="Agregar vehículo" />
+          <ButtonPrimary onPress={addVehicle} title={t('vehicle.add')} />
         ) : isPlus ? (
-          <Text style={styles.planText}>Llegaste al máximo de vehículos de tu plan.</Text>
+          <Text style={styles.planText}>{t('vehicles.atMax')}</Text>
         ) : (
-          <ButtonSecondary icon="sparkles-outline" onPress={addVehicle} title="Registra varios vehículos con ConVía+" />
+          <ButtonSecondary icon="sparkles-outline" onPress={addVehicle} title={t('vehicles.addWithPlus')} />
         )}
       </ScrollView>
 
       <ConfirmDialog
-        cancelLabel="Volver"
-        confirmLabel="Sí, quitar"
+        cancelLabel={t('common.back')}
+        confirmLabel={t('vehicles.confirmRemove')}
         icon="trash-outline"
         tone="danger"
-        message="Ya no podrás usarlo para publicar viajes. Tus viajes anteriores con este vehículo se conservan."
+        message={t('vehicles.removeMessage')}
         onCancel={() => setToRemove(null)}
         onConfirm={() => toRemove && void remove(toRemove)}
-        title={`¿Quitar ${toRemove?.plate ?? 'este vehículo'}?`}
+        title={t('vehicles.removeTitle', { plate: toRemove?.plate ?? t('vehicles.thisVehicle') })}
         visible={toRemove !== null}
       />
     </SafeAreaView>
