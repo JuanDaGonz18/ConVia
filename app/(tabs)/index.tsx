@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { requirePlus } from '@/components/subscription/PlusGate';
@@ -32,6 +33,7 @@ import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
 import { usePlan } from '@/subscription/usePlan';
 import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
+import i18n from '@/i18n';
 
 /** Trips suggested on the passenger home before choosing a destination. */
 /** Show the best few first; the rest behind "Ver más". */
@@ -39,25 +41,21 @@ const INITIAL_RESULTS = 5;
 /** Past trips shown on the driver home. */
 const RECENT_COUNT = 3;
 
-const STATUS_LABELS: Record<DriverTripStatus, string> = {
-  por_empezar: 'Por empezar',
-  en_curso: 'En curso',
-  finalizado: 'Finalizado',
-  cancelado: 'Cancelado',
-  no_iniciado: 'No iniciado',
-};
+/** A trip status in the current language. */
+const statusLabel = (status: DriverTripStatus) => i18n.t(`tripStatus.${status}`);
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const currentUser = useAppStore((state) => state.currentUser);
   const isDriver = currentUser?.role === 'driver';
-  const firstName = (currentUser?.name || 'Usuario').split(' ')[0];
+  const firstName = (currentUser?.name || t('home.user')).split(' ')[0];
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <Text style={styles.greeting}>Hola, {firstName}</Text>
-          <Text style={styles.headerSubtitle}>{isDriver ? '¿Vas a llevar pasajeros hoy?' : '¿A dónde vas hoy?'}</Text>
+          <Text style={styles.greeting}>{t('home.greeting', { name: firstName })}</Text>
+          <Text style={styles.headerSubtitle}>{isDriver ? t('home.driverQuestion') : t('home.passengerQuestion')}</Text>
         </View>
         <ModeSwitch compact />
       </View>
@@ -68,9 +66,10 @@ export default function HomeScreen() {
 
 /** Opens the full-screen map, only when the user asks for it. */
 function MapCard({ subtitle }: Readonly<{ subtitle: string }>) {
+  const { t } = useTranslation();
   return (
     <Pressable
-      accessibilityLabel="Ver mapa"
+      accessibilityLabel={t('home.map')}
       accessibilityRole="button"
       onPress={() => router.push('/map')}
       style={({ pressed }) => [styles.mapCard, pressed ? styles.pressed : null]}
@@ -79,7 +78,7 @@ function MapCard({ subtitle }: Readonly<{ subtitle: string }>) {
         <Ionicons color={colors.primary} name="map" size={22} />
       </View>
       <View style={styles.flex}>
-        <Text style={styles.cardTitle}>Ver mapa</Text>
+        <Text style={styles.cardTitle}>{t('home.map')}</Text>
         <Text style={styles.cardSubtitle}>{subtitle}</Text>
       </View>
       <Ionicons color={colors.textSecondary} name="chevron-forward" size={20} />
@@ -90,6 +89,7 @@ function MapCard({ subtitle }: Readonly<{ subtitle: string }>) {
 // ─── Passenger ───────────────────────────────────────────────────────────────
 
 function PassengerHome() {
+  const { t } = useTranslation();
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const favoriteDriverIds = useAppStore((state) => state.favoriteDriverIds);
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
@@ -119,7 +119,7 @@ function PassengerHome() {
       setTrips(await tripService.getAvailableTrips());
       setError(null);
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudieron cargar los viajes.'));
+      setError(errorMessage(loadError, i18n.t('home.tripsFailed')));
     } finally {
       setLoading(false);
     }
@@ -197,30 +197,30 @@ function PassengerHome() {
       <RateDriverBanner />
       <View style={styles.searchCard}>
         <PlaceSearchField
-          label="¿A dónde vas?"
+          label={t('home.whereTo')}
           mapLink="afterSelection"
-          mapTitle="Ajusta tu destino"
+          mapTitle={t('home.adjustDestination')}
           near={origin}
           onChange={(place) => {
             setTripSearch({ destination: place });
             setExpanded(false);
           }}
-          placeholder="Busca un lugar o dirección"
+          placeholder={t('home.searchPlaceholder')}
           quickPlaces={savedPlaces}
           value={destination}
         />
         {destination ? (
           <PlaceSearchField
             allowCurrentLocation
-            label="Desde"
+            label={t('home.from')}
             mapLink="afterSelection"
-            mapTitle="Dónde te recogen"
+            mapTitle={t('home.pickupTitle')}
             near={gpsOrigin}
             onChange={(place) => {
               setTripSearch({ origin: place });
               setExpanded(false);
             }}
-            placeholder="Busca dónde te recogen"
+            placeholder={t('home.pickupPlaceholder')}
             quickPlaces={savedPlaces}
             value={origin}
           />
@@ -233,7 +233,7 @@ function PassengerHome() {
           value={time}
         />
         <View style={styles.toolsRow}>
-          <FilterButton onPress={openFilters} selected={filterCount > 0} title={filterCount ? `Filtros (${filterCount})` : 'Filtros'} />
+          <FilterButton onPress={openFilters} selected={filterCount > 0} title={filterCount ? t('home.filtersCount', { count: filterCount }) : t('home.filters')} />
           {!filtersEnabled || isBetaPerk('advanced_filters') ? <PlusBadge compact /> : null}
           {destination && origin && !routeSaved ? (
             <Pressable
@@ -248,7 +248,7 @@ function PassengerHome() {
               style={styles.saveRoute}
             >
               <Ionicons color={colors.primary} name="notifications-outline" size={14} />
-              <Text numberOfLines={1} style={styles.inlineLinkText}>Guardar ruta y avisarme</Text>
+              <Text numberOfLines={1} style={styles.inlineLinkText}>{t('home.saveRoute')}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -259,7 +259,7 @@ function PassengerHome() {
                 && !!chosenOrigin && locationService.distanceKm(route.origin, chosenOrigin) < 0.05;
               return (
                 <Pressable
-                  accessibilityLabel={`Buscar ${route.name}`}
+                  accessibilityLabel={t('home.searchRoute', { name: route.name })}
                   accessibilityState={{ selected: active }}
                   key={route.id}
                   onPress={() => {
@@ -273,54 +273,54 @@ function PassengerHome() {
                 </Pressable>
               );
             })}
-            <Pressable accessibilityLabel="Rutas y alertas" onPress={() => router.push('/saved-routes')} style={styles.routeChip}>
+            <Pressable accessibilityLabel={t('home.routesAndAlerts')} onPress={() => router.push('/saved-routes')} style={styles.routeChip}>
               <Ionicons color={colors.primary} name="settings-outline" size={12} />
-              <Text style={styles.routeChipText}>Rutas</Text>
+              <Text style={styles.routeChipText}>{t('home.routes')}</Text>
             </Pressable>
           </ScrollView>
         ) : null}
         {savedPlaces.length === 0 ? (
           <Pressable onPress={() => router.push('/saved-places')} style={styles.inlineLink}>
             <Ionicons color={colors.primary} name="bookmark-outline" size={14} />
-            <Text style={styles.inlineLinkText}>Guarda tu casa, trabajo o universidad para elegirlos con un toque</Text>
+            <Text style={styles.inlineLinkText}>{t('home.savePlacesHint')}</Text>
           </Pressable>
         ) : null}
       </View>
 
-      <MapCard subtitle="Explora los viajes cerca de ti" />
+      <MapCard subtitle={t('home.passengerMap')} />
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
-          {destination ? `Viajes hacia ${destination.label}` : 'Viajes para ti'}
+          {destination ? t('home.tripsTo', { place: destination.label }) : t('home.forYou')}
         </Text>
         {!loading && filtered.length ? (
           <Text style={styles.sectionMeta}>
-            {`${filtered.length} compatible${filtered.length === 1 ? '' : 's'}`}
+            {t('home.compatible', { count: filtered.length })}
           </Text>
         ) : null}
       </View>
 
       {loading ? <TripListSkeleton count={2} /> : null}
-      {error ? <Notice action={{ label: 'Reintentar', onPress: () => void refresh() }} tone="error">{error}</Notice> : null}
+      {error ? <Notice action={{ label: t('common.retry'), onPress: () => void refresh() }} tone="error">{error}</Notice> : null}
 
       {!loading && !error && results.length === 0 ? (
         <EmptyState
           action={destination
-            ? { label: 'Buscar otro destino', icon: 'search-outline', onPress: () => setTripSearch({ destination: null }) }
-            : trips.length ? { label: `Ver todos los viajes (${trips.length})`, icon: 'list-outline', onPress: () => router.push('/(tabs)/trips') } : undefined}
+            ? { label: t('home.otherDestination'), icon: 'search-outline', onPress: () => setTripSearch({ destination: null }) }
+            : trips.length ? { label: t('home.allTrips', { count: trips.length }), icon: 'list-outline', onPress: () => router.push('/(tabs)/trips') } : undefined}
           icon={destination ? 'navigate-outline' : 'car-outline'}
           message={!isSupabaseEnabled
-            ? 'Conecta la app al servidor para ver viajes reales.'
+            ? t('home.empty.offline')
             : destination
               ? time === 'any'
-                ? 'Ningún viaje publicado va hacia allá ni pasa cerca en su ruta. Vuelve a mirar más tarde: los conductores publican durante el día.'
-                : 'Ningún viaje compatible sale en ese horario. Prueba con "Cualquier momento" o vuelve más tarde.'
+                ? t('home.empty.noneAnyTime')
+                : t('home.empty.noneAtTime')
               : savedPlaces.length
-                ? 'Ningún viaje va hacia tus lugares guardados por ahora. Busca tu destino arriba para ver otros viajes compatibles.'
-                : 'Busca tu destino arriba y te mostraremos los viajes que realmente te sirven.'}
+                ? t('home.empty.nonePlaces')
+                : t('home.empty.searchFirst')}
           title={!isSupabaseEnabled
-            ? 'Modo demostración'
-            : destination ? 'No encontramos viajes compatibles' : savedPlaces.length ? 'Nada hacia tus lugares por ahora' : '¿A dónde vas?'}
+            ? t('home.empty.demoTitle')
+            : destination ? t('home.empty.noneTitle') : savedPlaces.length ? t('home.empty.nonePlacesTitle') : t('home.whereTo')}
         />
       ) : null}
 
@@ -328,9 +328,9 @@ function PassengerHome() {
         <Pressable accessibilityRole="button" onPress={() => setFilters(DEFAULT_FILTERS)} style={styles.filterNote}>
           <Ionicons color={colors.textSecondary} name="options-outline" size={14} />
           <Text style={styles.filterNoteText}>
-            {hiddenByFilters} viaje{hiddenByFilters === 1 ? '' : 's'} compatible{hiddenByFilters === 1 ? '' : 's'} oculto{hiddenByFilters === 1 ? '' : 's'} por tus filtros.
+            {t('home.hiddenByFilters', { count: hiddenByFilters })}
           </Text>
-          <Text style={styles.seeAllText}>Quitar filtros</Text>
+          <Text style={styles.seeAllText}>{t('home.clearFilters')}</Text>
         </Pressable>
       ) : null}
 
@@ -340,13 +340,13 @@ function PassengerHome() {
 
       {!expanded && allowed.length > shown.length ? (
         <Pressable onPress={() => setExpanded(true)} style={styles.seeAll}>
-          <Text style={styles.seeAllText}>Ver más viajes compatibles ({allowed.length - shown.length})</Text>
+          <Text style={styles.seeAllText}>{t('home.seeMore', { count: allowed.length - shown.length })}</Text>
           <Ionicons color={colors.primary} name="chevron-down" size={16} />
         </Pressable>
       ) : null}
       {hiddenByPlan > 0 && (expanded || allowed.length === shown.length) ? (
         <Pressable onPress={() => requirePlus({ capability: 'unlimited_results' })} style={styles.seeAll}>
-          <Text style={styles.seeAllText}>{hiddenByPlan} viaje{hiddenByPlan === 1 ? '' : 's'} compatible{hiddenByPlan === 1 ? '' : 's'} más con ConVía+</Text>
+          <Text style={styles.seeAllText}>{t('home.moreWithPlus', { count: hiddenByPlan })}</Text>
           <PlusBadge compact />
         </Pressable>
       ) : null}
@@ -363,7 +363,7 @@ function PassengerHome() {
       />
       {!destination && trips.length > 0 && results.length > 0 ? (
         <Pressable onPress={() => router.push('/(tabs)/trips')} style={styles.seeAll}>
-          <Text style={styles.seeAllText}>Ver todos los viajes ({trips.length})</Text>
+          <Text style={styles.seeAllText}>{t('home.allTrips', { count: trips.length })}</Text>
           <Ionicons color={colors.primary} name="arrow-forward" size={16} />
         </Pressable>
       ) : null}
@@ -374,6 +374,7 @@ function PassengerHome() {
 // ─── Driver ──────────────────────────────────────────────────────────────────
 
 function DriverHome() {
+  const { t } = useTranslation();
   const driverStatus = useAppStore((state) => state.currentUser?.driverStatus);
   const savedPlaces = useAppStore((state) => state.savedPlaces);
   const approved = driverStatus === 'aprobado';
@@ -392,7 +393,7 @@ function DriverHome() {
       setTrips(await tripService.getDriverTrips());
       setError(null);
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudieron cargar tus viajes.'));
+      setError(errorMessage(loadError, i18n.t('home.driverTripsFailed')));
     } finally {
       setLoading(false);
     }
@@ -421,11 +422,11 @@ function DriverHome() {
       {approved ? (
         <View style={styles.searchCard}>
           <PlaceSearchField
-            label="¿A dónde vas a llevar pasajeros?"
+            label={t('home.driverWhereTo')}
             mapLink="afterSelection"
-            mapTitle="Ajusta el destino"
+            mapTitle={t('home.adjustDriverDestination')}
             onChange={setPlannedDestination}
-            placeholder="Busca un lugar o dirección"
+            placeholder={t('home.searchPlaceholder')}
             quickPlaces={savedPlaces}
             value={plannedDestination}
           />
@@ -439,17 +440,17 @@ function DriverHome() {
                   destLabel: plannedDestination.label,
                 },
               })}
-              title="Planear un viaje hacia aquí"
+              title={t('home.planTrip')}
             />
           ) : (
             <>
               <Pressable onPress={() => router.push('/create-trip')} style={styles.inlineLink}>
                 <Ionicons color={colors.primary} name="add-circle-outline" size={14} />
-                <Text style={styles.inlineLinkText}>O publica un viaje desde cero</Text>
+                <Text style={styles.inlineLinkText}>{t('home.publishFromScratch')}</Text>
               </Pressable>
               <Pressable onPress={() => router.push('/recurring-trips')} style={styles.inlineLink}>
                 <Ionicons color={colors.primary} name="sync-outline" size={14} />
-                <Text style={styles.inlineLinkText}>Programa tus viajes de cada semana</Text>
+                <Text style={styles.inlineLinkText}>{t('home.weeklyTrips')}</Text>
               </Pressable>
             </>
           )}
@@ -459,32 +460,32 @@ function DriverHome() {
       )}
 
       <View style={styles.quickGrid}>
-        <QuickAction icon="document-text-outline" label="Solicitudes" onPress={() => router.push('/requests')} />
-        <QuickAction icon="car-outline" label="Vehículos" onPress={() => router.push('/vehicles')} />
-        <QuickAction icon="chatbubbles-outline" label="Chats" onPress={() => router.push('/(tabs)/chats')} />
-        <QuickAction icon="qr-code-outline" label="Escanear QR" onPress={() => router.push('/qr-scanner')} />
+        <QuickAction icon="document-text-outline" label={t('home.requests')} onPress={() => router.push('/requests')} />
+        <QuickAction icon="car-outline" label={t('home.vehicles')} onPress={() => router.push('/vehicles')} />
+        <QuickAction icon="chatbubbles-outline" label={t('home.chats')} onPress={() => router.push('/(tabs)/chats')} />
+        <QuickAction icon="qr-code-outline" label={t('home.scanQr')} onPress={() => router.push('/qr-scanner')} />
       </View>
 
-      <MapCard subtitle="Tu ubicación y tus viajes próximos" />
+      <MapCard subtitle={t('home.driverMap')} />
 
-      {error ? <Notice action={{ label: 'Reintentar', onPress: () => void refresh() }} tone="error">{error}</Notice> : null}
+      {error ? <Notice action={{ label: t('common.retry'), onPress: () => void refresh() }} tone="error">{error}</Notice> : null}
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Tu próximo viaje</Text>
-        {upcoming.length > 1 ? <Text style={styles.sectionMeta}>{upcoming.length} programados</Text> : null}
+        <Text style={styles.sectionTitle}>{t('home.nextTrip')}</Text>
+        {upcoming.length > 1 ? <Text style={styles.sectionMeta}>{t('home.scheduled', { count: upcoming.length })}</Text> : null}
       </View>
       {loading ? <TripListSkeleton count={1} /> : null}
       {!loading && !next ? (
         <View style={styles.emptySmall}>
           <Ionicons color={colors.primary} name="calendar-outline" size={20} />
-          <Text style={styles.emptyText}>No tienes viajes programados. Publica uno o repite un viaje reciente con un toque.</Text>
+          <Text style={styles.emptyText}>{t('home.noUpcoming')}</Text>
         </View>
       ) : null}
       {next ? (
         <View style={[styles.tripCard, styles.nextCard]}>
           <View style={styles.tripHeader}>
             <Text numberOfLines={2} style={styles.tripRoute}>{next.originName} → {next.destinationName}</Text>
-            <Text style={[styles.badge, next.status === 'en_curso' ? styles.badgeLive : null]}>{STATUS_LABELS[next.status]}</Text>
+            <Text style={[styles.badge, next.status === 'en_curso' ? styles.badgeLive : null]}>{statusLabel(next.status)}</Text>
           </View>
           <View style={styles.tripMetaRow}>
             <Ionicons color={colors.textSecondary} name="time-outline" size={14} />
@@ -492,46 +493,46 @@ function DriverHome() {
           </View>
           <View style={styles.tripMetaRow}>
             <Ionicons color={colors.textSecondary} name="people-outline" size={14} />
-            <Text style={styles.tripMeta}>{next.totalSeats} cupos · {formatPrice(next.price)}</Text>
+            <Text style={styles.tripMeta}>{t('home.seats', { count: next.totalSeats })} · {formatPrice(next.price)}</Text>
           </View>
           <View style={styles.tripActions}>
-            <SmallAction icon="document-text-outline" label="Solicitudes" onPress={() => router.push('/requests')} />
+            <SmallAction icon="document-text-outline" label={t('home.requests')} onPress={() => router.push('/requests')} />
             {next.status === 'por_empezar' ? (
-              <SmallAction icon="create-outline" label="Editar" onPress={() => router.push({ pathname: '/create-trip', params: { edit: next.id } })} />
+              <SmallAction icon="create-outline" label={t('home.edit')} onPress={() => router.push({ pathname: '/create-trip', params: { edit: next.id } })} />
             ) : (
-              <SmallAction icon="qr-code-outline" label="Escanear QR" onPress={() => router.push('/qr-scanner')} />
+              <SmallAction icon="qr-code-outline" label={t('home.scanQr')} onPress={() => router.push('/qr-scanner')} />
             )}
-            <SmallAction icon="list-outline" label="Mis viajes" onPress={() => router.push('/(tabs)/trips')} />
+            <SmallAction icon="list-outline" label={t('home.myTrips')} onPress={() => router.push('/(tabs)/trips')} />
           </View>
         </View>
       ) : null}
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Viajes recientes</Text>
+        <Text style={styles.sectionTitle}>{t('home.recentTrips')}</Text>
         {recent.length ? (
           <Pressable hitSlop={8} onPress={() => router.push('/(tabs)/trips')}>
-            <Text style={styles.seeAllText}>Ver todos</Text>
+            <Text style={styles.seeAllText}>{t('home.seeAll')}</Text>
           </Pressable>
         ) : null}
       </View>
       {!loading && recent.length === 0 ? (
         <View style={styles.emptySmall}>
           <Ionicons color={colors.primary} name="repeat-outline" size={20} />
-          <Text style={styles.emptyText}>Tus viajes terminados aparecerán aquí para repetirlos con un toque.</Text>
+          <Text style={styles.emptyText}>{t('home.noRecent')}</Text>
         </View>
       ) : null}
       {recent.map((trip) => (
         <View key={trip.id} style={styles.tripCard}>
           <View style={styles.tripHeader}>
             <Text numberOfLines={2} style={styles.tripRoute}>{trip.originName} → {trip.destinationName}</Text>
-            <Text style={[styles.badge, trip.status === 'finalizado' ? styles.badgeDone : styles.badgeMuted]}>{STATUS_LABELS[trip.status]}</Text>
+            <Text style={[styles.badge, trip.status === 'finalizado' ? styles.badgeDone : styles.badgeMuted]}>{statusLabel(trip.status)}</Text>
           </View>
-          <Text style={styles.tripMeta}>{formatDateTime(trip.departureAt)} · {trip.totalSeats} cupos · {formatPrice(trip.price)}</Text>
+          <Text style={styles.tripMeta}>{formatDateTime(trip.departureAt)} · {t('home.seats', { count: trip.totalSeats })} · {formatPrice(trip.price)}</Text>
           <View style={styles.tripActions}>
             {approved ? (
               <SmallAction
                 icon="repeat"
-                label={canRepeat && !repeatIsBetaPerk ? 'Repetir viaje' : 'Repetir viaje · ConVía+'}
+                label={canRepeat && !repeatIsBetaPerk ? t('home.repeat') : t('home.repeatPlus')}
                 onPress={() => (canRepeat
                   ? router.push({ pathname: '/create-trip', params: { repeatFrom: trip.id } })
                   : requirePlus({ capability: 'repeat_trip' }))}
@@ -540,7 +541,7 @@ function DriverHome() {
             ) : null}
             <SmallAction
               icon={trip.status === 'finalizado' ? 'people-outline' : 'time-outline'}
-              label={trip.status === 'finalizado' ? 'Pasajeros y pagos' : 'Ver historial'}
+              label={trip.status === 'finalizado' ? t('home.passengersPayments') : t('home.history')}
               onPress={() => router.push({ pathname: '/trip-summary', params: { tripId: trip.id } })}
             />
           </View>

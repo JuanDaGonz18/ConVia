@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -21,6 +22,7 @@ type ScanResult = { ok: boolean; title: string; text: string };
 
 /** Driver's boarding scanner: one code at a time, with a clear result for each. */
 export default function QrScannerScreen() {
+  const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -32,15 +34,15 @@ export default function QrScannerScreen() {
       <SafeAreaView style={styles.permission}>
         <EmptyState
           icon="qr-code-outline"
-          message="La usamos para leer el código que muestra cada pasajero al subir. Nada se graba ni se guarda."
-          title="Necesitamos la cámara"
+          message={t('qrScanner.cameraText')}
+          title={t('qrScanner.cameraTitle')}
         />
         {permission.canAskAgain ? (
-          <ButtonPrimary icon="camera-outline" onPress={() => void requestPermission()} title="Permitir cámara" />
+          <ButtonPrimary icon="camera-outline" onPress={() => void requestPermission()} title={t('qrScanner.allowCamera')} />
         ) : (
-          <ButtonPrimary icon="settings-outline" onPress={() => void Linking.openSettings()} title="Abrir ajustes del teléfono" />
+          <ButtonPrimary icon="settings-outline" onPress={() => void Linking.openSettings()} title={t('qrScanner.openSettings')} />
         )}
-        <ButtonSecondary onPress={() => router.back()} title="Volver" />
+        <ButtonSecondary onPress={() => router.back()} title={t('common.back')} />
       </SafeAreaView>
     );
   }
@@ -59,15 +61,15 @@ export default function QrScannerScreen() {
           setScanned(true);
           const token = data.trim();
           if (!UUID_PATTERN.test(token)) {
-            setResult({ ok: false, title: 'Este no es un código de ConVía', text: 'Pídele al pasajero que abra "Mi código de abordaje" en su app.' });
+            setResult({ ok: false, title: t('qrScanner.notConviaTitle'), text: t('qrScanner.notConviaText') });
             return;
           }
           try {
             await tripService.boardPassenger(token);
             setBoardedCount((count) => count + 1);
-            setResult({ ok: true, title: '¡Pasajero a bordo!', text: 'El código es válido. Ya puedes escanear al siguiente.' });
+            setResult({ ok: true, title: t('qrScanner.boardedTitle'), text: t('qrScanner.boardedText') });
           } catch (scanError) {
-            setResult({ ok: false, title: 'No pudimos validar este código', text: errorMessage(scanError, 'El código no corresponde a un pasajero aceptado en tu viaje en curso.') });
+            setResult({ ok: false, title: t('qrScanner.failedTitle'), text: errorMessage(scanError, t('qrScanner.failedText')) });
           }
         }}
         style={StyleSheet.absoluteFill}
@@ -77,21 +79,21 @@ export default function QrScannerScreen() {
           {boardedCount ? (
             <View style={styles.counter}>
               <Ionicons color={colors.white} name="people" size={16} />
-              <Text style={styles.counterText}>{boardedCount} a bordo</Text>
+              <Text style={styles.counterText}>{t('qrScanner.boardedCount', { count: boardedCount })}</Text>
             </View>
           ) : <View />}
-          <Pressable accessibilityLabel="Cerrar escáner" hitSlop={8} onPress={() => router.back()} style={styles.close}>
+          <Pressable accessibilityLabel={t('qrScanner.close')} hitSlop={8} onPress={() => router.back()} style={styles.close}>
             <Ionicons color={colors.white} name="close" size={26} />
           </Pressable>
         </View>
 
-        <Text style={styles.instruction}>Apunta al código del pasajero</Text>
+        <Text style={styles.instruction}>{t('qrScanner.instruction')}</Text>
         <View pointerEvents="none" style={[styles.frame, result ? (result.ok ? styles.frameOk : styles.frameError) : null]} />
 
         {scanned && !result ? (
           <View style={styles.resultCard}>
             <ActivityIndicator color={colors.primary} />
-            <Text style={styles.resultText}>Validando…</Text>
+            <Text style={styles.resultText}>{t('qrScanner.validating')}</Text>
           </View>
         ) : null}
 
@@ -100,7 +102,7 @@ export default function QrScannerScreen() {
             <Ionicons color={result.ok ? colors.success : colors.error} name={result.ok ? 'checkmark-circle' : 'close-circle'} size={56} />
             <Text style={[styles.resultTitle, { color: result.ok ? '#067647' : '#B42318' }]}>{result.title}</Text>
             <Text style={styles.resultText}>{result.text}</Text>
-            <ButtonPrimary icon="scan-outline" onPress={scanAgain} title="Escanear otro" />
+            <ButtonPrimary icon="scan-outline" onPress={scanAgain} title={t('qrScanner.scanAgain')} />
           </View>
         ) : null}
       </SafeAreaView>

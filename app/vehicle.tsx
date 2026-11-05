@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { requirePlus } from '@/components/subscription/PlusGate';
 import { Notice } from '@/components/ui/Notice';
@@ -31,6 +32,7 @@ type FieldErrors = Partial<Record<'photo' | 'plate' | 'brand' | 'color', string>
 
 /** Add a vehicle, or edit the one in `?id=`. Every vehicle needs a photo. */
 export default function VehicleScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const editing = !!id;
   const [loaded, setLoaded] = useState(!editing);
@@ -52,7 +54,7 @@ export default function VehicleScreen() {
     if (!id) return;
     void vehicleService.getVehicle(id).then((saved) => {
       if (!saved) {
-        setError('No se encontró el vehículo.');
+        setError(t('vehicle.notFound'));
         return;
       }
       setPlate(saved.plate);
@@ -60,9 +62,9 @@ export default function VehicleScreen() {
       setColor(saved.color ?? '');
       setSeats(String(Math.min(saved.seats ?? 1, MAX_SEATS)));
       setSavedPhotoUrl(saved.photoUrl);
-    }).catch((loadError) => setError(errorMessage(loadError, 'No se pudo cargar el vehículo.')))
+    }).catch((loadError) => setError(errorMessage(loadError, t('vehicle.loadFailed'))))
       .finally(() => setLoaded(true));
-  }, [id]);
+  }, [id, t]);
 
   const pickPhoto = async (source: 'camera' | 'library') => {
     setError(null);
@@ -72,7 +74,7 @@ export default function VehicleScreen() {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
           setCameraBlocked(!permission.canAskAgain);
-          setError('Necesitamos la cámara para fotografiar el vehículo. También puedes subir una foto.');
+          setError(t('vehicle.cameraNeeded'));
           return;
         }
       }
@@ -85,7 +87,7 @@ export default function VehicleScreen() {
         clearFieldError('photo');
       }
     } catch (pickError) {
-      setError(errorMessage(pickError, 'No se pudo abrir la cámara o la galería.'));
+      setError(errorMessage(pickError, t('vehicle.pickFailed')));
     }
   };
 
@@ -96,11 +98,11 @@ export default function VehicleScreen() {
   const save = async () => {
     const parsedSeats = Number(seats);
     const found: FieldErrors = {};
-    if (!photo && !savedPhotoUrl) found.photo = 'Agrega una foto del vehículo. Los pasajeros la verán antes de pedir un cupo.';
-    if (!plate.trim()) found.plate = 'Escribe la placa.';
-    else if (!isValidPlate(plate)) found.plate = 'La placa debe tener 3 letras y 3 números (carro) o 3 letras, 2 números y 1 letra (moto).';
-    if (!brand.trim()) found.brand = 'Escribe la marca y el modelo.';
-    if (!color.trim()) found.color = 'Escribe el color.';
+    if (!photo && !savedPhotoUrl) found.photo = t('vehicle.errors.photo');
+    if (!plate.trim()) found.plate = t('vehicle.errors.plateEmpty');
+    else if (!isValidPlate(plate)) found.plate = t('vehicle.errors.plateInvalid');
+    if (!brand.trim()) found.brand = t('vehicle.errors.brand');
+    if (!color.trim()) found.color = t('vehicle.errors.color');
     setFieldErrors(found);
     if (Object.values(found).some(Boolean)) {
       setError(null);
@@ -111,13 +113,13 @@ export default function VehicleScreen() {
     setSaving(true);
     try {
       await vehicleService.saveVehicle({ plate, brand, color, seats: parsedSeats }, photo, id);
-      toast.success(editing ? 'Vehículo actualizado' : '¡Vehículo agregado!');
+      toast.success(editing ? t('vehicle.updated') : t('vehicle.added'));
       router.back();
     } catch (saveError) {
       setLimitReached(planLimitFromError(rawErrorMessage(saveError))?.key === 'vehicles');
       setError(/duplicate key|unique/i.test(rawErrorMessage(saveError))
-        ? 'Esa placa ya está registrada en ConVía.'
-        : errorMessage(saveError, 'No se pudo guardar el vehículo.'));
+        ? t('vehicle.plateTaken')
+        : errorMessage(saveError, t('vehicle.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -128,82 +130,82 @@ export default function VehicleScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <ScreenHeader kicker="CONDUCTOR" title={editing ? 'Editar vehículo' : 'Nuevo vehículo'} />
-        <Text style={styles.subtitle}>Los pasajeros verán la foto, la placa y el color antes de pedir un cupo.</Text>
+        <ScreenHeader kicker={t('vehicle.kicker')} title={editing ? t('vehicle.titleEdit') : t('vehicle.titleNew')} />
+        <Text style={styles.subtitle}>{t('vehicle.subtitle')}</Text>
         {error ? (
           <Notice
-            action={limitReached && !isPlus ? { label: 'Registra varios con ConVía+', onPress: () => requirePlus({ limit: 'vehicles' }) } : undefined}
+            action={limitReached && !isPlus ? { label: t('vehicle.limitAction'), onPress: () => requirePlus({ limit: 'vehicles' }) } : undefined}
             tone={limitReached ? 'warning' : 'error'}
           >
             {error}
           </Notice>
         ) : null}
-        {cameraBlocked ? <ButtonSecondary onPress={() => void Linking.openSettings()} title="Abrir ajustes del teléfono" /> : null}
+        {cameraBlocked ? <ButtonSecondary onPress={() => void Linking.openSettings()} title={t('vehicle.openSettings')} /> : null}
 
         {!loaded ? (
           <ActivityIndicator color={colors.primary} />
         ) : (
           <>
-            <Text style={styles.label}>Foto del vehículo</Text>
+            <Text style={styles.label}>{t('vehicle.photoLabel')}</Text>
             {previewUri ? (
-              <Image accessibilityLabel="Foto del vehículo" source={{ uri: previewUri }} style={styles.photo} />
+              <Image accessibilityLabel={t('vehicle.photoLabel')} source={{ uri: previewUri }} style={styles.photo} />
             ) : (
               <View style={[styles.photo, styles.photoEmpty]}>
                 <Ionicons color={colors.textSecondary} name="car-outline" size={48} />
-                <Text style={styles.photoHint}>Toma la foto de lado, con buena luz. No hace falta que se vea la placa: los pasajeros la ven completa solo cuando los aceptas.</Text>
+                <Text style={styles.photoHint}>{t('vehicle.photoHint')}</Text>
               </View>
             )}
             <FieldError message={fieldErrors.photo} />
             <View style={styles.photoActions}>
               <View style={styles.flex}>
-                <ButtonSecondary onPress={() => void pickPhoto('camera')} title={previewUri ? 'Tomar otra' : 'Tomar foto'} />
+                <ButtonSecondary onPress={() => void pickPhoto('camera')} title={previewUri ? t('vehicle.takeAnother') : t('vehicle.takePhoto')} />
               </View>
               <View style={styles.flex}>
-                <ButtonSecondary onPress={() => void pickPhoto('library')} title="Subir foto" />
+                <ButtonSecondary onPress={() => void pickPhoto('library')} title={t('vehicle.uploadPhoto')} />
               </View>
             </View>
 
             <TextField
               autoCapitalize="characters"
               error={fieldErrors.plate}
-              hint="Carro: 3 letras y 3 números. Moto: 3 letras, 2 números y 1 letra."
-              label="Placa"
+              hint={t('vehicle.plateHint')}
+              label={t('vehicle.plateLabel')}
               maxLength={7}
               onChangeText={(text) => {
                 setPlate(text);
                 clearFieldError('plate');
               }}
-              placeholder="Placa del vehículo"
+              placeholder={t('vehicle.platePlaceholder')}
               value={plate}
             />
             <TextField
               error={fieldErrors.brand}
-              label="Marca y modelo"
+              label={t('vehicle.brandLabel')}
               onChangeText={(text) => {
                 setBrand(text);
                 clearFieldError('brand');
               }}
-              placeholder="Marca y modelo del vehículo"
+              placeholder={t('vehicle.brandPlaceholder')}
               value={brand}
             />
             <TextField
               error={fieldErrors.color}
-              label="Color"
+              label={t('vehicle.colorLabel')}
               onChangeText={(text) => {
                 setColor(text);
                 clearFieldError('color');
               }}
-              placeholder="Color del vehículo"
+              placeholder={t('vehicle.colorPlaceholder')}
               value={color}
             />
 
-            <Text style={styles.label}>Puestos para pasajeros</Text>
+            <Text style={styles.label}>{t('vehicle.seatsLabel')}</Text>
             <View accessibilityRole="radiogroup" style={styles.seatRow}>
               {Array.from({ length: MAX_SEATS }, (_, index) => String(index + 1)).map((value) => {
                 const selected = seats === value;
                 return (
                   <Pressable
-                    accessibilityLabel={`${value} puesto${value === '1' ? '' : 's'}`}
+                    accessibilityLabel={t('vehicle.seats', { count: Number(value) })}
                     accessibilityRole="radio"
                     accessibilityState={{ selected }}
                     key={value}
@@ -216,7 +218,7 @@ export default function VehicleScreen() {
               })}
             </View>
 
-            <ButtonPrimary loading={saving} onPress={save} title={editing ? 'Guardar cambios' : 'Agregar vehículo'} />
+            <ButtonPrimary loading={saving} onPress={save} title={editing ? t('vehicle.saveChanges') : t('vehicle.add')} />
           </>
         )}
       </ScrollView>

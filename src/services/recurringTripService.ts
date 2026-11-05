@@ -2,25 +2,23 @@ import { ensureSupabaseConfigured, isSupabaseEnabled, supabase } from '@/lib/sup
 import { notificationService } from '@/services/notificationService';
 import { parseRoute, serializeRoute } from '@/services/tripService';
 import { Location, TripRoute } from '@/types';
+import i18n, { localeTag } from '@/i18n';
 
-/** ISO weekdays, Monday first. */
-export const WEEKDAYS: { day: number; short: string; long: string }[] = [
-  { day: 1, short: 'L', long: 'Lunes' },
-  { day: 2, short: 'M', long: 'Martes' },
-  { day: 3, short: 'X', long: 'Miércoles' },
-  { day: 4, short: 'J', long: 'Jueves' },
-  { day: 5, short: 'V', long: 'Viernes' },
-  { day: 6, short: 'S', long: 'Sábado' },
-  { day: 7, short: 'D', long: 'Domingo' },
-];
+/** ISO weekdays, Monday first; names in the current language (weekdays.*). */
+export const WEEKDAYS: { day: number; short: string; long: string }[] = [1, 2, 3, 4, 5, 6, 7].map((day) => ({
+  day,
+  get short() { return i18n.t(`weekdays.short.${day}`); },
+  get long() { return i18n.t(`weekdays.long.${day}`); },
+}));
 
 /** "Lun a vie", "Todos los días", "Lun, mié y vie". */
 export function describeDays(days: number[]) {
   const sorted = [...days].sort((a, b) => a - b);
-  if (sorted.length === 7) return 'Todos los días';
-  if (sorted.join() === '1,2,3,4,5') return 'De lunes a viernes';
-  const names = sorted.map((day) => WEEKDAYS[day - 1].long.toLowerCase());
-  const text = names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names.at(-1)}` : names[0] ?? '';
+  if (sorted.length === 7) return i18n.t('weekdays.everyDay');
+  if (sorted.join() === '1,2,3,4,5') return i18n.t('weekdays.weekdays');
+  // English keeps weekday names capitalized.
+  const names = sorted.map((day) => (i18n.language === 'es' ? WEEKDAYS[day - 1].long.toLowerCase() : WEEKDAYS[day - 1].long));
+  const text = names.length > 1 ? i18n.t('weekdays.list', { first: names.slice(0, -1).join(', '), last: names.at(-1) }) : names[0] ?? '';
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
@@ -29,7 +27,7 @@ export function formatClock(time: string) {
   const [hours, minutes] = time.split(':').map(Number);
   const date = new Date();
   date.setHours(hours, minutes, 0, 0);
-  return date.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
+  return date.toLocaleTimeString(localeTag(), { hour: 'numeric', minute: '2-digit' });
 }
 
 /** Local date as YYYY-MM-DD (what the server stores for a schedule). */

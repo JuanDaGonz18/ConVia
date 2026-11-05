@@ -1,5 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { BottomNavigation } from '@/components/navigation/BottomNavigation';
 import { authService } from '@/services/authService';
@@ -7,6 +8,7 @@ import { personalizationService } from '@/services/personalizationService';
 import { useAppStore } from '@/store/appStore';
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
   const currentUser = useAppStore((state) => state.currentUser);
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const setSavedPlaces = useAppStore((state) => state.setSavedPlaces);
@@ -65,10 +67,10 @@ export default function TabsLayout() {
           <BottomNavigation
             activeKey={activeKey}
             items={[
-              { key: 'home', label: 'Inicio', icon: 'home-outline' },
-              { key: 'trips', label: 'Viajes', icon: 'car-outline' },
-              { key: 'chats', label: 'Chats', icon: 'chatbubbles-outline' },
-              { key: 'profile', label: 'Perfil', icon: 'person-outline' },
+              { key: 'home', label: t('nav.home'), icon: 'home-outline' },
+              { key: 'trips', label: t('nav.trips'), icon: 'car-outline' },
+              { key: 'chats', label: t('nav.chats'), icon: 'chatbubbles-outline' },
+              { key: 'profile', label: t('nav.profile'), icon: 'person-outline' },
             ]}
             onPress={(key) => {
               const targetRoute = key === 'home' ? 'index' : key;

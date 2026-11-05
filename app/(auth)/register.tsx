@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { MicrosoftSignInButton } from '@/components/auth/MicrosoftSignInButton';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
@@ -21,11 +22,12 @@ import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import i18n from '@/i18n';
 import { authService, isMicrosoftAuthEnabled } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
 import { UserRole } from '@/types';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
-import { PASSWORD_RULES, passwordMeetsRules } from '@/utils/password';
+import { missingPasswordRules, passwordMeetsRules } from '@/utils/password';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -33,39 +35,31 @@ type Field = 'name' | 'email' | 'password' | 'confirm' | 'terms';
 
 function registerErrorMessage(error: unknown) {
   const raw = rawErrorMessage(error);
-  if (raw.includes('DOMINIO_NO_PERMITIDO')) return 'Ese correo no pertenece a una institución registrada. Usa tu correo institucional (por ejemplo @unisabana.edu.co).';
-  if (raw.includes('CONFIRMACION_DE_CORREO_REQUERIDA')) return 'Te enviamos un correo de confirmación. Ábrelo desde este teléfono y luego inicia sesión.';
-  if (/already registered/i.test(raw)) return 'Ya existe una cuenta con este correo. Inicia sesión con ella.';
-  if (/password/i.test(raw)) return 'La contraseña no cumple los requisitos de seguridad.';
-  return errorMessage(error, 'No pudimos crear tu cuenta. Revisa tu conexión e inténtalo de nuevo.');
+  if (raw.includes('DOMINIO_NO_PERMITIDO')) return i18n.t('auth.register.errors.domain');
+  if (raw.includes('CONFIRMACION_DE_CORREO_REQUERIDA')) return i18n.t('auth.register.errors.confirmationSent');
+  if (/already registered/i.test(raw)) return i18n.t('auth.register.errors.alreadyRegistered');
+  if (/password/i.test(raw)) return i18n.t('auth.register.errors.weakPassword');
+  return errorMessage(error, i18n.t('auth.register.errors.generic'));
 }
 
 /** Every problem with the form, so all of them are shown at once. */
 function validate(values: { name: string; email: string; password: string; confirm: string; acceptedTerms: boolean }) {
   const errors: Partial<Record<Field, string>> = {};
-  if (values.name.trim().length < 3) errors.name = 'Escribe tu nombre y apellido.';
-  if (!values.email.trim()) errors.email = 'Escribe tu correo institucional.';
-  else if (!EMAIL_PATTERN.test(values.email.trim())) errors.email = 'Ese correo no parece válido.';
-  if (!values.password) errors.password = 'Crea una contraseña.';
+  if (values.name.trim().length < 3) errors.name = i18n.t('auth.register.errors.name');
+  if (!values.email.trim()) errors.email = i18n.t('auth.emailRequired');
+  else if (!EMAIL_PATTERN.test(values.email.trim())) errors.email = i18n.t('auth.emailInvalid');
+  if (!values.password) errors.password = i18n.t('auth.register.errors.passwordEmpty');
   else if (!passwordMeetsRules(values.password)) {
-    const failing = PASSWORD_RULES.filter((rule) => !rule.test(values.password)).map((rule) => rule.label.toLowerCase());
-    errors.password = `Le falta: ${failing.join(', ')}.`;
+    errors.password = i18n.t('password.errors.missing', { rules: missingPasswordRules(values.password).join(', ') });
   }
-  if (!values.confirm) errors.confirm = 'Escribe la contraseña de nuevo para confirmarla.';
-  else if (values.confirm !== values.password) errors.confirm = 'Las dos contraseñas no coinciden.';
-  if (!values.acceptedTerms) errors.terms = 'Acepta los términos y condiciones.';
+  if (!values.confirm) errors.confirm = i18n.t('password.errors.confirmEmpty');
+  else if (values.confirm !== values.password) errors.confirm = i18n.t('password.errors.mismatch');
+  if (!values.acceptedTerms) errors.terms = i18n.t('auth.register.errors.terms');
   return errors;
 }
 
-const FIELD_NAMES: Record<Field, string> = {
-  name: 'Nombre completo',
-  email: 'Correo institucional',
-  password: 'Contraseña',
-  confirm: 'Confirmación de la contraseña',
-  terms: 'Términos y condiciones',
-};
-
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -126,7 +120,7 @@ export default function RegisterScreen() {
 
   const handleFaceClose = () => {
     setShowFaceVerification(false);
-    setError('Necesitas registrar tu rostro para pedir o publicar viajes. Puedes hacerlo ahora o más tarde desde tu perfil.');
+    setError(t('auth.register.faceRequired'));
   };
 
   const missing = Object.keys(errors) as Field[];
@@ -147,9 +141,9 @@ export default function RegisterScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <ScreenHeader
             back={!registeredUserId}
-            kicker={registeredUserId ? 'PASO 2 DE 2' : 'PASO 1 DE 2'}
-            subtitle={registeredUserId ? 'Un último paso para viajar con tranquilidad.' : 'Solo te tomará un minuto.'}
-            title={registeredUserId ? 'Verifica tu identidad' : 'Crea tu cuenta'}
+            kicker={t(registeredUserId ? 'auth.register.step2' : 'auth.register.step1')}
+            subtitle={t(registeredUserId ? 'auth.register.verifySubtitle' : 'auth.register.subtitle')}
+            title={t(registeredUserId ? 'auth.register.verifyTitle' : 'auth.register.title')}
           />
           <ProgressBar progress={registeredUserId ? 1 : 0.5} />
 
@@ -161,37 +155,34 @@ export default function RegisterScreen() {
                 <View style={styles.stepTwoIcon}>
                   <Ionicons color={colors.primary} name="scan-outline" size={36} />
                 </View>
-                <Text style={styles.stepTwoTitle}>¡Tu cuenta está lista!</Text>
-                <Text style={styles.stepTwoText}>
-                  Tómate una selfie para registrar tu rostro. La usamos para confirmar que eres tú antes de cada viaje, así todos
-                  viajan más seguros. La foto se analiza en tu teléfono y no se guarda.
-                </Text>
+                <Text style={styles.stepTwoTitle}>{t('auth.register.readyTitle')}</Text>
+                <Text style={styles.stepTwoText}>{t('auth.register.readyText')}</Text>
               </View>
             ) : (
               <>
                 {useSupabase && isMicrosoftAuthEnabled ? (
                   <View style={styles.microsoft}>
-                    <Text style={styles.microsoftTitle}>La forma más rápida y segura</Text>
+                    <Text style={styles.microsoftTitle}>{t('auth.register.microsoftTitle')}</Text>
                     <MicrosoftSignInButton
                       disabled={loading}
-                      dividerText="Con tu cuenta de la universidad"
+                      dividerText={t('auth.register.microsoftDivider')}
                       onBusyChange={setMicrosoftLoading}
                       onError={setError}
-                      title="Crear cuenta con Microsoft"
+                      title={t('auth.register.microsoftButton')}
                     />
                     <View style={styles.orDivider}>
                       <View style={styles.orLine} />
-                      <Text style={styles.orText}>o con correo y contraseña</Text>
+                      <Text style={styles.orText}>{t('auth.register.orEmail')}</Text>
                       <View style={styles.orLine} />
                     </View>
                   </View>
                 ) : null}
 
                 {missing.length ? (
-                  <Notice title={`Te falta completar ${missing.length === 1 ? 'un dato' : `${missing.length} datos`}`} tone="warning">
+                  <Notice title={missing.length === 1 ? t('auth.register.missingOne') : t('auth.register.missingMany', { count: missing.length })} tone="warning">
                     <View style={styles.missingList}>
                       {missing.map((field) => (
-                        <Text key={field} style={styles.missingItem}>• {FIELD_NAMES[field]}: {errors[field]}</Text>
+                        <Text key={field} style={styles.missingItem}>• {t(`auth.register.fields.${field}`)}: {errors[field]}</Text>
                       ))}
                     </View>
                   </Notice>
@@ -201,57 +192,57 @@ export default function RegisterScreen() {
                   autoCapitalize="words"
                   autoComplete="name"
                   error={errors.name}
-                  label="Nombre completo"
+                  label={t('auth.register.nameLabel')}
                   onChangeText={(text) => {
                     setName(text);
                     refresh({ name: text });
                   }}
-                  placeholder="Tu nombre y apellido"
+                  placeholder={t('auth.register.namePlaceholder')}
                   value={name}
                 />
                 <TextField
                   autoCapitalize="none"
                   autoComplete="email"
                   error={errors.email}
-                  hint="Solo correos de instituciones aliadas."
+                  hint={t('auth.register.emailHint')}
                   keyboardType="email-address"
-                  label="Correo institucional"
+                  label={t('auth.emailLabel')}
                   onChangeText={(text) => {
                     setEmail(text);
                     refresh({ email: text });
                   }}
-                  placeholder="Tu correo institucional"
+                  placeholder={t('auth.emailPlaceholder')}
                   value={email}
                 />
                 <PasswordField
                   autoComplete="new-password"
                   error={errors.password}
-                  label="Contraseña"
+                  label={t('auth.register.passwordLabel')}
                   onChangeText={(text) => {
                     setPassword(text);
                     refresh({ password: text });
                   }}
-                  placeholder="Crea una contraseña"
+                  placeholder={t('auth.register.passwordPlaceholder')}
                   textContentType="newPassword"
                   value={password}
                 />
                 <PasswordField
                   autoComplete="new-password"
                   error={errors.confirm}
-                  label="Confirma la contraseña"
+                  label={t('auth.register.confirmLabel')}
                   onChangeText={(text) => {
                     setConfirm(text);
                     refresh({ confirm: text });
                   }}
-                  placeholder="Escribe la contraseña otra vez"
+                  placeholder={t('auth.register.confirmPlaceholder')}
                   textContentType="newPassword"
                   value={confirm}
                 />
                 <PasswordChecklist confirm={confirm} password={password} />
 
                 <View style={styles.roleSection}>
-                  <Text style={styles.roleTitle}>¿Cómo usarás ConVía?</Text>
-                  <Text style={styles.roleHint}>Con la misma cuenta puedes ser pasajero y conductor; cambias de modo cuando quieras.</Text>
+                  <Text style={styles.roleTitle}>{t('auth.register.roleTitle')}</Text>
+                  <Text style={styles.roleHint}>{t('auth.register.roleHint')}</Text>
                   <View style={styles.roleRow}>
                     {(['client', 'driver'] as const).map((role) => {
                       const selected = selectedRole === role;
@@ -268,22 +259,22 @@ export default function RegisterScreen() {
                           ) : null}
                           <Ionicons color={selected ? colors.primary : colors.textSecondary} name={role === 'driver' ? 'car-sport' : 'person'} size={28} />
                           <Text style={[styles.roleLabel, selected ? styles.roleLabelActive : null]}>
-                            {role === 'driver' ? 'Conductor' : 'Pasajero'}
+                            {t(role === 'driver' ? 'auth.register.driver' : 'auth.register.passenger')}
                           </Text>
-                          <Text style={styles.roleDesc}>{role === 'driver' ? 'Ofrece tus cupos' : 'Encuentra viajes'}</Text>
+                          <Text style={styles.roleDesc}>{t(role === 'driver' ? 'auth.register.driverDesc' : 'auth.register.passengerDesc')}</Text>
                         </PressableScale>
                       );
                     })}
                   </View>
                   {selectedRole === 'driver' ? (
-                    <Text style={styles.roleHint}>Después del registro verificaremos tu licencia de conducción.</Text>
+                    <Text style={styles.roleHint}>{t('auth.register.driverNext')}</Text>
                   ) : null}
                 </View>
 
                 <View>
                   <Checkbox
                     checked={acceptedTerms}
-                    label="Acepto los Términos y Condiciones y autorizo el tratamiento de mis datos personales, incluidos los biométricos, según la Política de Privacidad de ConVía."
+                    label={t('auth.register.terms')}
                     onChange={(checked) => {
                       setAcceptedTerms(checked);
                       refresh({ acceptedTerms: checked });
@@ -291,14 +282,14 @@ export default function RegisterScreen() {
                   />
                   {errors.terms ? <View style={styles.termsError}><FieldError message={errors.terms} /></View> : null}
                   <Pressable
-                    accessibilityHint="Abre los Términos y Condiciones y la Política de Privacidad"
+                    accessibilityHint={t('auth.register.termsHint')}
                     accessibilityRole="link"
                     hitSlop={6}
                     onPress={() => router.push('/legal')}
                     style={styles.readMore}
                   >
                     <Ionicons color={colors.primary} name="document-text-outline" size={16} />
-                    <Text style={styles.readMoreText}>Leer más: términos y política de privacidad</Text>
+                    <Text style={styles.readMoreText}>{t('auth.register.readMore')}</Text>
                   </Pressable>
                 </View>
               </>
@@ -308,14 +299,14 @@ export default function RegisterScreen() {
               disabled={microsoftLoading}
               icon={registeredUserId ? 'scan-outline' : undefined}
               loading={loading}
-              loadingTitle="Creando tu cuenta…"
+              loadingTitle={t('auth.register.submitting')}
               onPress={() => void handleRegister()}
-              title={registeredUserId ? 'Verificar mi identidad' : 'Crear cuenta'}
+              title={t(registeredUserId ? 'auth.register.verifyButton' : 'auth.register.submit')}
             />
             {registeredUserId ? (
-              <ButtonSecondary onPress={() => router.replace('/(tabs)')} title="Hacerlo más tarde" />
+              <ButtonSecondary onPress={() => router.replace('/(tabs)')} title={t('auth.register.later')} />
             ) : (
-              <ButtonSecondary onPress={() => router.back()} title="Ya tengo una cuenta" />
+              <ButtonSecondary onPress={() => router.back()} title={t('auth.register.haveAccount')} />
             )}
           </View>
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
@@ -10,6 +11,7 @@ import { AppMap, MapHandle, MapLine, MapMarker } from '@/maps';
 import { locationService, RoutePreview } from '@/services/locationService';
 import { Location, TripRoute } from '@/types';
 import { hasCoordinates } from '@/services/tripMatching';
+import { formatDistance } from '@/utils/format';
 
 type TripRoutePreviewProps = Readonly<{
   origin: Location;
@@ -25,6 +27,7 @@ const EDGE_PADDING = { top: 48, right: 48, bottom: 40, left: 48 };
  * route between them (a dashed straight line when the route is unavailable).
  */
 export function TripRoutePreview({ origin, destination, chosenRoute }: TripRoutePreviewProps) {
+  const { t } = useTranslation();
   const mapRef = useRef<MapHandle>(null);
   const [fetchedRoute, setFetchedRoute] = useState<RoutePreview | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(!chosenRoute);
@@ -60,7 +63,7 @@ export function TripRoutePreview({ origin, destination, chosenRoute }: TripRoute
   return (
     <View style={styles.card}>
       <AppMap
-        accessibilityLabel={`Mapa del recorrido de ${origin.label} a ${destination.label}`}
+        accessibilityLabel={t('routePreview.label', { origin: origin.label, destination: destination.label })}
         initialRegion={{
           latitude: (origin.latitude + destination.latitude) / 2,
           longitude: (origin.longitude + destination.longitude) / 2,
@@ -100,7 +103,7 @@ export function TripRoutePreview({ origin, destination, chosenRoute }: TripRoute
         {stops.map((stop, index) => (
           <View key={stop.id} style={styles.legendRow}>
             <View style={[styles.dot, styles.stopPin]} />
-            <Text numberOfLines={1} style={styles.legendText}>Pasa por {index + 1}. {stop.label}</Text>
+            <Text numberOfLines={1} style={styles.legendText}>{t('routePreview.passes', { number: index + 1, place: stop.label })}</Text>
           </View>
         ))}
         <View style={styles.legendRow}>
@@ -109,10 +112,10 @@ export function TripRoutePreview({ origin, destination, chosenRoute }: TripRoute
         </View>
         <Text style={styles.summary}>
           {route
-            ? `${route.km.toFixed(1).replace('.', ',')} km por carretera · unos ${route.minutes} min sin tráfico`
+            ? t('routePreview.byRoad', { distance: formatDistance(route.km), minutes: route.minutes })
             : loadingRoute
-              ? 'Calculando la ruta…'
-              : `${straightKm.toFixed(1).replace('.', ',')} km en línea recta`}
+              ? t('routePreview.calculating')
+              : t('routePreview.straight', { distance: formatDistance(straightKm) })}
         </Text>
       </View>
     </View>

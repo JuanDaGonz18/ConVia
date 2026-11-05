@@ -1,17 +1,12 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 
-const DEFAULT_QUICK_REPLIES = [
-  'Ya estoy en el punto de encuentro',
-  'Llego en 5 minutos',
-  'Voy saliendo',
-  '¿Dónde te espero?',
-  '¡Gracias!',
-];
+const DEFAULT_QUICK_REPLIES = ['atMeetingPoint', 'fiveMinutes', 'leaving', 'whereToWait', 'thanks'] as const;
 
 type QuickRepliesProps = Readonly<{
   replies?: string[];
@@ -20,7 +15,10 @@ type QuickRepliesProps = Readonly<{
 }>;
 
 /** One-tap messages, in a single horizontally scrolling row. */
-export function QuickReplies({ replies = DEFAULT_QUICK_REPLIES, disabled = false, onSelect }: QuickRepliesProps) {
+export function QuickReplies({ replies, disabled = false, onSelect }: QuickRepliesProps) {
+  const { t } = useTranslation();
+  // The message is sent in the sender's language, as typed text would be.
+  const shown = replies ?? DEFAULT_QUICK_REPLIES.map((key) => t(`tripChat.quickReplies.${key}`));
   return (
     <ScrollView
       contentContainerStyle={styles.content}
@@ -30,9 +28,9 @@ export function QuickReplies({ replies = DEFAULT_QUICK_REPLIES, disabled = false
       // A horizontal ScrollView grows to fill a column unless told not to.
       style={styles.row}
     >
-      {replies.map((reply) => (
+      {shown.map((reply) => (
         <Pressable
-          accessibilityLabel={`Enviar: ${reply}`}
+          accessibilityLabel={t('tripChat.quickReplySend', { reply })}
           accessibilityRole="button"
           disabled={disabled}
           key={reply}

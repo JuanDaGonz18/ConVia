@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Avatar } from '@/components/ui/Avatar';
@@ -24,6 +25,7 @@ type TripMembersModalProps = Readonly<{
  * passenger. The server only answers the driver and accepted passengers.
  */
 export function TripMembersModal({ tripId, visible, onClose }: TripMembersModalProps) {
+  const { t } = useTranslation();
   const [members, setMembers] = useState<TripMembers | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,9 +38,9 @@ export function TripMembersModal({ tripId, visible, onClose }: TripMembersModalP
         setMembers(found);
         setError(null);
       })
-      .catch((loadError) => active && setError(errorMessage(loadError, 'No se pudo cargar la información del viaje.')));
+      .catch((loadError) => active && setError(errorMessage(loadError, t('tripChat.members.loadFailed'))));
     return () => { active = false; };
-  }, [tripId, visible]);
+  }, [tripId, visible, t]);
 
   const trip = members?.trip;
 
@@ -46,8 +48,8 @@ export function TripMembersModal({ tripId, visible, onClose }: TripMembersModalP
     <Modal animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet" visible={visible}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.title}>Pasajeros del viaje</Text>
-          <Pressable accessibilityLabel="Cerrar" hitSlop={8} onPress={onClose}>
+          <Text style={styles.title}>{t('tripChat.members.title')}</Text>
+          <Pressable accessibilityLabel={t('tripChat.members.close')} hitSlop={8} onPress={onClose}>
             <Ionicons color={colors.text} name="close" size={26} />
           </Pressable>
         </View>
@@ -62,7 +64,7 @@ export function TripMembersModal({ tripId, visible, onClose }: TripMembersModalP
                 <View style={styles.routeRow}>
                   <View style={[styles.dot, styles.originDot]} />
                   <View style={styles.flex}>
-                    <Text style={styles.caption}>Origen</Text>
+                    <Text style={styles.caption}>{t('tripChat.members.origin')}</Text>
                     <Text style={styles.place}>{trip.origin.label}</Text>
                   </View>
                 </View>
@@ -70,7 +72,7 @@ export function TripMembersModal({ tripId, visible, onClose }: TripMembersModalP
                   <View key={stop.id} style={styles.routeRow}>
                     <View style={[styles.dot, styles.stopDot]} />
                     <View style={styles.flex}>
-                      <Text style={styles.caption}>Parada {index + 1}</Text>
+                      <Text style={styles.caption}>{t('tripChat.members.stop', { number: index + 1 })}</Text>
                       <Text style={styles.place}>{stop.label}</Text>
                     </View>
                   </View>
@@ -78,24 +80,24 @@ export function TripMembersModal({ tripId, visible, onClose }: TripMembersModalP
                 <View style={styles.routeRow}>
                   <View style={[styles.dot, styles.destinationDot]} />
                   <View style={styles.flex}>
-                    <Text style={styles.caption}>Destino</Text>
+                    <Text style={styles.caption}>{t('tripChat.members.destination')}</Text>
                     <Text style={styles.place}>{trip.destination.label}</Text>
                   </View>
                 </View>
                 <Text style={styles.meta}>
-                  {formatDateTime(trip.departureAt)} · {formatPrice(trip.price)} por cupo
+                  {formatDateTime(trip.departureAt)} · {t('tripChat.members.perSeat', { price: formatPrice(trip.price) })}
                 </Text>
                 {trip.vehicle ? (
                   <Text style={styles.meta}>{trip.vehicle.brand} · {trip.vehicle.color} · {trip.vehicle.plate}</Text>
                 ) : null}
               </View>
 
-              <Text style={styles.section}>Conductor</Text>
+              <Text style={styles.section}>{t('tripChat.members.driver')}</Text>
               <View style={styles.memberRow}>
                 <Avatar highlight={members.driver.isPlus} imageUrl={members.driver.avatarUrl} name={members.driver.name} size={44} />
                 <View style={styles.flex}>
                   <View style={styles.nameRow}>
-                    <Text style={styles.memberName}>{members.driver.name}{members.viewerIsDriver ? ' (tú)' : ''}</Text>
+                    <Text style={styles.memberName}>{members.viewerIsDriver ? t('tripChat.members.you', { name: members.driver.name }) : members.driver.name}</Text>
                     {members.driver.isPlus ? <PlusBadge /> : null}
                   </View>
                   <Rating score={members.driver.rating} />
@@ -104,26 +106,26 @@ export function TripMembersModal({ tripId, visible, onClose }: TripMembersModalP
               </View>
 
               <Text style={styles.section}>
-                Pasajeros aceptados · {members.passengers.length} de {trip.totalSeats} cupos
+                {t('tripChat.members.accepted', { count: members.passengers.length, seats: trip.totalSeats })}
               </Text>
               {members.passengers.length === 0 ? (
-                <Text style={styles.meta}>Aún no hay pasajeros aceptados.</Text>
+                <Text style={styles.meta}>{t('tripChat.members.none')}</Text>
               ) : null}
               {members.passengers.map((passenger) => (
                 <View key={passenger.requestId} style={styles.memberRow}>
                   <Avatar highlight={passenger.isPlus} imageUrl={passenger.avatarUrl} name={passenger.name} size={44} />
                   <View style={styles.flex}>
                     <View style={styles.nameRow}>
-                      <Text style={styles.memberName}>{passenger.name}{passenger.isMe ? ' (tú)' : ''}</Text>
+                      <Text style={styles.memberName}>{passenger.isMe ? t('tripChat.members.you', { name: passenger.name }) : passenger.name}</Text>
                       {passenger.isPlus ? <PlusBadge /> : null}
                     </View>
                     <Rating score={passenger.rating} />
-                    {passenger.pickupAddress ? <Text style={styles.meta}>Recogida: {passenger.pickupAddress}</Text> : null}
+                    {passenger.pickupAddress ? <Text style={styles.meta}>{t('tripChat.members.pickup', { address: passenger.pickupAddress })}</Text> : null}
                   </View>
                   {passenger.status === 'abordado' ? (
                     <View style={styles.boarded}>
                       <Ionicons color={colors.success} name="checkmark-circle" size={14} />
-                      <Text style={styles.boardedText}>A bordo</Text>
+                      <Text style={styles.boardedText}>{t('tripChat.members.onBoard')}</Text>
                     </View>
                   ) : null}
                 </View>

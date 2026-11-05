@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
@@ -27,6 +28,7 @@ type NoticeProps = Readonly<{
 
 /** Inline, human-readable feedback: what happened and, when possible, what to do next. */
 export function Notice({ tone = 'info', title, children, action, onDismiss }: NoticeProps) {
+  const { t } = useTranslation();
   const palette = TONES[tone];
   return (
     <View
@@ -45,7 +47,7 @@ export function Notice({ tone = 'info', title, children, action, onDismiss }: No
         ) : null}
       </View>
       {onDismiss ? (
-        <Pressable accessibilityLabel="Cerrar aviso" hitSlop={8} onPress={onDismiss}>
+        <Pressable accessibilityLabel={t('notice.dismiss')} hitSlop={8} onPress={onDismiss}>
           <Ionicons color={palette.color} name="close" size={18} />
         </Pressable>
       ) : null}

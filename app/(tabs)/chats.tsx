@@ -3,6 +3,7 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -17,6 +18,7 @@ import { ChatConversation } from '@/types';
 import { errorMessage } from '@/utils/format';
 
 export default function ChatsScreen() {
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,11 +29,11 @@ export default function ChatsScreen() {
       setConversations(await chatService.getConversations());
       setError(null);
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudieron cargar los chats.'));
+      setError(errorMessage(loadError, t('chats.loadFailed')));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Reload whenever the tab is shown, so previews include messages sent meanwhile.
   useFocusEffect(
@@ -50,8 +52,8 @@ export default function ChatsScreen() {
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.kicker}>CONVÍA</Text>
-        <Text style={styles.title}>Mensajes</Text>
-        <Text style={styles.subtitle}>Coordina el punto de encuentro y los detalles de tus viajes.</Text>
+        <Text style={styles.title}>{t('chats.title')}</Text>
+        <Text style={styles.subtitle}>{t('chats.subtitle')}</Text>
       </View>
 
       {loading ? (
@@ -63,23 +65,23 @@ export default function ChatsScreen() {
           keyExtractor={(item) => item.id}
           ListEmptyComponent={error ? (
             <EmptyState
-              action={{ label: 'Reintentar', icon: 'refresh', onPress: () => void refresh() }}
+              action={{ label: t('chats.retry'), icon: 'refresh', onPress: () => void refresh() }}
               icon="cloud-offline-outline"
               message={error}
-              title="No pudimos cargar tus chats"
+              title={t('chats.errorTitle')}
             />
           ) : (
             <EmptyState
-              action={{ label: 'Buscar un viaje', icon: 'search-outline', onPress: () => router.push('/(tabs)') }}
+              action={{ label: t('chats.findTrip'), icon: 'search-outline', onPress: () => router.push('/(tabs)') }}
               icon="chatbubbles-outline"
-              message="El chat de cada viaje se abre cuando el conductor acepta tu cupo (o cuando publicas un viaje). Ahí coordinan el punto de encuentro."
-              title="Aún no tienes conversaciones"
+              message={t('chats.emptyText')}
+              title={t('chats.emptyTitle')}
             />
           )}
           refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => void refresh()} refreshing={refreshing} />}
           renderItem={({ item }) => (
             <Pressable
-              accessibilityLabel={`Chat con ${item.participantName}`}
+              accessibilityLabel={t('chats.chatWith', { name: item.participantName })}
               onPress={() => router.push({ pathname: '/chat/[tripId]', params: { tripId: item.tripId ?? item.id } })}
               style={({ pressed }) => [styles.card, pressed ? styles.cardPressed : null]}
             >

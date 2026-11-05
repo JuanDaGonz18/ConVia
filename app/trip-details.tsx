@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Notice } from '@/components/ui/Notice';
@@ -26,19 +27,21 @@ import { tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { Location } from '@/types';
 import { errorMessage, formatDateTime, formatPrice, rawErrorMessage } from '@/utils/format';
+import i18n from '@/i18n';
 
 function requestErrorMessage(error: unknown) {
   const raw = rawErrorMessage(error);
   if (raw.includes('row-level security')) {
-    return 'No puedes solicitar este viaje. Confirma que sigue disponible y que no eres su conductor.';
+    return i18n.t('tripDetails.errors.notAllowed');
   }
   if (raw.includes('trip_requests_one_active') || raw.includes('duplicate key')) {
-    return 'Ya tienes una solicitud activa para este viaje.';
+    return i18n.t('tripDetails.errors.duplicate');
   }
-  return errorMessage(error, 'No se pudo enviar la solicitud.');
+  return errorMessage(error, i18n.t('tripDetails.errors.failed'));
 }
 
 export default function TripDetailsScreen() {
+  const { t } = useTranslation();
   const trip = useAppStore((state) => state.selectedTrip);
   const isVerified = useAppStore((state) => state.currentUser?.faceVerified === true);
   const userId = useAppStore((state) => state.currentUser?.id);
@@ -64,8 +67,8 @@ export default function TripDetailsScreen() {
   if (!trip) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <Text style={styles.empty}>Selecciona un viaje para ver sus detalles.</Text>
-        <ButtonSecondary onPress={() => router.back()} title="Volver" />
+        <Text style={styles.empty}>{t('tripDetails.noTrip')}</Text>
+        <ButtonSecondary onPress={() => router.back()} title={t('common.back')} />
       </SafeAreaView>
     );
   }
@@ -88,7 +91,7 @@ export default function TripDetailsScreen() {
         setFavoriteDriverIds([...favoriteDriverIds, driverId]);
       }
     } catch (favoriteError) {
-      setError(errorMessage(favoriteError, 'No se pudo actualizar tus favoritos.'));
+      setError(errorMessage(favoriteError, t('tripDetails.favoriteFailed')));
     } finally {
       setFavoriteBusy(false);
     }
@@ -97,7 +100,7 @@ export default function TripDetailsScreen() {
   // Step 1: validate, then ask for a fresh face check (required by the database).
   const request = () => {
     if (!pickup) {
-      setPickupError('Elige dónde quieres que te recojan.');
+      setPickupError(t('tripDetails.pickupMissing'));
       return;
     }
     setError(null);
@@ -145,9 +148,9 @@ export default function TripDetailsScreen() {
         />
       ) : null}
       <ScrollView contentContainerStyle={styles.content}>
-        <ScreenHeader kicker="DETALLE DEL VIAJE" title={`${trip.origin.label} a ${trip.destination.label}`} />
+        <ScreenHeader kicker={t('tripDetails.kicker')} title={t('tripDetails.title', { origin: trip.origin.label, destination: trip.destination.label })} />
         <Text style={styles.subtitle}>{formatDateTime(trip.departureTime)}</Text>
-        <Text style={styles.info}>{formatPrice(trip.price)} · {trip.seatsAvailable} cupos disponibles</Text>
+        <Text style={styles.info}>{t('tripDetails.seatsAvailable', { price: formatPrice(trip.price), count: trip.seatsAvailable })}</Text>
         {match?.compatible ? <MatchSummary match={match} /> : null}
 
         <TripRoutePreview chosenRoute={trip.route} destination={trip.destination} origin={trip.origin} />
@@ -163,7 +166,7 @@ export default function TripDetailsScreen() {
           </View>
           {trip.driver.id !== userId ? (
             <Pressable
-              accessibilityLabel={isFavorite ? `Quitar a ${trip.driver.name} de favoritos` : `Agregar a ${trip.driver.name} a favoritos`}
+              accessibilityLabel={isFavorite ? t('tripDetails.removeFavorite', { name: trip.driver.name }) : t('tripDetails.addFavorite', { name: trip.driver.name })}
               accessibilityState={{ selected: isFavorite, busy: favoriteBusy }}
               disabled={favoriteBusy}
               hitSlop={8}
@@ -171,14 +174,14 @@ export default function TripDetailsScreen() {
               style={styles.favoriteButton}
             >
               <Ionicons color={isFavorite ? colors.warning : colors.textSecondary} name={isFavorite ? 'star' : 'star-outline'} size={26} />
-              <Text style={styles.favoriteLabel}>{isFavorite ? 'Favorito' : 'Marcar'}</Text>
+              <Text style={styles.favoriteLabel}>{isFavorite ? t('tripDetails.favorite') : t('tripDetails.mark')}</Text>
             </Pressable>
           ) : null}
         </View>
         {trip.vehicle ? (
           <View style={styles.vehicleCard}>
             {trip.vehicle.photoUrl ? (
-              <Image accessibilityLabel={`Foto del vehículo ${trip.vehicle.brand}`} source={{ uri: trip.vehicle.photoUrl }} style={styles.vehiclePhoto} />
+              <Image accessibilityLabel={t('tripDetails.vehiclePhoto', { brand: trip.vehicle.brand })} source={{ uri: trip.vehicle.photoUrl }} style={styles.vehiclePhoto} />
             ) : null}
             <View style={styles.vehicleInfo}>
               <Ionicons color={colors.primary} name="car-outline" size={20} />
@@ -192,46 +195,46 @@ export default function TripDetailsScreen() {
         {trip.description ? <Text style={styles.description}>{trip.description}</Text> : null}
         {requested ? (
           <>
-            <Notice title="¡Solicitud enviada!" tone="success">
-              Le avisamos al conductor. Cuando acepte tu punto de recogida recibirás una notificación y se habilitará el chat del viaje.
+            <Notice title={t('tripDetails.sentTitle')} tone="success">
+              {t('tripDetails.sentText')}
             </Notice>
-            <ButtonSecondary onPress={() => router.replace('/requests')} title="Ver mis solicitudes" />
+            <ButtonSecondary onPress={() => router.replace('/requests')} title={t('tripDetails.myRequests')} />
           </>
         ) : trip.seatsAvailable <= 0 ? (
-          <Notice tone="warning">Este viaje ya llenó sus cupos. Busca otro en la lista de viajes.</Notice>
+          <Notice tone="warning">{t('tripDetails.full')}</Notice>
         ) : (
           <>
             <PlaceSearchField
               allowCurrentLocation
-              label="Punto de recogida"
+              label={t('tripDetails.pickupLabel')}
               near={trip.origin.latitude || trip.origin.longitude ? trip.origin : null}
               error={pickupError}
               onChange={(place) => {
                 setPickup(place);
                 setPickupError(null);
               }}
-              placeholder="Dirección o lugar de recogida"
+              placeholder={t('tripDetails.pickupPlaceholder')}
               value={pickup}
             />
             <PlaceSearchField
-              label="Dónde te bajas (opcional)"
+              label={t('tripDetails.dropoffLabel')}
               mapLink="afterSelection"
-              mapTitle="Dónde te bajas"
+              mapTitle={t('tripDetails.dropoffTitle')}
               near={trip.destination.latitude || trip.destination.longitude ? trip.destination : null}
               onChange={setDropoff}
-              placeholder="Lugar donde te bajas"
+              placeholder={t('tripDetails.dropoffPlaceholder')}
               value={dropoff}
             />
-            <Text style={styles.hint}>Así el conductor sabe si su ruta te sirve. Si lo dejas vacío, te bajas en el destino del viaje.</Text>
+            <Text style={styles.hint}>{t('tripDetails.dropoffHint')}</Text>
             {error ? <Notice tone="error">{error}</Notice> : null}
             {isVerified ? (
-              <ButtonPrimary loading={loading} onPress={request} title="Solicitar este viaje" />
+              <ButtonPrimary loading={loading} onPress={request} title={t('tripDetails.request')} />
             ) : (
               <View style={styles.notice}>
                 <Text style={styles.noticeText}>
-                  Para pedir un cupo primero registramos tu rostro. Solo toma unos segundos y la foto no se guarda.
+                  {t('tripDetails.enrollText')}
                 </Text>
-                <ButtonPrimary onPress={() => setShowEnrollment(true)} title="Verificar mi identidad" />
+                <ButtonPrimary onPress={() => setShowEnrollment(true)} title={t('tripDetails.enroll')} />
               </View>
             )}
           </>

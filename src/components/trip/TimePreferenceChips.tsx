@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
@@ -6,18 +7,15 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import type { TimePreference } from '@/services/tripMatching';
 
-const OPTIONS: { value: TimePreference; label: string }[] = [
-  { value: 'any', label: 'Cualquier momento' },
-  { value: 'soon', label: 'Lo antes posible' },
-  { value: 'today', label: 'Hoy' },
-  { value: 'tomorrow', label: 'Mañana' },
-];
+/** Texts in timePreference.<value>. */
+const OPTIONS: TimePreference[] = ['any', 'soon', 'today', 'tomorrow'];
 
 /** When the passenger wants to leave; trips outside that window are not recommended. */
 export function TimePreferenceChips({ value, onChange }: Readonly<{ value: TimePreference; onChange: (value: TimePreference) => void }>) {
+  const { t } = useTranslation();
   return (
     <ScrollView
-      accessibilityLabel="¿Cuándo quieres salir?"
+      accessibilityLabel={t('timePreference.label')}
       accessibilityRole="radiogroup"
       contentContainerStyle={styles.row}
       horizontal
@@ -25,16 +23,16 @@ export function TimePreferenceChips({ value, onChange }: Readonly<{ value: TimeP
       style={styles.scroll}
     >
       {OPTIONS.map((option) => {
-        const selected = option.value === value;
+        const selected = option === value;
         return (
           <Pressable
             accessibilityRole="radio"
             accessibilityState={{ selected }}
-            key={option.value}
-            onPress={() => onChange(option.value)}
+            key={option}
+            onPress={() => onChange(option)}
             style={[styles.chip, selected ? styles.chipSelected : null]}
           >
-            <Text style={[styles.text, selected ? styles.textSelected : null]}>{option.label}</Text>
+            <Text style={[styles.text, selected ? styles.textSelected : null]}>{t(`timePreference.${option}`)}</Text>
           </Pressable>
         );
       })}

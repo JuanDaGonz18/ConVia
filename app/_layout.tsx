@@ -12,7 +12,11 @@ import { notificationService } from '@/services/notificationService';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
 import { SubscriptionSync } from '@/subscription/usePlan';
+import { loadLanguagePreference } from '@/i18n';
 import { useEffect } from 'react';
+
+// The saved language (Español, English or the phone's); until it loads, the phone's language is used.
+void loadLanguagePreference();
 
 export default function RootLayout() {
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);

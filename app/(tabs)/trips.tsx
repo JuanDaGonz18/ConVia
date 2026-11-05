@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { requirePlus } from '@/components/subscription/PlusGate';
 import { Notice } from '@/components/ui/Notice';
@@ -30,53 +31,25 @@ import { Trip } from '@/types';
 import { useAppStore } from '@/store/appStore';
 import { usePlan } from '@/subscription/usePlan';
 import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
+import i18n from '@/i18n';
 
-const DRIVER_STATUS_LABELS: Record<DriverTripStatus, string> = {
-  por_empezar: 'Por empezar',
-  en_curso: 'En curso',
-  finalizado: 'Finalizado',
-  cancelado: 'Cancelado',
-  no_iniciado: 'No iniciado',
-};
-
-/** How a passenger sees each trip of their history. */
-const PASSENGER_STATUS_LABELS: Record<DriverTripStatus, string> = {
-  por_empezar: 'Próximo',
-  en_curso: 'En curso',
-  finalizado: 'Finalizado',
-  cancelado: 'Cancelado',
-  no_iniciado: 'No se realizó',
-};
+/** A trip status as the driver sees it (tripStatus.*) and as a passenger sees it in their history (passengerTripStatus.*). */
+const driverStatusLabel = (status: DriverTripStatus) => i18n.t(`tripStatus.${status}`);
+const passengerStatusLabel = (status: DriverTripStatus) => i18n.t(`passengerTripStatus.${status}`);
 
 type PassengerTab = 'available' | 'mine';
 
 type DriverTab = 'upcoming' | 'completed' | 'cancelled';
 
-const DRIVER_TABS: { key: DriverTab; label: string; statuses: DriverTripStatus[]; emptyTitle: string; emptyMessage: string }[] = [
-  {
-    key: 'upcoming',
-    label: 'Próximos',
-    statuses: ['por_empezar', 'en_curso'],
-    emptyTitle: 'No tienes viajes próximos',
-    emptyMessage: 'Publica un viaje o repite uno anterior para recibir solicitudes.',
-  },
-  {
-    key: 'completed',
-    label: 'Finalizados',
-    statuses: ['finalizado'],
-    emptyTitle: 'Aún no has finalizado viajes',
-    emptyMessage: 'Aquí verás cada viaje terminado con sus pasajeros, pagos y calificaciones.',
-  },
-  {
-    key: 'cancelled',
-    label: 'Cancelados',
-    statuses: ['cancelado', 'no_iniciado'],
-    emptyTitle: 'No hay viajes cancelados',
-    emptyMessage: 'Los viajes que canceles o que no se inicien aparecerán aquí.',
-  },
+/** Driver tabs; texts in trips.tabs.<key>. */
+const DRIVER_TABS: { key: DriverTab; statuses: DriverTripStatus[] }[] = [
+  { key: 'upcoming', statuses: ['por_empezar', 'en_curso'] },
+  { key: 'completed', statuses: ['finalizado'] },
+  { key: 'cancelled', statuses: ['cancelado', 'no_iniciado'] },
 ];
 
 export default function TripsScreen() {
+  const { t } = useTranslation();
   const isDriver = useAppStore((state) => state.currentUser?.role === 'driver');
   const driverStatus = useAppStore((state) => state.currentUser?.driverStatus);
   const setSelectedTrip = useAppStore((state) => state.setSelectedTrip);
@@ -106,7 +79,7 @@ export default function TripsScreen() {
         setHistory(mine);
       }
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudieron cargar los viajes.'));
+      setError(errorMessage(loadError, i18n.t('trips.loadFailed')));
     } finally {
       setLoading(false);
     }
@@ -160,22 +133,22 @@ export default function TripsScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>CONVÍA</Text>
-        <Text style={styles.title}>{isDriver ? 'Mis viajes' : 'Viajes'}</Text>
+        <Text style={styles.kicker}>{t('trips.kicker')}</Text>
+        <Text style={styles.title}>{isDriver ? t('trips.titleDriver') : t('trips.titlePassenger')}</Text>
         <Text style={styles.subtitle}>
-          {isDriver ? 'Publica, inicia y finaliza tus viajes.' : 'Viajes disponibles en tu comunidad.'}
+          {isDriver ? t('trips.subtitleDriver') : t('trips.subtitlePassenger')}
         </Text>
         <View style={styles.headerActions}>
-          {isDriver && driverStatus === 'aprobado' ? <ButtonPrimary onPress={() => router.push('/create-trip')} title="Publicar viaje" /> : null}
+          {isDriver && driverStatus === 'aprobado' ? <ButtonPrimary onPress={() => router.push('/create-trip')} title={t('trips.publish')} /> : null}
           {isDriver && driverStatus === 'aprobado' ? (
             <Pressable accessibilityRole="button" onPress={() => router.push('/recurring-trips')} style={styles.headerLink}>
               <Ionicons color={colors.primary} name="sync-outline" size={16} />
-              <Text style={styles.headerLinkText}>Viajes recurrentes</Text>
+              <Text style={styles.headerLinkText}>{t('trips.recurring')}</Text>
               {isBetaPerk('recurring_trips') || !can('recurring_trips') ? <PlusBadge compact /> : null}
             </Pressable>
           ) : null}
           {isDriver && driverStatus !== 'aprobado' ? <DriverApprovalNotice status={driverStatus} /> : null}
-          <ButtonSecondary onPress={() => router.push('/requests')} title={isDriver ? 'Solicitudes de pasajeros' : 'Mis solicitudes'} />
+          <ButtonSecondary onPress={() => router.push('/requests')} title={isDriver ? t('trips.driverRequests') : t('trips.myRequests')} />
         </View>
       </View>
 
@@ -191,8 +164,8 @@ export default function TripsScreen() {
         {!isDriver ? (
           <View accessibilityRole="tablist" style={styles.tabs}>
             {([
-              { key: 'available', label: 'Disponibles' },
-              { key: 'mine', label: `Mis viajes${history.length ? ` (${history.length})` : ''}` },
+              { key: 'available', label: t('trips.available') },
+              { key: 'mine', label: `${t('trips.mine')}${history.length ? ` (${history.length})` : ''}` },
             ] as const).map((item) => {
               const active = passengerTab === item.key;
               return (
@@ -224,7 +197,7 @@ export default function TripsScreen() {
                   style={[styles.tab, active ? styles.tabActive : null]}
                 >
                   <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>
-                    {item.label}{count ? ` (${count})` : ''}
+                    {t(`trips.tabs.${item.key}.label`)}{count ? ` (${count})` : ''}
                   </Text>
                 </Pressable>
               );
@@ -235,19 +208,19 @@ export default function TripsScreen() {
         {!loading && isDriver && visibleDriverTrips.length === 0 ? (
           <EmptyState
             action={tab === 'upcoming' && driverStatus === 'aprobado'
-              ? { label: 'Publicar un viaje', icon: 'add-circle-outline', onPress: () => router.push('/create-trip') }
+              ? { label: t('trips.publishOne'), icon: 'add-circle-outline', onPress: () => router.push('/create-trip') }
               : undefined}
             icon={tab === 'upcoming' ? 'calendar-outline' : tab === 'completed' ? 'flag-outline' : 'close-circle-outline'}
-            message={activeTab.emptyMessage}
-            title={activeTab.emptyTitle}
+            message={t(`trips.tabs.${activeTab.key}.emptyMessage`)}
+            title={t(`trips.tabs.${activeTab.key}.emptyTitle`)}
           />
         ) : null}
         {!loading && !isDriver && passengerTab === 'mine' && history.length === 0 && !error ? (
           <EmptyState
-            action={{ label: 'Buscar un viaje', icon: 'search-outline', onPress: () => setPassengerTab('available') }}
+            action={{ label: t('trips.findTrip'), icon: 'search-outline', onPress: () => setPassengerTab('available') }}
             icon="time-outline"
-            message="Cuando un conductor acepte tu solicitud, el viaje aparecerá aquí. Al terminar podrás calificarlo."
-            title="Aún no tienes viajes"
+            message={t('trips.noHistoryMessage')}
+            title={t('trips.noHistoryTitle')}
           />
         ) : null}
         {!loading && !isDriver && passengerTab === 'mine' ? history.map((trip) => {
@@ -255,7 +228,7 @@ export default function TripsScreen() {
           const canOpen = trip.requestStatus === 'aceptado' || trip.requestStatus === 'abordado';
           return (
             <Pressable
-              accessibilityHint={canOpen ? 'Abre el resumen del viaje' : undefined}
+              accessibilityHint={canOpen ? t('trips.openSummary') : undefined}
               disabled={!canOpen}
               key={trip.requestId}
               onPress={() => router.push({ pathname: '/trip-summary', params: { tripId: trip.tripId } })}
@@ -264,7 +237,7 @@ export default function TripsScreen() {
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>{trip.originName} → {trip.destinationName}</Text>
                 <Text style={[styles.badge, trip.status === 'cancelado' || trip.status === 'no_iniciado' ? styles.badgeCancelled : null]}>
-                  {PASSENGER_STATUS_LABELS[trip.status]}
+                  {passengerStatusLabel(trip.status)}
                 </Text>
               </View>
               <Text style={styles.cardMeta}>{formatDateTime(trip.departureAt)} · {formatPrice(trip.price)}</Text>
@@ -284,11 +257,11 @@ export default function TripsScreen() {
                   style={styles.rateButton}
                 >
                   <Ionicons color={colors.warning} name="star" size={18} />
-                  <Text style={styles.rateText}>Calificar al conductor</Text>
+                  <Text style={styles.rateText}>{t('trips.rateDriver')}</Text>
                 </Pressable>
               ) : trip.myDriverScore ? (
                 <View style={styles.ratedRow}>
-                  <Text style={styles.cardMeta}>Tu calificación</Text>
+                  <Text style={styles.cardMeta}>{t('trips.yourRating')}</Text>
                   <StarRating score={trip.myDriverScore} size={14} />
                 </View>
               ) : null}
@@ -298,10 +271,10 @@ export default function TripsScreen() {
 
         {!loading && !isDriver && passengerTab === 'available' && trips.length === 0 && !error ? (
           <EmptyState
-            action={{ label: 'Guardar mis lugares', icon: 'bookmark-outline', onPress: () => router.push('/saved-places') }}
+            action={{ label: t('trips.savePlaces'), icon: 'bookmark-outline', onPress: () => router.push('/saved-places') }}
             icon="car-outline"
-            message="Los conductores publican sus viajes durante el día. Guarda tus lugares y te mostraremos primero los que te sirven."
-            title="Aún no hay viajes publicados"
+            message={t('trips.noTripsMessage')}
+            title={t('trips.noTripsTitle')}
           />
         ) : null}
 
@@ -311,7 +284,7 @@ export default function TripsScreen() {
               const past = tab !== 'upcoming';
               return (
                 <Pressable
-                  accessibilityHint={past ? 'Abre el historial del viaje' : undefined}
+                  accessibilityHint={past ? t('trips.openHistory') : undefined}
                   disabled={!past}
                   key={trip.id}
                   onPress={() => router.push({ pathname: '/trip-summary', params: { tripId: trip.id } })}
@@ -320,21 +293,21 @@ export default function TripsScreen() {
                   <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>{trip.originName} → {trip.destinationName}</Text>
                     <Text style={[styles.badge, trip.status === 'cancelado' ? styles.badgeCancelled : null]}>
-                      {DRIVER_STATUS_LABELS[trip.status]}
+                      {driverStatusLabel(trip.status)}
                     </Text>
                   </View>
-                  <Text style={styles.cardMeta}>Salida: {formatDateTime(trip.departureAt)}</Text>
+                  <Text style={styles.cardMeta}>{t('trips.departure', { date: formatDateTime(trip.departureAt) })}</Text>
                   {trip.recurring ? (
                     <View style={styles.weeklyTag}>
                       <Ionicons color={colors.primary} name="sync-outline" size={12} />
-                      <Text style={styles.weeklyTagText}>Viaje recurrente</Text>
+                      <Text style={styles.weeklyTagText}>{t('trips.recurringTag')}</Text>
                     </View>
                   ) : null}
-                  <Text style={styles.cardMeta}>{formatPrice(trip.price)} · {trip.totalSeats} cupos</Text>
+                  <Text style={styles.cardMeta}>{formatPrice(trip.price)} · {t('trips.seats', { count: trip.totalSeats })}</Text>
                   {past ? (
                     <View style={styles.historyLink}>
                       <Text style={styles.historyText}>
-                        {trip.status === 'finalizado' ? 'Ver pasajeros, pagos y calificaciones' : 'Ver historial'}
+                        {trip.status === 'finalizado' ? t('trips.seeDetails') : t('trips.seeHistory')}
                       </Text>
                       <Ionicons color={colors.primary} name="chevron-forward" size={16} />
                     </View>
@@ -346,48 +319,48 @@ export default function TripsScreen() {
                         loading={busy}
                         onPress={() => void runTripAction(trip.id, async () => {
                           await tripService.startTrip(trip.id);
-                          toast.success('¡Viaje iniciado! Escanea el QR de cada pasajero al subir');
-                        }, 'No se pudo iniciar el viaje.')}
-                        title="Iniciar viaje"
+                          toast.success(t('trips.started'));
+                        }, t('trips.startFailed'))}
+                        title={t('trips.start')}
                       />
                       <ButtonSecondary
                         disabled={busy}
                         onPress={() => router.push({ pathname: '/create-trip', params: { edit: trip.id } })}
-                        title="Editar viaje"
+                        title={t('trips.edit')}
                       />
                       <ButtonSecondary
                         disabled={busy}
                         onPress={() => setConfirm({ tripId: trip.id, kind: 'cancel' })}
-                        title="Cancelar viaje"
+                        title={t('trips.cancel')}
                       />
                     </View>
                   ) : null}
                   {trip.status === 'en_curso' ? (
                     <View style={styles.actions}>
-                      <ButtonSecondary onPress={() => router.push('/qr-scanner')} title="Escanear QR de abordaje" />
+                      <ButtonSecondary onPress={() => router.push('/qr-scanner')} title={t('trips.scanQr')} />
                       <ButtonPrimary
                         disabled={busy}
                         loading={busy}
                         onPress={() => setConfirm({ tripId: trip.id, kind: 'finish' })}
-                        title="Finalizar viaje"
+                        title={t('trips.finish')}
                       />
                       <ButtonSecondary
                         disabled={busy}
                         onPress={() => setConfirm({ tripId: trip.id, kind: 'cancel' })}
-                        title="Cancelar viaje"
+                        title={t('trips.cancel')}
                       />
                     </View>
                   ) : null}
                   {trip.status !== 'en_curso' && driverStatus === 'aprobado' ? (
                     <Pressable
-                      accessibilityLabel="Repetir este viaje"
+                      accessibilityLabel={t('trips.repeatThis')}
                       onPress={() => (can('repeat_trip')
                         ? router.push({ pathname: '/create-trip', params: { repeatFrom: trip.id } })
                         : requirePlus({ capability: 'repeat_trip' }))}
                       style={styles.repeat}
                     >
                       <Ionicons color={colors.primary} name="repeat" size={18} />
-                      <Text style={styles.repeatText}>Repetir viaje</Text>
+                      <Text style={styles.repeatText}>{t('trips.repeat')}</Text>
                       {!can('repeat_trip') || isBetaPerk('repeat_trip') ? <PlusBadge compact /> : null}
                     </Pressable>
                   ) : null}
@@ -399,11 +372,11 @@ export default function TripsScreen() {
               {!loading && trips.length > 0 && savedPlaces.length === 0 && favoriteDriverIds.length === 0 ? (
                 <Pressable onPress={() => router.push('/saved-places')} style={styles.hint}>
                   <Ionicons color={colors.primary} name="bookmark-outline" size={20} />
-                  <Text style={styles.hintText}>Guarda tu casa, trabajo o universidad para ver primero los viajes que te sirven.</Text>
+                  <Text style={styles.hintText}>{t('trips.placesHint')}</Text>
                   <Ionicons color={colors.primary} name="chevron-forward" size={18} />
                 </Pressable>
               ) : null}
-              {[{ title: 'Para ti', items: suggested }, { title: suggested.length ? 'Otros viajes' : null, items: others }].map((section) => (
+              {[{ title: t('trips.forYou'), items: suggested }, { title: suggested.length ? t('trips.others') : null, items: others }].map((section) => (
                 section.items.length ? (
                   <View key={section.title ?? 'all'} style={styles.section}>
                     {section.title ? <Text style={styles.sectionTitle}>{section.title}</Text> : null}
@@ -432,13 +405,13 @@ export default function TripsScreen() {
       />
 
       <ConfirmDialog
-        cancelLabel="Volver"
-        confirmLabel={confirm?.kind === 'cancel' ? 'Sí, cancelar viaje' : 'Sí, finalizar'}
+        cancelLabel={t('common.back')}
+        confirmLabel={confirm?.kind === 'cancel' ? t('trips.confirmCancel') : t('trips.confirmFinish')}
         icon={confirm?.kind === 'cancel' ? undefined : 'flag-outline'}
         tone={confirm?.kind === 'cancel' ? 'danger' : 'default'}
         message={confirm?.kind === 'cancel'
-          ? 'Avisaremos a todos los pasajeros, incluso a los que ya tienen cupo reservado, y sus solicitudes quedarán canceladas. No se puede deshacer.'
-          : 'Confirma que el viaje ya se realizó. Avisaremos a tus pasajeros y podrás marcar pagos y calificarlos.'}
+          ? t('trips.cancelMessage')
+          : t('trips.finishMessage')}
         onCancel={() => setConfirm(null)}
         onConfirm={() => {
           if (!confirm) return;
@@ -447,17 +420,17 @@ export default function TripsScreen() {
           if (kind === 'cancel') {
             void runTripAction(tripId, async () => {
               await tripService.cancelTrip(tripId);
-              toast.info('Viaje cancelado. Avisamos a los pasajeros');
-            }, 'No se pudo cancelar el viaje.');
+              toast.info(t('trips.cancelled'));
+            }, t('trips.cancelFailed'));
             return;
           }
           // Straight to the closing review once the trip is marked completed.
           void runTripAction(tripId, async () => {
             await tripService.finishTrip(tripId);
             router.push({ pathname: '/trip-summary', params: { tripId, finished: '1' } });
-          }, 'No se pudo finalizar el viaje.');
+          }, t('trips.finishFailed'));
         }}
-        title={confirm?.kind === 'cancel' ? '¿Cancelar este viaje?' : '¿Finalizar este viaje?'}
+        title={confirm?.kind === 'cancel' ? t('trips.cancelTitle') : t('trips.finishTitle')}
         visible={confirm !== null}
       />
     </SafeAreaView>

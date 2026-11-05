@@ -1,4 +1,5 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
@@ -8,11 +9,12 @@ type LoadingStateProps = {
   label?: string;
 };
 
-export function LoadingState({ label = 'Cargando' }: LoadingStateProps) {
+export function LoadingState({ label }: LoadingStateProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       <ActivityIndicator color={colors.primary} />
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label}>{label ?? t('common.loading')}</Text>
     </View>
   );
 }

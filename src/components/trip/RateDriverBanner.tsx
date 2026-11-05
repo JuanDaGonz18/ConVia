@@ -3,6 +3,7 @@ import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { RateDriverModal, RateDriverTarget } from '@/components/trip/RateDriverModal';
 import { colors } from '@/constants/colors';
@@ -44,6 +45,7 @@ function isRecent(trip: PassengerTripRecord) {
  * rating stays available from "Mis viajes".
  */
 export function RateDriverBanner() {
+  const { t } = useTranslation();
   const [pending, setPending] = useState<PassengerTripRecord | null>(null);
   const [target, setTarget] = useState<RateDriverTarget | null>(null);
 
@@ -80,7 +82,7 @@ export function RateDriverBanner() {
           <Ionicons color={colors.warning} name="star" size={20} />
         </View>
         <View style={styles.text}>
-          <Text style={styles.title}>¿Cómo te fue con {pending.driver.name}?</Text>
+          <Text style={styles.title}>{t('rateDriver.question', { name: pending.driver.name })}</Text>
           <Text numberOfLines={1} style={styles.meta}>{pending.originName} → {pending.destinationName}</Text>
           <Pressable
             accessibilityRole="button"
@@ -92,11 +94,11 @@ export function RateDriverBanner() {
             })}
             style={styles.action}
           >
-            <Text style={styles.actionText}>Calificar al conductor</Text>
+            <Text style={styles.actionText}>{t('rateDriver.action')}</Text>
             <Ionicons color={colors.primary} name="chevron-forward" size={16} />
           </Pressable>
         </View>
-        <Pressable accessibilityLabel="Ahora no" hitSlop={10} onPress={dismiss}>
+        <Pressable accessibilityLabel={t('rateDriver.notNow')} hitSlop={10} onPress={dismiss}>
           <Ionicons color={colors.textSecondary} name="close" size={20} />
         </Pressable>
       </View>

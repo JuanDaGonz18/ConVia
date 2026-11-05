@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -16,7 +17,7 @@ import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
-import { PLACE_KIND_LABELS, personalizationService } from '@/services/personalizationService';
+import { personalizationService } from '@/services/personalizationService';
 import { usePlan } from '@/subscription/usePlan';
 import { useAppStore } from '@/store/appStore';
 import { Location, SavedPlace, SavedPlaceKind } from '@/types';
@@ -35,6 +36,9 @@ const KIND_ICONS: Record<SavedPlaceKind, keyof typeof Ionicons.glyphMap> = {
 type Editing = { kind: SavedPlaceKind; label: string; place?: SavedPlace };
 
 export default function SavedPlacesScreen() {
+  const { t } = useTranslation();
+  /** Home, work and university are shown in the current language, whatever label was stored. */
+  const nameOf = (kind: SavedPlaceKind, place?: SavedPlace) => (kind === 'other' && place ? place.label : t(`placeKinds.${kind}`));
   const places = useAppStore((state) => state.savedPlaces);
   const setSavedPlaces = useAppStore((state) => state.setSavedPlaces);
   const [editing, setEditing] = useState<Editing | null>(null);
@@ -60,9 +64,9 @@ export default function SavedPlacesScreen() {
     try {
       const saved = await personalizationService.savePlace({ id: place?.id, kind, label, location });
       setSavedPlaces(place ? places.map((item) => (item.id === saved.id ? saved : item)) : [...places, saved]);
-      toast.success(`${saved.label} guardado`);
+      toast.success(t('savedPlaces.saved', { name: nameOf(saved.kind, saved) }));
     } catch (saveError) {
-      setError(errorMessage(saveError, 'No se pudo guardar el lugar.'));
+      setError(errorMessage(saveError, t('savedPlaces.saveFailed')));
     } finally {
       setBusy(false);
     }
@@ -75,9 +79,9 @@ export default function SavedPlacesScreen() {
     try {
       await personalizationService.deletePlace(place.id);
       setSavedPlaces(places.filter((item) => item.id !== place.id));
-      toast.info(`${place.label} eliminado`);
+      toast.info(t('savedPlaces.deleted', { name: nameOf(place.kind, place) }));
     } catch (deleteError) {
-      setError(errorMessage(deleteError, 'No se pudo eliminar el lugar.'));
+      setError(errorMessage(deleteError, t('savedPlaces.deleteFailed')));
     } finally {
       setBusy(false);
     }
@@ -89,33 +93,33 @@ export default function SavedPlacesScreen() {
         <Ionicons color={colors.primary} name={KIND_ICONS[kind]} size={20} />
       </View>
       <View style={styles.cardText}>
-        <Text style={styles.cardTitle}>{place?.label ?? PLACE_KIND_LABELS[kind]}</Text>
-        <Text numberOfLines={2} style={styles.cardAddress}>{place ? place.address || 'Ubicación en el mapa' : 'Sin guardar'}</Text>
+        <Text style={styles.cardTitle}>{nameOf(kind, place)}</Text>
+        <Text numberOfLines={2} style={styles.cardAddress}>{place ? place.address || t('savedPlaces.onMap') : t('savedPlaces.notSaved')}</Text>
       </View>
       {place ? (
         <View style={styles.cardActions}>
           <Pressable
-            accessibilityLabel={`Cambiar ${place.label}`}
+            accessibilityLabel={t('savedPlaces.change', { name: nameOf(kind, place) })}
             disabled={busy}
             hitSlop={6}
-            onPress={() => setEditing({ kind, label: place.label, place })}
+            onPress={() => setEditing({ kind, label: nameOf(kind, place), place })}
             style={styles.iconButton}
           >
             <Ionicons color={colors.primary} name="create-outline" size={20} />
           </Pressable>
-          <Pressable accessibilityLabel={`Eliminar ${place.label}`} disabled={busy} hitSlop={6} onPress={() => setToDelete(place)} style={styles.iconButton}>
+          <Pressable accessibilityLabel={t('savedPlaces.delete', { name: nameOf(kind, place) })} disabled={busy} hitSlop={6} onPress={() => setToDelete(place)} style={styles.iconButton}>
             <Ionicons color={colors.error} name="trash-outline" size={20} />
           </Pressable>
         </View>
       ) : (
         <Pressable
-          accessibilityLabel={`Agregar ${PLACE_KIND_LABELS[kind]}`}
+          accessibilityLabel={t('savedPlaces.addNamed', { name: nameOf(kind) })}
           disabled={busy || full}
-          onPress={() => setEditing({ kind, label: PLACE_KIND_LABELS[kind] })}
+          onPress={() => setEditing({ kind, label: nameOf(kind) })}
           style={[styles.addChip, full ? styles.disabled : null]}
         >
           <Ionicons color={colors.primary} name="add" size={16} />
-          <Text style={styles.addChipText}>Agregar</Text>
+          <Text style={styles.addChipText}>{t('savedPlaces.add')}</Text>
         </Pressable>
       )}
     </View>
@@ -124,17 +128,15 @@ export default function SavedPlacesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <ScreenHeader kicker="PERSONALIZACIÓN" title="Mis lugares" />
-        <Text style={styles.subtitle}>
-          Opcional. Te recomendaremos los viajes que van hacia estos lugares o pasan cerca en su ruta. Solo tú puedes verlos.
-        </Text>
+        <ScreenHeader kicker={t('savedPlaces.kicker')} title={t('savedPlaces.title')} />
+        <Text style={styles.subtitle}>{t('savedPlaces.subtitle')}</Text>
 
         {error ? <Notice tone="error">{error}</Notice> : null}
         {busy ? <ActivityIndicator color={colors.primary} /> : null}
 
         {FIXED_KINDS.map((kind) => renderPlace(kind, places.find((place) => place.kind === kind)))}
 
-        <Text style={styles.section}>Otros lugares</Text>
+        <Text style={styles.section}>{t('savedPlaces.others')}</Text>
         {others.map((place) => renderPlace('other', place))}
 
         {newOtherName !== null ? (
@@ -142,56 +144,56 @@ export default function SavedPlacesScreen() {
             <TextField
               autoFocus
               error={nameError}
-              label="Nombre del lugar"
+              label={t('savedPlaces.nameLabel')}
               maxLength={40}
               onChangeText={(text) => {
                 setNewOtherName(text);
                 setNameError(null);
               }}
-              placeholder="Cómo quieres llamar este lugar"
+              placeholder={t('savedPlaces.namePlaceholder')}
               value={newOtherName}
             />
             <ButtonPrimary
               onPress={() => {
                 if (!newOtherName.trim()) {
-                  setNameError('Escribe un nombre para el lugar.');
+                  setNameError(t('savedPlaces.nameRequired'));
                   return;
                 }
                 setEditing({ kind: 'other', label: newOtherName.trim() });
               }}
-              title="Elegir en el mapa"
+              title={t('savedPlaces.pickOnMap')}
             />
             <ButtonSecondary
               onPress={() => {
                 setNewOtherName(null);
                 setNameError(null);
               }}
-              title="Cancelar"
+              title={t('savedPlaces.cancel')}
             />
           </View>
         ) : (
-          <ButtonSecondary disabled={busy || full} onPress={() => setNewOtherName('')} title="Agregar otro lugar" />
+          <ButtonSecondary disabled={busy || full} onPress={() => setNewOtherName('')} title={t('savedPlaces.addOther')} />
         )}
-        {full && placeLimit !== null ? <Text style={styles.note}>Llegaste al máximo de {placeLimit} lugares.</Text> : null}
+        {full && placeLimit !== null ? <Text style={styles.note}>{t('savedPlaces.limit', { count: placeLimit })}</Text> : null}
       </ScrollView>
 
       <MapPickerModal
         initial={editing?.place ?? null}
         onClose={() => setEditing(null)}
         onConfirm={(location) => void save(location)}
-        title={editing ? `Ubicación de ${editing.label}` : ''}
+        title={editing ? t('savedPlaces.locationOf', { name: editing.label }) : ''}
         visible={editing !== null}
       />
 
       <ConfirmDialog
-        cancelLabel="Volver"
-        confirmLabel="Sí, eliminar"
+        cancelLabel={t('savedPlaces.back')}
+        confirmLabel={t('savedPlaces.confirmDelete')}
         icon="trash-outline"
         tone="danger"
-        message="Dejaremos de usar este lugar para ordenar tus viajes."
+        message={t('savedPlaces.deleteText')}
         onCancel={() => setToDelete(null)}
         onConfirm={() => toDelete && void remove(toDelete)}
-        title={`¿Eliminar ${toDelete?.label ?? 'este lugar'}?`}
+        title={toDelete ? t('savedPlaces.deleteTitle', { name: nameOf(toDelete.kind, toDelete) }) : ''}
         visible={toDelete !== null}
       />
     </SafeAreaView>

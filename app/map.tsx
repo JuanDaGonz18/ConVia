@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { requirePlus } from '@/components/subscription/PlusGate';
@@ -20,8 +21,9 @@ import { hasCoordinates, RankedMatch, rankTripsForJourney, suggestTrips } from '
 import { DriverTripRecord, tripService } from '@/services/tripService';
 import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
-import { errorMessage, formatDateTime, formatPrice } from '@/utils/format';
+import { errorMessage, formatDateTime, formatDistance, formatPrice } from '@/utils/format';
 import { usePlan } from '@/subscription/usePlan';
+import i18n from '@/i18n';
 
 const BOGOTA: MapRegion = { latitude: 4.711, longitude: -74.0721, latitudeDelta: 0.25, longitudeDelta: 0.25 };
 // Added to the space the search bar and the sheet already take.
@@ -38,6 +40,7 @@ type Point = { latitude: number; longitude: number };
  * "Planear un viaje hacia aquí" for any point.
  */
 export default function MapScreen() {
+  const { t } = useTranslation();
   const role = useAppStore((state) => state.currentUser?.role ?? 'client');
   const isDriver = role === 'driver';
   const driverApproved = useAppStore((state) => state.currentUser?.driverStatus === 'aprobado');
@@ -72,7 +75,7 @@ export default function MapScreen() {
       }
       setError(null);
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudieron cargar los viajes.'));
+      setError(errorMessage(loadError, i18n.t('map.loadFailed')));
     }
   }, [isDriver]);
 
@@ -103,7 +106,7 @@ export default function MapScreen() {
   const chooseAt = async (point: Point & { name?: string }) => {
     const id = `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`;
     setFocusedTripId(null);
-    setSelected({ id, label: point.name ?? 'Punto en el mapa', address: 'Buscando la dirección…', latitude: point.latitude, longitude: point.longitude });
+    setSelected({ id, label: point.name ?? t('map.point'), address: t('map.resolving'), latitude: point.latitude, longitude: point.longitude });
     const resolved = await locationService.fromCoordinate(point.latitude, point.longitude, point.name);
     setSelected((current) => (current?.id === resolved.id ? resolved : current));
   };
@@ -203,7 +206,7 @@ export default function MapScreen() {
 
       {/* Traffic: ConVía+; FREE users get an explanation instead. */}
       <Pressable
-        accessibilityLabel={traffic ? 'Ocultar el tráfico' : 'Mostrar el tráfico'}
+        accessibilityLabel={traffic ? t('map.hideTraffic') : t('map.showTraffic')}
         accessibilityRole="switch"
         accessibilityState={{ checked: traffic }}
         onPress={() => {
@@ -220,14 +223,14 @@ export default function MapScreen() {
         <View style={styles.searchCard}>
           <PlaceSearchField
             leading={(
-              <Pressable accessibilityLabel="Cerrar el mapa" hitSlop={6} onPress={() => router.back()} style={styles.back}>
+              <Pressable accessibilityLabel={t('map.close')} hitSlop={6} onPress={() => router.back()} style={styles.back}>
                 <Ionicons color={colors.text} name="arrow-back" size={22} />
               </Pressable>
             )}
             mapLink="never"
             near={me}
             onChange={choose}
-            placeholder={isDriver ? '¿A dónde llevas pasajeros?' : '¿A dónde vas?'}
+            placeholder={isDriver ? t('map.driverPlaceholder') : t('map.passengerPlaceholder')}
             quickPlaces={savedPlaces}
             value={selected}
             variant="bar"
@@ -245,28 +248,28 @@ export default function MapScreen() {
               <View style={styles.flex}>
                 <Text numberOfLines={1} style={styles.sheetTitle}>{selected.label}</Text>
                 <Text numberOfLines={1} style={styles.muted}>
-                  {distanceFromMe !== null ? `A ${distanceFromMe.toFixed(1).replace('.', ',')} km de ti · ` : ''}
-                  Arrastra el pin para ajustarlo
+                  {distanceFromMe !== null ? t('map.distance', { distance: formatDistance(distanceFromMe) }) : ''}
+                  {t('map.dragPin')}
                 </Text>
               </View>
-              <Pressable accessibilityLabel="Quitar destino" hitSlop={8} onPress={() => setSelected(null)}>
+              <Pressable accessibilityLabel={t('map.clearDestination')} hitSlop={8} onPress={() => setSelected(null)}>
                 <Ionicons color={colors.textSecondary} name="close-circle" size={22} />
               </Pressable>
             </View>
 
             {isDriver ? (
               driverApproved ? (
-                <ButtonPrimary onPress={() => planTrip(selected)} title="Planear un viaje hacia aquí" />
+                <ButtonPrimary onPress={() => planTrip(selected)} title={t('map.planTrip')} />
               ) : (
-                <Text style={styles.muted}>Verifica tu licencia de conducción para publicar viajes.</Text>
+                <Text style={styles.muted}>{t('map.verifyLicense')}</Text>
               )
             ) : (
               shownTrips.length === 0 ? (
-                <Text style={styles.muted}>No encontramos viajes compatibles: ninguno va hacia allá ni pasa cerca en su ruta desde donde estás.</Text>
+                <Text style={styles.muted}>{t('map.noMatches')}</Text>
               ) : (
                 <>
                   <Text style={styles.listTitle}>
-                    {`${shownTrips.length} viaje${shownTrips.length === 1 ? '' : 's'} compatible${shownTrips.length === 1 ? '' : 's'}, el más útil primero`}
+                    {t('map.matches', { count: shownTrips.length })}
                   </Text>
                   <TripCarousel items={shownTrips} onOpen={openTrip} />
                 </>
@@ -280,29 +283,29 @@ export default function MapScreen() {
                 <View style={styles.flex}>
                   <Text numberOfLines={2} style={styles.sheetTitle}>{focusedTrip.originName} → {focusedTrip.destinationName}</Text>
                   <Text style={styles.muted}>
-                    {formatDateTime(focusedTrip.departureAt)} · {focusedTrip.totalSeats} cupos · {formatPrice(focusedTrip.price)}
-                    {focusedTrip.route ? ` · ${focusedTrip.route.km.toFixed(1).replace('.', ',')} km` : ''}
+                    {formatDateTime(focusedTrip.departureAt)} · {t('map.seats', { count: focusedTrip.totalSeats })} · {formatPrice(focusedTrip.price)}
+                    {focusedTrip.route ? ` · ${formatDistance(focusedTrip.route.km)}` : ''}
                   </Text>
                 </View>
-                <Pressable accessibilityLabel="Cerrar" hitSlop={8} onPress={() => setFocusedTripId(null)}>
+                <Pressable accessibilityLabel={t('common.close')} hitSlop={8} onPress={() => setFocusedTripId(null)}>
                   <Ionicons color={colors.textSecondary} name="close-circle" size={22} />
                 </Pressable>
               </View>
               <View style={styles.actions}>
-                <Chip icon="document-text-outline" label="Solicitudes" onPress={() => router.push('/requests')} />
+                <Chip icon="document-text-outline" label={t('map.requests')} onPress={() => router.push('/requests')} />
                 {focusedTrip.status === 'por_empezar' ? (
-                  <Chip icon="create-outline" label="Editar" onPress={() => router.push({ pathname: '/create-trip', params: { edit: focusedTrip.id } })} />
+                  <Chip icon="create-outline" label={t('map.edit')} onPress={() => router.push({ pathname: '/create-trip', params: { edit: focusedTrip.id } })} />
                 ) : null}
-                <Chip icon="list-outline" label="Mis viajes" onPress={() => router.push('/(tabs)/trips')} />
+                <Chip icon="list-outline" label={t('map.myTrips')} onPress={() => router.push('/(tabs)/trips')} />
               </View>
             </>
           ) : (
             <>
-              <Text style={styles.sheetTitle}>Tus viajes próximos</Text>
+              <Text style={styles.sheetTitle}>{t('map.upcoming')}</Text>
               {driverTrips.length === 0 ? (
-                <Text style={styles.muted}>No tienes viajes próximos. Toca un punto del mapa o busca un destino para planear uno.</Text>
+                <Text style={styles.muted}>{t('map.noUpcoming')}</Text>
               ) : (
-                <Text style={styles.muted}>Toca un viaje para verlo en el mapa, o toca cualquier punto para planear uno nuevo.</Text>
+                <Text style={styles.muted}>{t('map.tapTrip')}</Text>
               )}
               <ScrollView contentContainerStyle={styles.list} style={styles.listScroll}>
                 {driverTrips.map((trip, index) => (
@@ -327,17 +330,17 @@ export default function MapScreen() {
           )
         ) : suggestions.length ? (
           <>
-            <Text style={styles.sheetTitle}>Viajes para ti</Text>
+            <Text style={styles.sheetTitle}>{t('map.forYou')}</Text>
             <Text style={styles.muted}>
-              Van hacia tus lugares guardados y te recogen en el camino.
+              {t('map.forYouHint')}
             </Text>
             <TripCarousel items={suggestions} onOpen={openTrip} />
           </>
         ) : (
           <>
-            <Text style={styles.sheetTitle}>¿A dónde vas?</Text>
+            <Text style={styles.sheetTitle}>{t('map.whereTo')}</Text>
             <Text style={styles.muted}>
-              Busca tu destino o toca el mapa y te mostraremos solo los viajes que realmente te sirven.
+              {t('map.whereToHint')}
             </Text>
           </>
         )}

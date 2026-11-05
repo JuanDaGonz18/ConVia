@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,6 +16,7 @@ import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import i18n from '@/i18n';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { DriverProfile, driverService } from '@/services/driverService';
 import { preloadFaceModel } from '@/services/faceRecognition';
@@ -23,14 +25,8 @@ import { useAppStore } from '@/store/appStore';
 import { DriverStatus } from '@/types';
 import { errorMessage } from '@/utils/format';
 
-const PHOTO_TIPS = [
-  'Captura la licencia completa, por el lado de la foto.',
-  'Mantén la licencia plana, sobre una superficie.',
-  'Evita brillos y reflejos sobre la foto.',
-  'Asegúrate de que tu foto se vea clara.',
-  'Usa buena luz.',
-  'Evita fotos borrosas: enfoca antes de capturar.',
-];
+/** Keys under driverLicense.tips. */
+const PHOTO_TIPS = ['whole', 'flat', 'glare', 'faceClear', 'light', 'focus'] as const;
 
 type StepState = 'done' | 'active' | 'failed' | 'todo';
 
@@ -38,6 +34,7 @@ type StepState = 'done' | 'active' | 'failed' | 'todo';
 type PhotoState = { kind: 'none' } | { kind: 'processing' } | { kind: 'failed'; message: string };
 
 export default function DriverLicenseScreen() {
+  const { t } = useTranslation();
   const currentUser = useAppStore((state) => state.currentUser);
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const [profile, setProfile] = useState<DriverProfile | null>(null);
@@ -60,9 +57,9 @@ export default function DriverLicenseScreen() {
       await driverService.switchRole('driver');
       const user = useAppStore.getState().currentUser;
       if (user) setCurrentUser({ ...user, role: 'driver', driverStatus: 'aprobado' });
-      setMessage('Tu identidad coincide con la foto de tu licencia. Ya estás en modo conductor.');
+      setMessage(i18n.t('driverLicense.nowDriver'));
     } catch {
-      setMessage('Tu identidad coincide con la foto de tu licencia. Activa el modo conductor desde tu perfil.');
+      setMessage(i18n.t('driverLicense.switchFromProfile'));
     }
   };
 
@@ -90,7 +87,7 @@ export default function DriverLicenseScreen() {
       setProfile(driver);
       if (driver) updateStatus(driver.status);
     } catch (loadError) {
-      setError(errorMessage(loadError, 'No se pudo cargar tu permiso de conductor.'));
+      setError(errorMessage(loadError, i18n.t('driverLicense.loadFailed')));
     } finally {
       setLoaded(true);
     }
@@ -119,7 +116,7 @@ export default function DriverLicenseScreen() {
       return;
     }
     setPhoto({ kind: 'none' });
-    setMessage('Foto de la licencia procesada. Ahora confirma que eres tú con una selfie.');
+    setMessage(i18n.t('driverLicense.photoProcessed'));
     await load();
   };
 
@@ -132,7 +129,7 @@ export default function DriverLicenseScreen() {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
           setCameraBlocked(!permission.canAskAgain);
-          setError('Necesitamos acceso a la cámara para fotografiar tu licencia. También puedes subir una foto que ya tengas.');
+          setError(i18n.t('driverLicense.cameraNeeded'));
           return;
         }
       }
@@ -144,7 +141,7 @@ export default function DriverLicenseScreen() {
       await processPhoto(picked.assets[0].uri);
     } catch (pickError) {
       setPhoto({ kind: 'none' });
-      setError(errorMessage(pickError, 'No se pudo abrir la cámara o la galería.'));
+      setError(errorMessage(pickError, i18n.t('driverLicense.pickFailed')));
     }
   };
 
@@ -153,20 +150,23 @@ export default function DriverLicenseScreen() {
   const verified = status === 'aprobado' && !!profile?.identityVerifiedAt;
   const processing = photo.kind === 'processing';
 
-  const steps: { label: string; state: StepState; detail?: string }[] = [
+  const steps: { id: string; label: string; state: StepState; detail?: string }[] = [
     {
-      label: 'Foto de la licencia cargada',
+      id: 'photo',
+      label: t('driverLicense.steps.photo'),
       state: processing || photo.kind === 'failed' || licenseStored ? 'done' : 'todo',
     },
     {
-      label: 'Rostro detectado',
+      id: 'face',
+      label: t('driverLicense.steps.face'),
       state: processing ? 'active' : photo.kind === 'failed' ? 'failed' : licenseStored ? 'done' : 'todo',
       detail: photo.kind === 'failed' ? photo.message : undefined,
     },
     {
-      label: verified ? 'Identidad de conductor verificada' : 'Verificación de identidad lista',
+      id: 'identity',
+      label: verified ? t('driverLicense.steps.verified') : t('driverLicense.steps.ready'),
       state: verified ? 'done' : licenseStored && photo.kind === 'none' ? 'active' : 'todo',
-      detail: licenseStored && !verified && photo.kind === 'none' ? 'Falta tomarte una selfie para compararla con tu licencia.' : undefined,
+      detail: licenseStored && !verified && photo.kind === 'none' ? t('driverLicense.steps.selfieMissing') : undefined,
     },
   ];
 
@@ -188,17 +188,14 @@ export default function DriverLicenseScreen() {
         />
       ) : null}
       <ScrollView contentContainerStyle={styles.content}>
-        <ScreenHeader kicker="CONDUCTOR" onBack={leave} title="Licencia de conducción" />
+        <ScreenHeader kicker={t('driverLicense.kicker')} onBack={leave} title={t('driverLicense.title')} />
         {!verified ? (
           <View style={styles.intro}>
             <Ionicons color={colors.primary} name="lock-closed" size={20} />
-            <Text style={styles.introText}>Para ser conductor debes completar la siguiente verificación.</Text>
+            <Text style={styles.introText}>{t('driverLicense.intro')}</Text>
           </View>
         ) : null}
-        <Text style={styles.subtitle}>
-          Comparamos tu rostro con la foto de tu licencia para confirmar que eres tú quien conduce. Esto no valida que la licencia sea
-          auténtica ni consulta el RUNT u otra fuente oficial.
-        </Text>
+        <Text style={styles.subtitle}>{t('driverLicense.subtitle')}</Text>
 
         {!loaded ? <ActivityIndicator color={colors.primary} /> : null}
 
@@ -206,8 +203,8 @@ export default function DriverLicenseScreen() {
           <View style={[styles.statusCard, { borderColor: colors.error }]}>
             <Ionicons color={colors.error} name="ban" size={28} />
             <View style={styles.statusText}>
-              <Text style={[styles.statusTitle, { color: colors.error }]}>Permiso suspendido</Text>
-              <Text style={styles.statusBody}>Tu permiso de conductor está suspendido. Contacta al administrador de tu institución.</Text>
+              <Text style={[styles.statusTitle, { color: colors.error }]}>{t('driverLicense.suspendedTitle')}</Text>
+              <Text style={styles.statusBody}>{t('driverLicense.suspendedBody')}</Text>
             </View>
           </View>
         ) : null}
@@ -216,21 +213,21 @@ export default function DriverLicenseScreen() {
           <View style={[styles.statusCard, { borderColor: colors.success }]}>
             <Ionicons color={colors.success} name="checkmark-circle" size={28} />
             <View style={styles.statusText}>
-              <Text style={[styles.statusTitle, { color: colors.success }]}>Identidad de conductor verificada</Text>
-              <Text style={styles.statusBody}>Tu identidad coincide con la foto de tu licencia. Ya puedes publicar viajes.</Text>
+              <Text style={[styles.statusTitle, { color: colors.success }]}>{t('driverLicense.verifiedTitle')}</Text>
+              <Text style={styles.statusBody}>{t('driverLicense.verifiedBody')}</Text>
             </View>
           </View>
         ) : null}
 
         {error ? <Notice tone="error">{error}</Notice> : null}
-        {cameraBlocked ? <ButtonSecondary onPress={() => void Linking.openSettings()} title="Abrir ajustes del teléfono" /> : null}
+        {cameraBlocked ? <ButtonSecondary onPress={() => void Linking.openSettings()} title={t('driverLicense.openSettings')} /> : null}
         {message ? <Notice tone="success">{message}</Notice> : null}
 
         {loaded && status !== 'suspendido' ? (
           <>
             <View style={styles.steps}>
               {steps.map((step) => (
-                <View key={step.label} style={styles.step}>
+                <View key={step.id} style={styles.step}>
                   <StepIcon state={step.state} />
                   <View style={styles.statusText}>
                     <Text style={[styles.stepLabel, step.state === 'todo' ? styles.stepTodo : null]}>{step.label}</Text>
@@ -241,35 +238,33 @@ export default function DriverLicenseScreen() {
             </View>
 
             {licenseStored && !verified && !processing ? (
-              <ButtonPrimary onPress={() => setShowSelfie(true)} title="Verificar mi identidad" />
+              <ButtonPrimary onPress={() => setShowSelfie(true)} title={t('driverLicense.verifyIdentity')} />
             ) : null}
 
-            <Text style={styles.section}>{licenseStored ? 'Cambiar la foto de tu licencia' : 'Licencia de conducción'}</Text>
+            <Text style={styles.section}>{licenseStored ? t('driverLicense.changePhoto') : t('driverLicense.section')}</Text>
             <View style={styles.tips}>
               {PHOTO_TIPS.map((tip) => (
                 <View key={tip} style={styles.tip}>
                   <Ionicons color={colors.primary} name="checkmark" size={16} />
-                  <Text style={styles.tipText}>{tip}</Text>
+                  <Text style={styles.tipText}>{t(`driverLicense.tips.${tip}`)}</Text>
                 </View>
               ))}
             </View>
             {processing ? (
               <View style={styles.processing}>
                 <ActivityIndicator color={colors.primary} />
-                <Text style={styles.statusBody}>Buscando tu rostro en la licencia… la foto se analiza en el teléfono y luego se borra.</Text>
+                <Text style={styles.statusBody}>{t('driverLicense.processing')}</Text>
               </View>
             ) : (
               <View style={styles.actions}>
-                <ButtonPrimary onPress={() => void pick('camera')} title="Tomar foto" />
-                <ButtonSecondary onPress={() => void pick('library')} title="Subir foto" />
+                <ButtonPrimary onPress={() => void pick('camera')} title={t('driverLicense.takePhoto')} />
+                <ButtonSecondary onPress={() => void pick('library')} title={t('driverLicense.uploadPhoto')} />
               </View>
             )}
             {licenseStored ? (
-              <Text style={styles.note}>Si cambias la foto de tu licencia tendrás que verificar tu identidad de nuevo.</Text>
+              <Text style={styles.note}>{t('driverLicense.changeNote')}</Text>
             ) : null}
-            <Text style={styles.note}>
-              No guardamos la foto de tu licencia: solo una representación numérica de tu rostro, que nunca sale del servidor.
-            </Text>
+            <Text style={styles.note}>{t('driverLicense.storageNote')}</Text>
           </>
         ) : null}
       </ScrollView>

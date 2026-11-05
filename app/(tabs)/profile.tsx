@@ -4,7 +4,9 @@ import { router } from 'expo-router';
 import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
+import { LanguageSwitcher } from '@/components/settings/LanguageSwitcher';
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Notice } from '@/components/ui/Notice';
 import { BrandLogo } from '@/components/brand/Brand';
@@ -27,15 +29,13 @@ import { profileService } from '@/services/profileService';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { usePlan } from '@/subscription/usePlan';
 import { errorMessage } from '@/utils/format';
+import i18n from '@/i18n';
 
-const DRIVER_STATUS_LABELS = {
-  pendiente: 'Falta verificar tu identidad',
-  aprobado: 'Identidad verificada',
-  rechazado: 'No aprobado, inténtalo de nuevo',
-  suspendido: 'Suspendido',
-} as const;
+/** The driver's approval status in the current language (driverStatus.*). */
+const driverStatusLabel = (status: string) => i18n.t(`driverStatus.${status}`);
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const currentUser = useAppStore((state) => state.currentUser);
   const logoutStore = useAppStore((state) => state.logout);
   const markFaceVerified = useAppStore((state) => state.markFaceVerified);
@@ -68,9 +68,9 @@ export default function ProfileScreen() {
     try {
       const applied = await notificationService.setEnabled(userId, enabled);
       if (applied) setNotificationsEnabled(enabled);
-      else setError('Activa el permiso de notificaciones para ConVía en los ajustes del teléfono.');
+      else setError(t('profile.notificationsPermission'));
     } catch (toggleError) {
-      setError(errorMessage(toggleError, 'No se pudo actualizar la preferencia de notificaciones.'));
+      setError(errorMessage(toggleError, t('profile.notificationsFailed')));
     } finally {
       setSavingNotifications(false);
     }
@@ -86,13 +86,13 @@ export default function ProfileScreen() {
       router.replace('/(auth)/login');
     } catch (deleteError) {
       setShowDeleteModal(false);
-      setError(errorMessage(deleteError, 'No se pudo eliminar la cuenta.'));
+      setError(errorMessage(deleteError, t('profile.deleteFailed')));
     } finally {
       setDeleting(false);
     }
   };
 
-  const userName = currentUser?.name || 'Usuario ConVía';
+  const userName = currentUser?.name || t('profile.defaultName');
   const userEmail = currentUser?.email ?? '';
   const isDriver = currentUser?.role === 'driver';
   const { isPlus } = usePlan();
@@ -121,7 +121,7 @@ export default function ProfileScreen() {
           {isVerified ? (
             <View style={styles.verifiedBadge}>
               <Ionicons color="#067647" name="shield-checkmark" size={14} />
-              <Text style={styles.verified}>Identidad verificada</Text>
+              <Text style={styles.verified}>{t('profile.verified')}</Text>
             </View>
           ) : null}
           <ModeSwitch />
@@ -129,108 +129,108 @@ export default function ProfileScreen() {
 
         {!isVerified && currentUser ? (
           <Notice
-            action={{ label: 'Verificar mi identidad ahora', onPress: () => setShowVerification(true) }}
-            title="Falta verificar tu identidad"
+            action={{ label: t('profile.verifyNow'), onPress: () => setShowVerification(true) }}
+            title={t('profile.verifyTitle')}
             tone="warning"
           >
-            Es una selfie de unos segundos. La necesitas para pedir o publicar viajes.
+            {t('profile.verifyText')}
           </Notice>
         ) : null}
 
-        <Text style={styles.sectionLabel}>Tu cuenta</Text>
+        <Text style={styles.sectionLabel}>{t('profile.account')}</Text>
         <View style={styles.menuCard}>
           <ListItem
             icon="person-outline"
             onPress={() => router.push('/profile-edit')}
-            subtitle="Nombre, teléfono, foto y contraseña"
-            title="Información personal"
+            subtitle={t('profile.personalSubtitle')}
+            title={t('profile.personalTitle')}
           />
           <Divider />
           <ListItem
             icon={isPlus ? 'sparkles' : 'sparkles-outline'}
             onPress={() => router.push('/plus')}
-            subtitle={isPlus ? 'ConVía+ activo' : 'Plan gratis · Conoce ConVía+'}
-            title="Tu plan"
+            subtitle={isPlus ? t('profile.planActive') : t('profile.planFree')}
+            title={t('profile.planTitle')}
           />
           <Divider />
           <ListItem
             icon="shield-checkmark-outline"
             onPress={() => router.push('/legal')}
-            subtitle="Términos y condiciones y tratamiento de datos"
-            title="Términos y privacidad"
+            subtitle={t('profile.legalSubtitle')}
+            title={t('profile.legalTitle')}
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Tus viajes</Text>
+        <Text style={styles.sectionLabel}>{t('profile.trips')}</Text>
         <View style={styles.menuCard}>
           <ListItem
             icon="bookmark-outline"
             onPress={() => router.push('/saved-places')}
-            subtitle={savedPlacesCount ? `${savedPlacesCount} guardado${savedPlacesCount === 1 ? '' : 's'}` : 'Casa, trabajo, universidad (opcional)'}
-            title="Mis lugares"
+            subtitle={savedPlacesCount ? t('profile.places', { count: savedPlacesCount }) : t('profile.placesEmpty')}
+            title={t('profile.placesTitle')}
           />
           <Divider />
           <ListItem
             icon="star-outline"
             onPress={() => router.push('/favorite-drivers')}
-            subtitle={favoriteCount ? `${favoriteCount} favorito${favoriteCount === 1 ? '' : 's'}` : 'Destaca los viajes de quienes prefieres'}
-            title="Conductores favoritos"
+            subtitle={favoriteCount ? t('profile.favorites', { count: favoriteCount }) : t('profile.favoritesEmpty')}
+            title={t('profile.favoritesTitle')}
           />
           <Divider />
           <ListItem
             icon="notifications-outline"
             onPress={() => router.push('/saved-routes')}
             subtitle={routeCount
-              ? `${routeCount} ruta${routeCount === 1 ? '' : 's'}${alertCount ? ` · ${alertCount} con alerta` : ''}`
-              : 'Busca con un toque y recibe avisos de viajes nuevos'}
-            title="Rutas y alertas"
+              ? `${t('profile.routes', { count: routeCount })}${alertCount ? t('profile.routesAlerts', { count: alertCount }) : ''}`
+              : t('profile.routesEmpty')}
+            title={t('profile.routesTitle')}
           />
           <Divider />
           <ListItem
             icon="options-outline"
             onPress={() => router.push('/preferences')}
-            subtitle="Recogida, horario, distancias y avisos"
-            title="Preferencias"
+            subtitle={t('profile.preferencesSubtitle')}
+            title={t('profile.preferencesTitle')}
           />
           <Divider />
           <ListItem
             icon="stats-chart-outline"
             onPress={() => router.push('/stats')}
-            subtitle="Viajes, kilómetros, aportes y calificaciones"
-            title="Estadísticas"
+            subtitle={t('profile.statsSubtitle')}
+            title={t('profile.statsTitle')}
           />
           <Divider />
           <ListItem
             icon="document-text-outline"
             onPress={() => router.push('/requests')}
-            subtitle={isDriver ? 'Solicitudes de tus pasajeros' : 'Estado de tus solicitudes y QR'}
-            title="Solicitudes"
+            subtitle={isDriver ? t('profile.requestsDriver') : t('profile.requestsPassenger')}
+            title={t('profile.requestsTitle')}
           />
         </View>
 
         {isDriver ? (
           <>
-            <Text style={styles.sectionLabel}>Conductor</Text>
+            <Text style={styles.sectionLabel}>{t('profile.driver')}</Text>
             <View style={styles.menuCard}>
               <ListItem
                 icon="id-card-outline"
                 onPress={() => router.push('/driver-license')}
-                subtitle={currentUser?.driverStatus ? DRIVER_STATUS_LABELS[currentUser.driverStatus] : 'Verifica tu identidad con tu licencia'}
-                title="Permiso de conductor"
+                subtitle={currentUser?.driverStatus ? driverStatusLabel(currentUser.driverStatus) : t('profile.licenseEmpty')}
+                title={t('profile.licenseTitle')}
               />
               <Divider />
               <ListItem
                 icon="car-outline"
                 onPress={() => router.push('/vehicles')}
-                subtitle="Fotos, placas y puestos de tus vehículos"
-                title="Mis vehículos"
+                subtitle={t('profile.vehiclesSubtitle')}
+                title={t('profile.vehiclesTitle')}
               />
               <Divider />
               <ListItem
                 icon="sync-outline"
                 onPress={() => router.push('/recurring-trips')}
-                subtitle="Tu horario semanal, publicado automáticamente"
-                title="Viajes recurrentes"
+                subtitle={t('profile.recurringSubtitle')}
+                title={t('profile.recurringTitle')}
               />
             </View>
           </>
@@ -239,11 +239,11 @@ export default function ProfileScreen() {
         {notificationsEnabled !== null && notificationService.isAvailable() ? (
           <View style={[styles.menuCard, styles.switchRow]}>
             <View style={styles.switchText}>
-              <Text style={styles.switchTitle}>Notificaciones</Text>
-              <Text style={styles.switchSubtitle}>Solicitudes, respuestas, mensajes, cambios de tus viajes y alertas</Text>
+              <Text style={styles.switchTitle}>{t('profile.notifications')}</Text>
+              <Text style={styles.switchSubtitle}>{t('profile.notificationsSubtitle')}</Text>
             </View>
             <Switch
-              accessibilityLabel="Notificaciones"
+              accessibilityLabel={t('profile.notifications')}
               disabled={savingNotifications}
               onValueChange={(value) => void toggleNotifications(value)}
               value={notificationsEnabled}
@@ -251,11 +251,17 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
+        <View style={[styles.menuCard, styles.languageCard]}>
+          <Text style={styles.switchTitle}>{t('language.label')}</Text>
+          <LanguageSwitcher />
+          <Text style={styles.switchSubtitle}>{t('language.systemHint')}</Text>
+        </View>
+
         {error ? <Notice tone="error">{error}</Notice> : null}
 
         {/* Logout Action */}
         <View style={styles.logoutContainer}>
-          <ButtonSecondary icon="log-out-outline" onPress={() => setShowLogoutModal(true)} title="Cerrar sesión" />
+          <ButtonSecondary icon="log-out-outline" onPress={() => setShowLogoutModal(true)} title={t('profile.logout')} />
           {isSupabaseEnabled ? (
             <Pressable
               accessibilityRole="button"
@@ -263,14 +269,14 @@ export default function ProfileScreen() {
               onPress={() => setShowDeleteModal(true)}
               style={styles.deleteButton}
             >
-              <Text style={styles.deleteText}>{deleting ? 'Eliminando cuenta…' : 'Eliminar mi cuenta'}</Text>
+              <Text style={styles.deleteText}>{deleting ? t('profile.deleting') : t('profile.delete')}</Text>
             </Pressable>
           ) : null}
         </View>
 
         <View style={styles.footer}>
           <BrandLogo size="sm" />
-          <Text style={styles.version}>Versión {Constants.expoConfig?.version ?? '1.0.0'}</Text>
+          <Text style={styles.version}>{t('profile.version', { version: Constants.expoConfig?.version ?? '1.0.0' })}</Text>
         </View>
       </ScrollView>
 
@@ -289,26 +295,26 @@ export default function ProfileScreen() {
       ) : null}
 
       <ConfirmDialog
-        cancelLabel="Cancelar"
-        confirmLabel="Sí, eliminar mi cuenta"
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('profile.deleteConfirm')}
         icon="trash-outline"
         tone="danger"
-        message="Se borrarán tu perfil, vehículo, viajes, solicitudes, mensajes y fotos. Esta acción no se puede deshacer."
+        message={t('profile.deleteMessage')}
         onCancel={() => setShowDeleteModal(false)}
         onConfirm={() => void handleConfirmDelete()}
-        title="¿Eliminar tu cuenta?"
+        title={t('profile.deleteTitle')}
         visible={showDeleteModal}
       />
 
       {/* Confirmation Dialog */}
       <ConfirmDialog
-        cancelLabel="Cancelar"
-        confirmLabel="Sí, cerrar sesión"
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('profile.logoutConfirm')}
         icon="log-out-outline"
-        message="Tendrás que volver a ingresar tus credenciales para acceder a tu cuenta."
+        message={t('profile.logoutMessage')}
         onCancel={() => setShowLogoutModal(false)}
         onConfirm={handleConfirmLogout}
-        title="¿Deseas cerrar sesión?"
+        title={t('profile.logoutTitle')}
         visible={showLogoutModal}
       />
     </SafeAreaView>
@@ -388,6 +394,7 @@ const styles = StyleSheet.create({
     gap: spacing[8],
     marginTop: spacing[8],
   },
+  languageCard: { gap: spacing[8], paddingVertical: spacing[12] },
   switchRow: {
     alignItems: 'center',
     flexDirection: 'row',

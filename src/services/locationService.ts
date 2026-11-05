@@ -1,11 +1,12 @@
 import * as ExpoLocation from 'expo-location';
 import { Platform } from 'react-native';
 
+import i18n from '@/i18n';
 import { Location } from '@/types';
 
 export class LocationPermissionError extends Error {
   constructor() {
-    super('Activa el permiso de ubicación para ConVía en los ajustes del teléfono.');
+    super(i18n.t('location.permission'));
   }
 }
 
@@ -330,12 +331,12 @@ export const locationService = {
       (await ExpoLocation.getLastKnownPositionAsync({ maxAge: 60_000, requiredAccuracy: 200 })) ??
       (await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced }));
     const { latitude, longitude } = position.coords;
-    return toLocation(latitude, longitude, await reverse(latitude, longitude), 'Mi ubicación');
+    return toLocation(latitude, longitude, await reverse(latitude, longitude), i18n.t('location.mine'));
   },
 
   /** A point picked on the map; `name` is set when the user tapped a named place. */
   async fromCoordinate(latitude: number, longitude: number, name?: string): Promise<Location> {
-    const location = toLocation(latitude, longitude, await reverse(latitude, longitude), name ?? 'Punto en el mapa');
+    const location = toLocation(latitude, longitude, await reverse(latitude, longitude), name ?? i18n.t('map.point'));
     return name ? { ...location, label: name } : location;
   },
 

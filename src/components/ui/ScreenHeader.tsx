@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
@@ -22,13 +23,14 @@ type ScreenHeaderProps = Readonly<{
 
 /** Consistent top of every stacked screen: back, context, title and a short explanation. */
 export function ScreenHeader({ kicker, title, subtitle, back = true, onBack, right }: ScreenHeaderProps) {
+  const { t } = useTranslation();
   const goBack = onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/(tabs)')));
   return (
     <View style={styles.container}>
       {back || right ? (
         <View style={styles.row}>
           {back ? (
-            <Pressable accessibilityLabel="Volver" accessibilityRole="button" hitSlop={8} onPress={goBack} style={styles.back}>
+            <Pressable accessibilityLabel={t('common.back')} accessibilityRole="button" hitSlop={8} onPress={goBack} style={styles.back}>
               <Ionicons color={colors.text} name="chevron-back" size={24} />
             </Pressable>
           ) : <View />}

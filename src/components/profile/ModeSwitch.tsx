@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
@@ -23,6 +24,7 @@ type ModeSwitchProps = Readonly<{
  * that check, and leaving it unfinished keeps the user a passenger.
  */
 export function ModeSwitch({ compact = false }: ModeSwitchProps) {
+  const { t } = useTranslation();
   const currentUser = useAppStore((state) => state.currentUser);
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const [switching, setSwitching] = useState<UserRole | null>(null);
@@ -41,7 +43,7 @@ export function ModeSwitch({ compact = false }: ModeSwitchProps) {
       await driverService.switchRole(role);
       setCurrentUser({ ...currentUser, role });
     } catch (switchError) {
-      setError(errorMessage(switchError, 'No se pudo cambiar de modo.'));
+      setError(errorMessage(switchError, t('modeSwitch.failed')));
     } finally {
       setSwitching(null);
     }
@@ -56,8 +58,8 @@ export function ModeSwitch({ compact = false }: ModeSwitchProps) {
           const color = active ? colors.white : colors.primary;
           return (
             <Pressable
-              accessibilityHint={locked ? 'Primero debes verificar tu licencia de conducción' : undefined}
-              accessibilityLabel={mode === 'driver' ? 'Modo conductor' : 'Modo pasajero'}
+              accessibilityHint={locked ? t('modeSwitch.lockedHint') : undefined}
+              accessibilityLabel={mode === 'driver' ? t('modeSwitch.driverMode') : t('modeSwitch.passengerMode')}
               accessibilityRole="radio"
               accessibilityState={{ selected: active, disabled: switching !== null }}
               disabled={switching !== null}
@@ -71,9 +73,9 @@ export function ModeSwitch({ compact = false }: ModeSwitchProps) {
                 <Ionicons color={color} name={mode === 'driver' ? 'car-sport' : 'person'} size={compact ? 14 : 16} />
               )}
               <Text style={[styles.label, compact ? styles.labelCompact : null, active ? styles.labelActive : null]}>
-                {mode === 'driver' ? 'Conductor' : 'Pasajero'}
+                {mode === 'driver' ? t('modeSwitch.driver') : t('modeSwitch.passenger')}
               </Text>
-              {locked ? <Ionicons accessibilityLabel="Bloqueado" color={color} name="lock-closed" size={compact ? 12 : 14} /> : null}
+              {locked ? <Ionicons accessibilityLabel={t('modeSwitch.locked')} color={color} name="lock-closed" size={compact ? 12 : 14} /> : null}
             </Pressable>
           );
         })}
