@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
   },
   error: {
     ...typography.bodySmall,
-    backgroundColor: '#FFEAEA',
+    backgroundColor: colors.errorLight,
     color: colors.error,
     padding: spacing[12],
   },
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
   tabText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
   tabTextActive: { color: colors.primary, fontWeight: '700' },
   cardPressed: { backgroundColor: colors.primaryLight },
-  badgeCancelled: { backgroundColor: '#FFEAEA', color: colors.error },
+  badgeCancelled: { backgroundColor: colors.errorLight, color: colors.error },
   historyLink: { alignItems: 'center', flexDirection: 'row', gap: 2 },
   historyText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
   repeat: {
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
   rateButton: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#FFF8EB',
+    backgroundColor: colors.warningLight,
     borderRadius: radius.radiusFull,
     flexDirection: 'row',
     gap: spacing[4],

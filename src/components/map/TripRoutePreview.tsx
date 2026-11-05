@@ -78,7 +78,7 @@ export function TripRoutePreview({ origin, destination, chosenRoute }: TripRoute
         <MapLine color={colors.primary} coordinates={path} dashed={!route} width={4} />
         <MapMarker coordinate={origin} title={origin.label}>
           <View style={[styles.pin, styles.originPin]}>
-            <Ionicons color={colors.white} name="navigate" size={12} />
+            <Ionicons color={colors.onPrimary} name="navigate" size={12} />
           </View>
         </MapMarker>
         {stops.map((stop, index) => (
@@ -90,7 +90,7 @@ export function TripRoutePreview({ origin, destination, chosenRoute }: TripRoute
         ))}
         <MapMarker coordinate={destination} title={destination.label}>
           <View style={[styles.pin, styles.destinationPin]}>
-            <Ionicons color={colors.white} name="flag" size={12} />
+            <Ionicons color={colors.onPrimary} name="flag" size={12} />
           </View>
         </MapMarker>
       </AppMap>
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   originPin: { backgroundColor: '#10B981' },
   destinationPin: { backgroundColor: '#EF4444' },
   stopPin: { backgroundColor: colors.primary },
-  stopNumber: { color: colors.white, fontSize: 11, fontWeight: '700' },
+  stopNumber: { color: colors.onPrimary, fontSize: 11, fontWeight: '700' },
   legend: { gap: spacing[4], padding: spacing[12] },
   legendRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
   dot: { borderRadius: radius.radiusFull, height: 10, width: 10 },

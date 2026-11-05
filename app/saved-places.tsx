@@ -242,6 +242,6 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.4 },
   newOther: { backgroundColor: colors.white, borderRadius: radius.radiusLarge, gap: spacing[12], padding: spacing[16] },
   note: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  error: { ...typography.bodySmall, backgroundColor: colors.errorLight, color: colors.error, padding: spacing[12] },
   success: { ...typography.bodySmall, backgroundColor: colors.primaryLight, color: colors.primary, padding: spacing[12] },
 });

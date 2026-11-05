@@ -112,5 +112,5 @@ const styles = StyleSheet.create({
   },
   name: { ...typography.bodyMedium, color: colors.text, flex: 1, fontWeight: '600' },
   starButton: { padding: spacing[4] },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  error: { ...typography.bodySmall, backgroundColor: colors.errorLight, color: colors.error, padding: spacing[12] },
 });

@@ -11,10 +11,10 @@ import { typography } from '@/constants/typography';
 export type NoticeTone = 'error' | 'success' | 'info' | 'warning';
 
 export const TONES: Record<NoticeTone, { background: string; border: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  error: { background: '#FEF3F2', border: '#FECDCA', color: '#B42318', icon: 'alert-circle' },
-  success: { background: '#ECFDF3', border: '#ABEFC6', color: '#067647', icon: 'checkmark-circle' },
-  info: { background: colors.primaryLight, border: '#C3DBFF', color: colors.primaryPressed, icon: 'information-circle' },
-  warning: { background: '#FFFAEB', border: '#FEDF89', color: '#B54708', icon: 'warning' },
+  error: { background: colors.errorLight, border: colors.errorBorder, color: colors.errorText, icon: 'alert-circle' },
+  success: { background: colors.successLight, border: colors.successBorder, color: colors.successText, icon: 'checkmark-circle' },
+  info: { background: colors.primaryLight, border: colors.primaryBorder, color: colors.primaryPressed, icon: 'information-circle' },
+  warning: { background: colors.warningLight, border: colors.warningBorder, color: colors.warningText, icon: 'warning' },
 };
 
 type NoticeProps = Readonly<{

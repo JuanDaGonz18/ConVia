@@ -316,7 +316,7 @@ function PassengerHome() {
         <EmptyState
           action={destination
             ? { label: t('home.otherDestination'), icon: 'search-outline', onPress: () => setTripSearch({ destination: null }) }
-            : trips.length ? { label: t('home.allTrips', { count: trips.length }), icon: 'list-outline', onPress: () => router.push('/(tabs)/trips') } : undefined}
+            : trips.length ? { label: t('home.allTrips', { count: trips.length }), icon: 'list-outline', onPress: () => router.navigate('/(tabs)/trips') } : undefined}
           icon={destination ? 'navigate-outline' : 'car-outline'}
           message={!isSupabaseEnabled
             ? t('home.empty.offline')
@@ -371,7 +371,7 @@ function PassengerHome() {
         visible={showFilters}
       />
       {!destination && trips.length > 0 && results.length > 0 ? (
-        <Pressable onPress={() => router.push('/(tabs)/trips')} style={styles.seeAll}>
+        <Pressable onPress={() => router.navigate('/(tabs)/trips')} style={styles.seeAll}>
           <Text style={styles.seeAllText}>{t('home.allTrips', { count: trips.length })}</Text>
           <Ionicons color={colors.primary} name="arrow-forward" size={16} />
         </Pressable>
@@ -471,7 +471,7 @@ function DriverHome() {
       <View style={styles.quickGrid}>
         <QuickAction icon="document-text-outline" label={t('home.requests')} onPress={() => router.push('/requests')} />
         <QuickAction icon="car-outline" label={t('home.vehicles')} onPress={() => router.push('/vehicles')} />
-        <QuickAction icon="chatbubbles-outline" label={t('home.chats')} onPress={() => router.push('/(tabs)/chats')} />
+        <QuickAction icon="chatbubbles-outline" label={t('home.chats')} onPress={() => router.navigate('/(tabs)/chats')} />
         <QuickAction icon="qr-code-outline" label={t('home.scanQr')} onPress={() => router.push('/qr-scanner')} />
       </View>
 
@@ -511,7 +511,7 @@ function DriverHome() {
             ) : (
               <SmallAction icon="qr-code-outline" label={t('home.scanQr')} onPress={() => router.push('/qr-scanner')} />
             )}
-            <SmallAction icon="list-outline" label={t('home.myTrips')} onPress={() => router.push('/(tabs)/trips')} />
+            <SmallAction icon="list-outline" label={t('home.myTrips')} onPress={() => router.navigate('/(tabs)/trips')} />
           </View>
         </View>
       ) : null}
@@ -519,7 +519,7 @@ function DriverHome() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{t('home.recentTrips')}</Text>
         {recent.length ? (
-          <Pressable hitSlop={8} onPress={() => router.push('/(tabs)/trips')}>
+          <Pressable hitSlop={8} onPress={() => router.navigate('/(tabs)/trips')}>
             <Text style={styles.seeAllText}>{t('home.seeAll')}</Text>
           </Pressable>
         ) : null}
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
   },
   routeChipActive: { backgroundColor: colors.primary },
   routeChipText: { ...typography.caption, color: colors.primary, flexShrink: 1, fontWeight: '700' },
-  routeChipTextActive: { color: colors.white },
+  routeChipTextActive: { color: colors.onPrimary },
   filterNote: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing[4] },
   filterNoteText: { ...typography.caption, color: colors.textSecondary },
   inlineLinkText: { ...typography.caption, color: colors.primary, flex: 1 },
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
   emptySmall: { ...cardBase, alignItems: 'center', borderStyle: 'dashed', flexDirection: 'row', gap: spacing[12], padding: spacing[16] },
   seeAll: { alignItems: 'center', alignSelf: 'center', flexDirection: 'row', gap: spacing[4], padding: spacing[8] },
   seeAllText: { ...typography.bodySmall, color: colors.primary, fontWeight: '700' },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  error: { ...typography.bodySmall, backgroundColor: colors.errorLight, color: colors.error, padding: spacing[12] },
   quickGrid: { flexDirection: 'row', gap: spacing[8] },
   quickAction: { ...cardBase, alignItems: 'center', flex: 1, gap: spacing[4], paddingVertical: spacing[12] },
   quickLabel: { ...typography.caption, color: colors.text, fontWeight: '600' },
@@ -676,8 +676,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[8],
     paddingVertical: 2,
   },
-  badgeLive: { backgroundColor: '#E8F7EF', color: colors.success },
-  badgeDone: { backgroundColor: '#E8F7EF', color: colors.success },
+  badgeLive: { backgroundColor: colors.successLight, color: colors.success },
+  badgeDone: { backgroundColor: colors.successLight, color: colors.success },
   badgeMuted: { backgroundColor: colors.lightGray, color: colors.textSecondary },
   tripActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8], marginTop: spacing[4] },
   smallAction: {
@@ -692,5 +692,5 @@ const styles = StyleSheet.create({
   },
   smallActionPrimary: { backgroundColor: colors.primary },
   smallActionText: { ...typography.caption, color: colors.primary, fontWeight: '700' },
-  smallActionTextPrimary: { color: colors.white },
+  smallActionTextPrimary: { color: colors.onPrimary },
 });

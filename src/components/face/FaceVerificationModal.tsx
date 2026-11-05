@@ -116,7 +116,7 @@ export function FaceVerificationModal({ visible, trigger, userId, onSuccess, onF
                 <Text style={styles.overlayTitle}>{t(`face.title.${trigger}`)}</Text>
                 <Text style={styles.instruction}>{message}</Text>
               </View>
-              {processing ? <ActivityIndicator color={colors.white} size="large" /> : null}
+              {processing ? <ActivityIndicator color={colors.onPrimary} size="large" /> : null}
               {canCapture ? (
                 <Pressable accessibilityLabel={t('face.shutter')} disabled={!cameraReady || processing} onPress={() => void capture()} style={styles.shutter}>
                   <View style={styles.shutterInner} />
@@ -142,15 +142,15 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 20, fontWeight: '700', textAlign: 'center' },
   body: { color: colors.textSecondary, fontSize: 15, lineHeight: 22, textAlign: 'center' },
   primaryButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 12, padding: spacing[16], width: '100%' },
-  primaryText: { color: colors.white, fontWeight: '700' },
+  primaryText: { color: colors.onPrimary, fontWeight: '700' },
   secondaryButton: { alignItems: 'center', padding: spacing[12] },
   secondaryText: { color: colors.textSecondary },
   overlay: { alignItems: 'center', flex: 1, justifyContent: 'space-between', padding: spacing[24], paddingTop: 64 },
   close: { alignSelf: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 20, padding: spacing[8] },
-  closeText: { color: colors.white, fontSize: 20 },
+  closeText: { color: colors.onPrimary, fontSize: 20 },
   textBlock: { alignItems: 'center', gap: spacing[8] },
-  overlayTitle: { backgroundColor: 'rgba(0,0,0,0.5)', color: colors.white, fontSize: 18, fontWeight: '700', padding: spacing[8], textAlign: 'center' },
-  instruction: { backgroundColor: 'rgba(0,0,0,0.5)', color: colors.white, padding: spacing[12], textAlign: 'center' },
+  overlayTitle: { backgroundColor: 'rgba(0,0,0,0.5)', color: colors.onPrimary, fontSize: 18, fontWeight: '700', padding: spacing[8], textAlign: 'center' },
+  instruction: { backgroundColor: 'rgba(0,0,0,0.5)', color: colors.onPrimary, padding: spacing[12], textAlign: 'center' },
   actions: { gap: spacing[8], marginBottom: spacing[24], width: '100%' },
   shutter: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.primary, borderRadius: 40, borderWidth: 4, height: 80, justifyContent: 'center', marginBottom: spacing[24], width: 80 },
   shutterInner: { backgroundColor: colors.primary, borderRadius: 28, height: 56, width: 56 },

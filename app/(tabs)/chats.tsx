@@ -74,7 +74,7 @@ export default function ChatsScreen() {
             />
           ) : (
             <EmptyState
-              action={{ label: t('chats.findTrip'), icon: 'search-outline', onPress: () => router.push('/(tabs)') }}
+              action={{ label: t('chats.findTrip'), icon: 'search-outline', onPress: () => router.navigate('/(tabs)') }}
               icon="chatbubbles-outline"
               message={t('chats.emptyText')}
               title={t('chats.emptyTitle')}

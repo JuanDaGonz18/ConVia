@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { ...typography.caption, color: colors.text, fontWeight: '600' },
-  chipTextSelected: { color: colors.white },
+  chipTextSelected: { color: colors.onPrimary },
   switchCard: { borderColor: colors.lightGray, borderRadius: radius.radiusLarge, borderWidth: 1 },
   switchRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[12], padding: spacing[12] },
   switchTitle: { ...typography.bodyMedium, color: colors.text, fontWeight: '600' },

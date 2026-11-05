@@ -13,7 +13,7 @@ import { emailDomain } from '@/utils/emailDomain';
 /** Wait this long after the last keystroke before asking the server. */
 const CHECK_DELAY_MS = 500;
 /** Darker than colors.success so small text stays readable (same as Notice). */
-const SUCCESS_TEXT = '#067647';
+const SUCCESS_TEXT = colors.successText;
 
 type Check =
   | { domain: string; status: 'checking' }

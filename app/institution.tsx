@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   loading: { marginTop: spacing[40] },
   content: { gap: spacing[16], padding: dimensions.screenPadding, paddingBottom: spacing[40] },
   statusCard: { alignItems: 'center', backgroundColor: colors.primaryLight, borderRadius: radius.radiusLarge, flexDirection: 'row', gap: spacing[12], padding: spacing[16] },
-  statusVerified: { backgroundColor: '#ECFDF3' },
+  statusVerified: { backgroundColor: colors.successLight },
   statusText: { flex: 1, gap: 2 },
   statusName: { ...typography.bodyMedium, color: colors.text, fontWeight: '700' },
   statusLine: { ...typography.bodySmall, color: colors.text },

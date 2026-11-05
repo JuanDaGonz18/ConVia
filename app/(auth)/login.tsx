@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -144,7 +144,16 @@ export default function LoginScreen() {
               value={password}
             />
             {/* The web build never stores passwords (no secure keychain in browsers). */}
-            {Platform.OS !== 'web' ? <Checkbox checked={rememberMe} label={t('auth.login.remember')} onChange={setRememberMe} /> : null}
+            <View style={styles.rememberRow}>
+              {Platform.OS !== 'web' ? <Checkbox checked={rememberMe} label={t('auth.login.remember')} onChange={setRememberMe} /> : <View />}
+              <Pressable
+                accessibilityRole="link"
+                hitSlop={8}
+                onPress={() => router.push({ pathname: '/(auth)/forgot-password', params: email.trim() ? { email: email.trim() } : {} })}
+              >
+                <Text style={styles.forgot}>{t('auth.login.forgot')}</Text>
+              </Pressable>
+            </View>
 
             <ButtonPrimary disabled={microsoftLoading} loading={loading} loadingTitle={t('auth.login.submitting')} onPress={() => void handleLogin()} title={t('auth.login.submit')} />
 
@@ -211,6 +220,8 @@ const styles = StyleSheet.create({
   divider: { alignItems: 'center', flexDirection: 'row', gap: spacing[12] },
   line: { backgroundColor: colors.lightGray, flex: 1, height: 1 },
   dividerText: { ...typography.caption, color: colors.textSecondary },
+  rememberRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8], justifyContent: 'space-between' },
+  forgot: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
   demo: { gap: spacing[8] },
   demoTitle: { ...typography.caption, color: colors.textSecondary, textAlign: 'center', textTransform: 'uppercase' },
 });

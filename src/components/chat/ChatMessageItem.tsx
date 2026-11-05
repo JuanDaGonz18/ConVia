@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   textMe: {
-    color: colors.white,
+    color: colors.onPrimary,
   },
   textOther: {
     color: colors.text,

@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { ...typography.caption, color: colors.text, fontWeight: '600' },
-  chipTextSelected: { color: colors.white },
+  chipTextSelected: { color: colors.onPrimary },
   switchRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   actions: { gap: spacing[8], paddingTop: spacing[8] },
 });

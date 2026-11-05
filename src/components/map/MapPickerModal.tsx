@@ -152,7 +152,7 @@ export function MapPickerModal({ visible, title, initial, near, onConfirm, onClo
               value={query}
             />
             <Pressable accessibilityLabel={t('mapPicker.search')} disabled={searching} onPress={() => void search()} style={styles.searchButton}>
-              {searching ? <ActivityIndicator color={colors.white} /> : <Ionicons color={colors.white} name="search" size={18} />}
+              {searching ? <ActivityIndicator color={colors.onPrimary} /> : <Ionicons color={colors.onPrimary} name="search" size={18} />}
             </Pressable>
           </View>
           {searchError ? <Text style={styles.searchError}>{searchError}</Text> : null}
@@ -188,7 +188,7 @@ export function MapPickerModal({ visible, title, initial, near, onConfirm, onClo
 }
 
 const styles = StyleSheet.create({
-  root: { backgroundColor: '#E5EEF8', flex: 1 },
+  root: { backgroundColor: colors.surfaceMuted, flex: 1 },
   pinWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   // The tip of the icon marks the point, so lift it by half its height.
   pin: { marginBottom: 44 },

@@ -41,7 +41,8 @@
     "themeLight": "Claro",
     "themeDark": "Oscuro",
     "themeSystem": "Sistema",
-    "themeSoon": "Muy pronto: el modo oscuro está en construcción."
+    "themeHint": "Sistema usa el tema claro u oscuro de tu teléfono o navegador.",
+    "themeRestart": "El tema nuevo se aplica la próxima vez que abras la app."
   },
   "password": {
     "rules": {

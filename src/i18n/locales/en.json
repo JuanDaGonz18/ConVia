@@ -41,7 +41,8 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeSystem": "System",
-    "themeSoon": "Coming soon: dark mode is under construction."
+    "themeHint": "System follows your phone or browser light or dark setting.",
+    "themeRestart": "The new theme applies the next time you open the app."
   },
   "password": {
     "rules": {

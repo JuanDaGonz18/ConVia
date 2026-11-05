@@ -173,7 +173,7 @@ export default function RecurringTripsScreen() {
                 </Pressable>
                 <Pressable
                   accessibilityLabel="Ver los viajes publicados"
-                  onPress={() => router.push('/(tabs)/trips')}
+                  onPress={() => router.navigate('/(tabs)/trips')}
                   style={styles.action}
                 >
                   <Ionicons color={colors.primary} name="list-outline" size={16} />

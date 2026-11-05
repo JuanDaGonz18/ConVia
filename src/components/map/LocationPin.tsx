@@ -11,7 +11,7 @@ type LocationPinProps = {
 export function LocationPin({ selected = false }: LocationPinProps) {
   return (
     <View style={[styles.pin, selected ? styles.selected : null]}>
-      <Ionicons color={colors.white} name="location" size={18} />
+      <Ionicons color={colors.onPrimary} name="location" size={18} />
     </View>
   );
 }

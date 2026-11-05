@@ -316,6 +316,6 @@ const styles = StyleSheet.create({
   actions: { gap: spacing[8] },
   processing: { alignItems: 'center', flexDirection: 'row', gap: spacing[12], padding: spacing[12] },
   note: { ...typography.caption, color: colors.textSecondary },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  error: { ...typography.bodySmall, backgroundColor: colors.errorLight, color: colors.error, padding: spacing[12] },
   success: { ...typography.bodySmall, backgroundColor: colors.primaryLight, color: colors.primary, padding: spacing[12] },
 });

@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   title: { ...typography.headingXL, color: colors.text },
   finishedBanner: {
     alignItems: 'center',
-    backgroundColor: '#E8F7EF',
+    backgroundColor: colors.successLight,
     borderRadius: radius.radiusLarge,
     flexDirection: 'row',
     gap: spacing[12],
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   paidActive: { backgroundColor: colors.success, borderColor: colors.success },
   unpaidActive: { backgroundColor: colors.error, borderColor: colors.error },
   segmentText: { ...typography.bodyMedium, color: colors.text, fontWeight: '600' },
-  segmentTextActive: { color: colors.white },
+  segmentTextActive: { color: colors.onPrimary },
   ratingRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[12] },
   addComment: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: spacing[4], paddingVertical: spacing[4] },
   addCommentText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
@@ -423,8 +423,8 @@ const styles = StyleSheet.create({
   },
   commentActions: { alignItems: 'center', flexDirection: 'row', gap: spacing[12] },
   commentButton: { backgroundColor: colors.primary, borderRadius: radius.radiusMedium, paddingHorizontal: spacing[16], paddingVertical: spacing[8] },
-  commentButtonText: { ...typography.bodySmall, color: colors.white, fontWeight: '700' },
+  commentButtonText: { ...typography.bodySmall, color: colors.onPrimary, fontWeight: '700' },
   disabled: { opacity: 0.4 },
   saved: { ...typography.caption, color: colors.success, fontWeight: '700' },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  error: { ...typography.bodySmall, backgroundColor: colors.errorLight, color: colors.error, padding: spacing[12] },
 });

@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: colors.textSecondary },
   card: { backgroundColor: colors.white, borderColor: colors.lightGray, borderRadius: radius.radiusLarge, borderWidth: 1, overflow: 'hidden' },
   photo: { aspectRatio: 16 / 9, backgroundColor: colors.lightGray, width: '100%' },
-  photoMissing: { alignItems: 'center', backgroundColor: '#FFEAEA', gap: spacing[8], justifyContent: 'center' },
+  photoMissing: { alignItems: 'center', backgroundColor: colors.errorLight, gap: spacing[8], justifyContent: 'center' },
   photoMissingText: { ...typography.bodySmall, color: colors.error, fontWeight: '600' },
   cardBody: { alignItems: 'center', flexDirection: 'row', gap: spacing[4], padding: spacing[16] },
   cardText: { flex: 1, gap: 2 },
@@ -196,5 +196,5 @@ const styles = StyleSheet.create({
     padding: spacing[12],
   },
   planText: { ...typography.bodySmall, color: colors.textSecondary, flex: 1 },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  error: { ...typography.bodySmall, backgroundColor: colors.errorLight, color: colors.error, padding: spacing[12] },
 });

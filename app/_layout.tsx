@@ -1,23 +1,34 @@
 import 'react-native-gesture-handler';
 
-import { router, Stack } from 'expo-router';
+import { type ErrorBoundaryProps, router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { membershipService } from '@/services/membershipService';
+import { AppErrorFallback } from '@/components/layout/AppErrorFallback';
+import { AppFrame } from '@/components/layout/AppFrame';
 import { PlusGateHost } from '@/components/subscription/PlusGate';
 import { ToastHost } from '@/components/ui/Toast';
-import { colors } from '@/constants/colors';
+import { colors, isDarkTheme } from '@/constants/colors';
 import { authService } from '@/services/authService';
 import { notificationService } from '@/services/notificationService';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
 import { SubscriptionSync } from '@/subscription/usePlan';
 import { loadLanguagePreference } from '@/i18n';
+import { preloadIconFonts } from '@/utils/iconFonts';
 import { useEffect } from 'react';
 
+// Before any screen renders: on the web, icons must not each start a font load that can time out.
+preloadIconFonts();
 // The saved language (Español, English or the phone's); until it loads, the phone's language is used.
 void loadLanguagePreference();
+
+// A screen without its own ErrorBoundary that throws while rendering lands here (Expo Router passes
+// the error up to the nearest boundary): a translated message with "Try again" instead of a blank app.
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <AppErrorFallback {...props} />;
+}
 
 export default function RootLayout() {
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
@@ -63,29 +74,31 @@ export default function RootLayout() {
       return;
     }
     if (type === 'message' && typeof tripId === 'string') router.push({ pathname: '/chat/[tripId]', params: { tripId } });
-    else if (type === 'message') router.push('/(tabs)/chats');
+    else if (type === 'message') router.navigate('/(tabs)/chats');
     else if (type === 'trip_updated' || (typeof type === 'string' && type.startsWith('request_'))) router.push('/requests');
   }), []);
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-          // Native slide between screens; fade for the auth entry points.
-          animation: 'slide_from_right',
-        }}
-      >
-        <Stack.Screen name="index" options={{ animation: 'fade' }} />
-        <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
-        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-        <Stack.Screen name="map" options={{ animation: 'fade_from_bottom' }} />
-      </Stack>
-      <SubscriptionSync />
-      <PlusGateHost />
-      <ToastHost />
+      <StatusBar style={isDarkTheme ? 'light' : 'dark'} />
+      <AppFrame>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+            // Native slide between screens; fade for the auth entry points.
+            animation: 'slide_from_right',
+          }}
+        >
+          <Stack.Screen name="index" options={{ animation: 'fade' }} />
+          <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+          <Stack.Screen name="map" options={{ animation: 'fade_from_bottom' }} />
+        </Stack>
+        <SubscriptionSync />
+        <PlusGateHost />
+        <ToastHost />
+      </AppFrame>
     </SafeAreaProvider>
   );
 }

@@ -69,7 +69,7 @@ function SilentCameraModal({ onDone, quality }: Readonly<{ onDone: (result: Sile
         <CameraView animateShutter facing="back" mode="picture" onCameraReady={() => setReady(true)} ref={camera} style={StyleSheet.absoluteFill} />
         <SafeAreaView edges={['top', 'bottom']} style={styles.overlay}>
           <Pressable accessibilityLabel={t('camera.close')} accessibilityRole="button" hitSlop={12} onPress={() => onDone({ canceled: true, assets: null })} style={styles.close}>
-            <Ionicons color={colors.white} name="close" size={28} />
+            <Ionicons color={colors.onPrimary} name="close" size={28} />
           </Pressable>
           <View style={styles.bottom}>
             <Pressable
@@ -97,5 +97,5 @@ const styles = StyleSheet.create({
   shutter: { alignItems: 'center', backgroundColor: colors.white, borderRadius: 40, height: 80, justifyContent: 'center', width: 80 },
   shutterDisabled: { opacity: 0.5 },
   shutterInner: { borderColor: colors.primary, borderRadius: 32, borderWidth: 3, height: 64, width: 64 },
-  hint: { ...typography.bodySmall, color: colors.white },
+  hint: { ...typography.bodySmall, color: colors.onPrimary },
 });

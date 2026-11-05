@@ -217,7 +217,7 @@ export default function ChatScreen() {
                 onPress={() => void send(text)}
                 style={[styles.sendButton, canSend ? null : styles.sendButtonDisabled]}
               >
-                {sending ? <ActivityIndicator color={colors.white} size="small" /> : <Ionicons color={colors.white} name="send" size={18} />}
+                {sending ? <ActivityIndicator color={colors.onPrimary} size="small" /> : <Ionicons color={colors.onPrimary} name="send" size={18} />}
               </Pressable>
             </View>
             {text.length > MAX_LENGTH - 200 ? (

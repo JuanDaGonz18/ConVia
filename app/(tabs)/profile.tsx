@@ -6,7 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
-import { LanguageSwitcher } from '@/components/settings/LanguageSwitcher';
 import { useMembership } from '@/services/membershipService';
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Notice } from '@/components/ui/Notice';
@@ -122,7 +121,7 @@ export default function ProfileScreen() {
 
           {isVerified ? (
             <View style={styles.verifiedBadge}>
-              <Ionicons color="#067647" name="shield-checkmark" size={14} />
+              <Ionicons color={colors.successText} name="shield-checkmark" size={14} />
               <Text style={styles.verified}>{t('profile.verified')}</Text>
             </View>
           ) : null}
@@ -260,10 +259,13 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
-        <View style={[styles.menuCard, styles.languageCard]}>
-          <Text style={styles.switchTitle}>{t('language.label')}</Text>
-          <LanguageSwitcher />
-          <Text style={styles.switchSubtitle}>{t('language.systemHint')}</Text>
+        <View style={styles.menuCard}>
+          <ListItem
+            icon="color-palette-outline"
+            onPress={() => router.push('/display')}
+            subtitle={t('appearance.menuSubtitle')}
+            title={t('appearance.menuTitle')}
+          />
         </View>
 
         {error ? <Notice tone="error">{error}</Notice> : null}
@@ -371,7 +373,7 @@ const styles = StyleSheet.create({
   },
   verifiedBadge: {
     alignItems: 'center',
-    backgroundColor: '#ECFDF3',
+    backgroundColor: colors.successLight,
     borderRadius: radius.radiusFull,
     flexDirection: 'row',
     gap: 4,
@@ -403,7 +405,6 @@ const styles = StyleSheet.create({
     gap: spacing[8],
     marginTop: spacing[8],
   },
-  languageCard: { gap: spacing[8], paddingVertical: spacing[12] },
   switchRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -425,7 +426,7 @@ const styles = StyleSheet.create({
   },
   error: {
     ...typography.bodySmall,
-    backgroundColor: '#FFEAEA',
+    backgroundColor: colors.errorLight,
     color: colors.error,
     padding: spacing[12],
   },

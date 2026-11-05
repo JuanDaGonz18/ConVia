@@ -28,9 +28,9 @@ import { useAppStore } from '@/store/appStore';
 import { errorMessage, formatDateTime, formatMessageTime } from '@/utils/format';
 
 const STATUS_COLORS: Record<TripRequestStatus, { background: string; color: string }> = {
-  pendiente: { background: '#FFFAEB', color: '#B54708' },
-  aceptado: { background: '#ECFDF3', color: '#067647' },
-  negado: { background: '#FEF3F2', color: '#B42318' },
+  pendiente: { background: colors.warningLight, color: colors.warningText },
+  aceptado: { background: colors.successLight, color: colors.successText },
+  negado: { background: colors.errorLight, color: colors.errorText },
   abordado: { background: colors.primaryLight, color: colors.primary },
   cancelado: { background: colors.lightGray, color: colors.textSecondary },
 };
@@ -144,7 +144,7 @@ export default function RequestsScreen() {
         {error ? <Notice action={{ label: t('common.retry'), onPress: () => void load() }} tone="error">{error}</Notice> : null}
         {!loading && !error && !requests.length ? (
           <EmptyState
-            action={isDriver ? undefined : { label: t('requests.findTrip'), icon: 'search-outline', onPress: () => router.push('/(tabs)') }}
+            action={isDriver ? undefined : { label: t('requests.findTrip'), icon: 'search-outline', onPress: () => router.navigate('/(tabs)') }}
             icon={isDriver ? 'people-outline' : 'paper-plane-outline'}
             message={isDriver
               ? t('requests.emptyDriver')
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   kicker: { ...typography.label, color: colors.primary },
   title: { ...typography.headingXL, color: colors.text },
   muted: { ...typography.body, color: colors.textSecondary },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  error: { ...typography.bodySmall, backgroundColor: colors.errorLight, color: colors.error, padding: spacing[12] },
   card: { backgroundColor: colors.white, borderColor: colors.lightGray, borderRadius: radius.radiusLarge, borderWidth: 1, gap: spacing[8], padding: spacing[16] },
   cardHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[8], justifyContent: 'space-between' },
   titleRow: { alignItems: 'center', flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8] },
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   metaRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing[8] },
   actionRow: { flexDirection: 'row', gap: spacing[8] },
   flex: { flex: 1 },
-  update: { backgroundColor: '#FFF7E0', borderRadius: radius.radiusMedium, gap: 4, padding: spacing[12] },
+  update: { backgroundColor: colors.warningLight, borderRadius: radius.radiusMedium, gap: 4, padding: spacing[12] },
   updateHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[4] },
   updateTitle: { ...typography.caption, color: colors.text, flex: 1, fontWeight: '700' },
   updateLine: { ...typography.caption, color: colors.text },

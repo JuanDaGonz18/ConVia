@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     minHeight: dimensions.controlHeight + 4,
   },
   boxFocused: { borderColor: colors.primary, borderWidth: 1.5 },
-  boxError: { backgroundColor: '#FFFBFA', borderColor: colors.error },
+  boxError: { backgroundColor: colors.errorLight, borderColor: colors.error },
   boxDisabled: { backgroundColor: colors.lightGray, opacity: 0.72 },
   input: {
     ...typography.body,

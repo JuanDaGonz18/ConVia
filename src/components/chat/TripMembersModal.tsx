@@ -176,5 +176,5 @@ const styles = StyleSheet.create({
   memberName: { ...typography.bodyMedium, color: colors.text, fontWeight: '600' },
   boarded: { alignItems: 'center', flexDirection: 'row', gap: 2 },
   boardedText: { ...typography.caption, color: colors.success, fontWeight: '700' },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  error: { ...typography.bodySmall, backgroundColor: colors.errorLight, color: colors.error, padding: spacing[12] },
 });

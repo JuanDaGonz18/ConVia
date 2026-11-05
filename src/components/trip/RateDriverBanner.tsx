@@ -114,8 +114,8 @@ export function RateDriverBanner() {
 const styles = StyleSheet.create({
   banner: {
     alignItems: 'flex-start',
-    backgroundColor: '#FFF8EB',
-    borderColor: '#FDE7C2',
+    backgroundColor: colors.warningLight,
+    borderColor: colors.warningBorder,
     borderRadius: radius.radiusLarge,
     borderWidth: 1,
     flexDirection: 'row',

@@ -81,6 +81,9 @@ const MICROSOFT_DOMAIN_HINT = process.env.EXPO_PUBLIC_MICROSOFT_DOMAIN_HINT ?? '
 /** Marks on the callback URL that the person is coming back from Microsoft (web build). */
 export const MICROSOFT_CALLBACK_FLAG = 'microsoft';
 
+/** Marks on the callback URL that a password-reset link was opened: the next screen sets the new password. */
+export const RESET_PASSWORD_NEXT = 'reset-password';
+
 /** The terms are shown next to the Microsoft button: continuing accepts them (first time only). */
 export async function acceptTermsIfNeeded(userId: string) {
   // Never blocks the sign-in: the person already accepted by continuing.
@@ -89,6 +92,20 @@ export async function acceptTermsIfNeeded(userId: string) {
     .update({ terms_accepted_at: new Date().toISOString() })
     .eq('id', userId)
     .is('terms_accepted_at', null);
+}
+
+/** Link types the e-mail templates send (supabase/templates): sign-up, password reset, e-mail change. */
+export const EMAIL_LINK_TYPES = ['email', 'recovery', 'email_change'] as const;
+export type EmailLinkType = (typeof EMAIL_LINK_TYPES)[number];
+
+/**
+ * Uses a token_hash from a ConVía e-mail. The e-mail only opens the callback
+ * page; this runs when the person taps the button there, so link scanners
+ * (Outlook Safe Links opens every link to check it) can't use up the token.
+ */
+export async function verifyEmailLink(tokenHash: string, type: EmailLinkType) {
+  const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+  if (error) throw error;
 }
 
 // The same PKCE code can reach the app twice (the browser result and the
@@ -231,6 +248,20 @@ export const authService = {
     }
 
     await SecureStore.deleteItemAsync(SESSION_KEY);
+  },
+
+  /**
+   * Sends the password-reset e-mail. Supabase answers the same whether or not the
+   * account exists, so nobody can probe which e-mails are registered.
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
+    ensureSupabaseConfigured();
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      // The template adds token_hash and type=recovery; the callback page sends the user to the new-password screen.
+      redirectTo: authCallbackUrl(),
+    });
+    if (error) throw error;
   },
 
   /** Permanently deletes the account through the delete-account Edge Function. */

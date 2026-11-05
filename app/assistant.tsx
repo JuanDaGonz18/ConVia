@@ -202,7 +202,7 @@ export default function AssistantScreen() {
             value={text}
           />
           <Pressable accessibilityLabel={t('assistant.send')} accessibilityRole="button" disabled={busy || !text.trim()} onPress={() => void ask(text)} style={[styles.send, (busy || !text.trim()) && styles.sendDisabled]}>
-            {busy ? <ActivityIndicator color={colors.white} size="small" /> : <Ionicons color={colors.white} name="arrow-up" size={20} />}
+            {busy ? <ActivityIndicator color={colors.onPrimary} size="small" /> : <Ionicons color={colors.onPrimary} name="arrow-up" size={20} />}
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   exampleText: { ...typography.bodySmall, color: colors.text, flex: 1 },
   turn: { gap: spacing[8] },
   userBubble: { alignSelf: 'flex-end', backgroundColor: colors.primary, borderRadius: radius.radiusLarge, maxWidth: '85%', paddingHorizontal: spacing[12], paddingVertical: spacing[8] },
-  userText: { ...typography.bodySmall, color: colors.white },
+  userText: { ...typography.bodySmall, color: colors.onPrimary },
   progress: { backgroundColor: colors.surfaceMuted, borderRadius: radius.radiusLarge, gap: spacing[8], padding: spacing[12] },
   progressRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
   progressText: { ...typography.bodySmall, color: colors.text },
@@ -228,13 +228,13 @@ const styles = StyleSheet.create({
   spec: { ...typography.caption, color: colors.textSecondary },
   agentText: { ...typography.bodyMedium, color: colors.text },
   option: { borderRadius: radius.radiusMedium, borderWidth: 1, gap: 2, padding: spacing[12] },
-  optionVerified: { backgroundColor: '#ECFDF3', borderColor: colors.success },
+  optionVerified: { backgroundColor: colors.successLight, borderColor: colors.success },
   optionUnverified: { backgroundColor: colors.surfaceMuted, borderColor: colors.border, borderStyle: 'dashed' },
   optionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   optionTime: { ...typography.headingM, color: colors.text },
   optionRoute: { ...typography.bodySmall, color: colors.text, fontWeight: '600' },
   tag: { ...typography.caption, borderRadius: radius.radiusFull, fontWeight: '700', overflow: 'hidden', paddingHorizontal: spacing[8], paddingVertical: 2 },
-  tagVerified: { backgroundColor: colors.success, color: colors.white },
+  tagVerified: { backgroundColor: colors.success, color: colors.onPrimary },
   tagUnverified: { backgroundColor: colors.border, color: colors.text },
   muted: { ...typography.caption, color: colors.textSecondary },
   inputBar: { alignItems: 'flex-end', backgroundColor: colors.white, borderColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: spacing[8], padding: spacing[12] },

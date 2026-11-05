@@ -19,7 +19,7 @@ export function FieldError({ message }: Readonly<{ message?: string | null }>) {
 }
 
 /** Invalid look for custom field containers, matching TextField. */
-export const fieldErrorBox = { backgroundColor: '#FFFBFA', borderColor: colors.error } as const;
+export const fieldErrorBox = { backgroundColor: colors.errorLight, borderColor: colors.error } as const;
 
 const styles = StyleSheet.create({
   row: { alignItems: 'center', flexDirection: 'row', gap: 4 },

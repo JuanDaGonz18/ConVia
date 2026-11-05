@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing[12],
   },
-  chipPressed: { backgroundColor: '#D1E4FF' },
+  chipPressed: { backgroundColor: colors.primaryBorder },
   chipDisabled: { opacity: 0.5 },
   chipText: {
     ...typography.caption,

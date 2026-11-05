@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   },
   daySelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   dayText: { ...typography.bodySmall, color: colors.text, fontWeight: '700' },
-  dayTextSelected: { color: colors.white },
+  dayTextSelected: { color: colors.onPrimary },
   timeRow: { flexDirection: 'row', gap: spacing[8] },
   timeButton: {
     alignItems: 'center',

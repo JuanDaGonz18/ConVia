@@ -11,9 +11,9 @@ import { MatchLevel, MatchReason, TripMatch } from '@/services/tripMatching';
 import { formatDistance } from '@/utils/format';
 
 const LEVEL_STYLE: Record<MatchLevel, { background: string; color: string }> = {
-  excellent: { background: '#E8F7EF', color: '#067647' },
+  excellent: { background: colors.successLight, color: colors.successText },
   good: { background: colors.primaryLight, color: colors.primary },
-  fair: { background: '#FFF8EB', color: '#B54708' },
+  fair: { background: colors.warningLight, color: colors.warningText },
   low: { background: colors.lightGray, color: colors.textSecondary },
 };
 

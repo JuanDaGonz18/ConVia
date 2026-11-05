@@ -101,6 +101,6 @@ const styles = StyleSheet.create({
   optionActive: { backgroundColor: colors.primary },
   label: { ...typography.caption, color: colors.primary, fontWeight: '600' },
   labelCompact: { fontSize: 12 },
-  labelActive: { color: colors.white },
+  labelActive: { color: colors.onPrimary },
   error: { ...typography.caption, color: colors.error, textAlign: 'center' },
 });

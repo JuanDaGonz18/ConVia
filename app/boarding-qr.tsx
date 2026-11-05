@@ -71,7 +71,7 @@ export default function BoardingQrScreen() {
 
         {ready ? (
           <View style={styles.qrCard}>
-            <QRCode backgroundColor={colors.white} color={colors.text} size={240} value={request.qr_token} />
+            <QRCode backgroundColor="#FFFFFF" color="#000000" quietZone={12} size={240} value={request.qr_token} />
             <View style={styles.hint}>
               <Ionicons color={colors.primary} name="sunny-outline" size={16} />
               <Text style={styles.hintText}>{t('boardingQr.brightness')}</Text>
@@ -132,8 +132,8 @@ const styles = StyleSheet.create({
   },
   hint: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
   hintText: { ...typography.caption, color: colors.textSecondary, flex: 1 },
-  boardedCard: { backgroundColor: '#ECFDF3' },
-  boardedTitle: { ...typography.headingM, color: '#067647', textAlign: 'center' },
+  boardedCard: { backgroundColor: colors.successLight },
+  boardedTitle: { ...typography.headingM, color: colors.successText, textAlign: 'center' },
   boardedText: { ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center' },
   details: { backgroundColor: colors.white, borderRadius: radius.radiusLarge, gap: spacing[12], padding: spacing[16] },
   detailRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing[12] },

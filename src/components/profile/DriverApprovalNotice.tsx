@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     gap: spacing[12],
     padding: spacing[16],
   },
-  cardBlocked: { backgroundColor: '#FFEAEA' },
+  cardBlocked: { backgroundColor: colors.errorLight },
   row: { flexDirection: 'row', gap: spacing[12] },
   text: { flex: 1, gap: spacing[4] },
   title: { ...typography.bodyMedium, color: colors.primary, fontWeight: '700' },

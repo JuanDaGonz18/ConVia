@@ -78,12 +78,12 @@ export default function QrScannerScreen() {
         <View style={styles.topRow}>
           {boardedCount ? (
             <View style={styles.counter}>
-              <Ionicons color={colors.white} name="people" size={16} />
+              <Ionicons color={colors.onPrimary} name="people" size={16} />
               <Text style={styles.counterText}>{t('qrScanner.boardedCount', { count: boardedCount })}</Text>
             </View>
           ) : <View />}
           <Pressable accessibilityLabel={t('qrScanner.close')} hitSlop={8} onPress={() => router.back()} style={styles.close}>
-            <Ionicons color={colors.white} name="close" size={26} />
+            <Ionicons color={colors.onPrimary} name="close" size={26} />
           </Pressable>
         </View>
 
@@ -100,7 +100,7 @@ export default function QrScannerScreen() {
         {result ? (
           <View style={styles.resultCard}>
             <Ionicons color={result.ok ? colors.success : colors.error} name={result.ok ? 'checkmark-circle' : 'close-circle'} size={56} />
-            <Text style={[styles.resultTitle, { color: result.ok ? '#067647' : '#B42318' }]}>{result.title}</Text>
+            <Text style={[styles.resultTitle, { color: result.ok ? colors.successText : colors.errorText }]}>{result.title}</Text>
             <Text style={styles.resultText}>{result.text}</Text>
             <ButtonPrimary icon="scan-outline" onPress={scanAgain} title={t('qrScanner.scanAgain')} />
           </View>
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[12],
     paddingVertical: 6,
   },
-  counterText: { ...typography.label, color: colors.white },
+  counterText: { ...typography.label, color: colors.onPrimary },
   close: {
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 44,
   },
-  instruction: { ...typography.headingM, color: colors.white, textAlign: 'center' },
+  instruction: { ...typography.headingM, color: colors.onPrimary, textAlign: 'center' },
   frame: { alignSelf: 'center', borderColor: colors.white, borderRadius: 28, borderWidth: 4, height: 250, width: 250 },
   frameOk: { borderColor: colors.success },
   frameError: { borderColor: colors.error },

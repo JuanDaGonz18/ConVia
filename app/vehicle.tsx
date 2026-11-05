@@ -348,6 +348,6 @@ const styles = StyleSheet.create({
   },
   seatSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   seatText: { ...typography.bodyMedium, color: colors.text, fontWeight: '600' },
-  seatTextSelected: { color: colors.white },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  seatTextSelected: { color: colors.onPrimary },
+  error: { ...typography.bodySmall, backgroundColor: colors.errorLight, color: colors.error, padding: spacing[12] },
 });

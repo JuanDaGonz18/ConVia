@@ -244,6 +244,20 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# ConVía e-mails (supabase/templates). Links carry token_hash + type to /callback, which
+# verifies them only when the person taps the button (link scanners can't use them up).
+[auth.email.template.confirmation]
+subject = "Confirma tu cuenta de ConVía"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Restablece tu contraseña de ConVía"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirma tu nuevo correo en ConVía"
+content_path = "./supabase/templates/email_change.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

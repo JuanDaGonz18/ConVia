@@ -52,5 +52,5 @@ const styles = StyleSheet.create({
   },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   text: { ...typography.caption, color: colors.text, fontWeight: '600' },
-  textSelected: { color: colors.white },
+  textSelected: { color: colors.onPrimary },
 });

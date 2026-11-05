@@ -45,7 +45,7 @@ export function SavedUsersPanel({ onSelect }: SavedUsersPanelProps) {
   return (
     <View style={styles.panel}>
       <View style={styles.header}>
-        <Ionicons color="#B45309" name="construct-outline" size={16} />
+        <Ionicons color={colors.warningText} name="construct-outline" size={16} />
         <Text style={styles.title}>Usuarios guardados</Text>
         <Text style={styles.badge}>SOLO DESARROLLO</Text>
       </View>
@@ -82,7 +82,7 @@ export function SavedUsersPanel({ onSelect }: SavedUsersPanelProps) {
 
 const styles = StyleSheet.create({
   panel: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: colors.warningLight,
     borderColor: '#F59E0B',
     borderRadius: radius.radiusLarge,
     borderStyle: 'dashed',
@@ -91,19 +91,19 @@ const styles = StyleSheet.create({
     padding: spacing[16],
   },
   header: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
-  title: { ...typography.bodyMedium, color: '#92400E', flex: 1, fontWeight: '700' },
+  title: { ...typography.bodyMedium, color: colors.warningText, flex: 1, fontWeight: '700' },
   badge: {
     ...typography.caption,
     backgroundColor: '#F59E0B',
     borderRadius: radius.radiusFull,
-    color: colors.white,
+    color: colors.onPrimary,
     fontSize: 10,
     fontWeight: '800',
     overflow: 'hidden',
     paddingHorizontal: spacing[8],
     paddingVertical: 2,
   },
-  note: { ...typography.caption, color: '#92400E' },
+  note: { ...typography.caption, color: colors.warningText },
   row: { alignItems: 'center', flexDirection: 'row', gap: spacing[4] },
   user: {
     alignItems: 'center',
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     gap: spacing[12],
     padding: spacing[8],
   },
-  userPressed: { backgroundColor: '#FEF3C7' },
+  userPressed: { backgroundColor: colors.warningLight },
   userText: { flex: 1 },
   name: { ...typography.bodySmall, color: colors.text, fontWeight: '700' },
   email: { ...typography.caption, color: colors.textSecondary },

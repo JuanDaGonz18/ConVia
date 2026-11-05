@@ -43,9 +43,9 @@ export function ButtonPrimary({
     >
       <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator color={colors.white} size="small" />
+          <ActivityIndicator color={colors.onPrimary} size="small" />
         ) : icon ? (
-          <Ionicons color={colors.white} name={icon} size={20} />
+          <Ionicons color={colors.onPrimary} name={icon} size={20} />
         ) : null}
         <Text numberOfLines={1} style={styles.title}>{loading && loadingTitle ? loadingTitle : title}</Text>
       </View>
@@ -70,5 +70,5 @@ const styles = StyleSheet.create({
   danger: { backgroundColor: colors.error, shadowColor: colors.error },
   disabled: { elevation: 0, opacity: 0.45, shadowOpacity: 0 },
   content: { alignItems: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 16 },
-  title: { ...typography.button, color: colors.white },
+  title: { ...typography.button, color: colors.onPrimary },
 });

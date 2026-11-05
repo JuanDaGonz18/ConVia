@@ -68,5 +68,5 @@ const styles = StyleSheet.create({
   list: { gap: 6, paddingHorizontal: spacing[4] },
   item: { alignItems: 'center', flexDirection: 'row', gap: spacing[8] },
   text: { ...typography.caption, color: colors.textSecondary },
-  textOk: { color: '#067647', fontWeight: '600' },
+  textOk: { color: colors.successText, fontWeight: '600' },
 });

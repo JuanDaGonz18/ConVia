@@ -112,7 +112,7 @@ export function RoutePicker({ origin, destination, initialRoute, onChange }: Rou
             <MapLine color={colors.primary} coordinates={[origin, ...stops, destination]} dashed width={4} />
           ) : null}
           <MapMarker coordinate={origin} title={origin.label}>
-            <View style={[styles.pin, styles.originPin]}><Ionicons color={colors.white} name="navigate" size={12} /></View>
+            <View style={[styles.pin, styles.originPin]}><Ionicons color={colors.onPrimary} name="navigate" size={12} /></View>
           </MapMarker>
           {stops.map((stop, index) => (
             <MapMarker coordinate={stop} key={stop.id} title={stop.label}>
@@ -120,7 +120,7 @@ export function RoutePicker({ origin, destination, initialRoute, onChange }: Rou
             </MapMarker>
           ))}
           <MapMarker coordinate={destination} title={destination.label}>
-            <View style={[styles.pin, styles.destinationPin]}><Ionicons color={colors.white} name="flag" size={12} /></View>
+            <View style={[styles.pin, styles.destinationPin]}><Ionicons color={colors.onPrimary} name="flag" size={12} /></View>
           </MapMarker>
         </AppMap>
         {loading ? (
@@ -217,9 +217,9 @@ const styles = StyleSheet.create({
   originPin: { backgroundColor: '#10B981' },
   destinationPin: { backgroundColor: '#EF4444' },
   stopPin: { backgroundColor: colors.primary },
-  stopNumber: { color: colors.white, fontSize: 12, fontWeight: '700' },
+  stopNumber: { color: colors.onPrimary, fontSize: 12, fontWeight: '700' },
   hint: { ...typography.caption, color: colors.textSecondary },
-  warning: { ...typography.bodySmall, backgroundColor: '#FFF7E0', color: colors.text, padding: spacing[12] },
+  warning: { ...typography.bodySmall, backgroundColor: colors.warningLight, color: colors.text, padding: spacing[12] },
   option: {
     alignItems: 'center',
     backgroundColor: colors.white,

@@ -168,10 +168,10 @@ export default function MapScreen() {
                 width={faded ? 3 : 5}
               />
               <MapMarker coordinate={trip.origin} onPress={() => { setSelected(null); setFocusedTripId(trip.id); }} title={trip.originName}>
-                <View style={[styles.pin, { backgroundColor: '#10B981' }]}><Ionicons color={colors.white} name="navigate" size={12} /></View>
+                <View style={[styles.pin, { backgroundColor: '#10B981' }]}><Ionicons color={colors.onPrimary} name="navigate" size={12} /></View>
               </MapMarker>
               <MapMarker coordinate={trip.destination} onPress={() => { setSelected(null); setFocusedTripId(trip.id); }} title={trip.destinationName}>
-                <View style={[styles.pin, { backgroundColor: color }]}><Ionicons color={colors.white} name="flag" size={12} /></View>
+                <View style={[styles.pin, { backgroundColor: color }]}><Ionicons color={colors.onPrimary} name="flag" size={12} /></View>
               </MapMarker>
             </Fragment>
           );
@@ -186,7 +186,7 @@ export default function MapScreen() {
           return (
             <MapMarker coordinate={trip.origin} key={trip.id} onPress={() => openTrip(trip)} title={trip.driver.name}>
               <View style={[styles.pin, match ? styles.tripPinMatch : styles.tripPin]}>
-                <Ionicons color={colors.white} name="car" size={12} />
+                <Ionicons color={colors.onPrimary} name="car" size={12} />
               </View>
             </MapMarker>
           );
@@ -199,7 +199,7 @@ export default function MapScreen() {
             onDragEnd={(point) => void chooseAt(point)}
             title={selected.label}
           >
-            <View style={[styles.pin, styles.selectedPin]}><Ionicons color={colors.white} name="location" size={16} /></View>
+            <View style={[styles.pin, styles.selectedPin]}><Ionicons color={colors.onPrimary} name="location" size={16} /></View>
           </MapMarker>
         ) : null}
       </AppMap>
@@ -296,7 +296,7 @@ export default function MapScreen() {
                 {focusedTrip.status === 'por_empezar' ? (
                   <Chip icon="create-outline" label={t('map.edit')} onPress={() => router.push({ pathname: '/create-trip', params: { edit: focusedTrip.id } })} />
                 ) : null}
-                <Chip icon="list-outline" label={t('map.myTrips')} onPress={() => router.push('/(tabs)/trips')} />
+                <Chip icon="list-outline" label={t('map.myTrips')} onPress={() => router.navigate('/(tabs)/trips')} />
               </View>
             </>
           ) : (
@@ -384,7 +384,7 @@ function Chip({ icon, label, onPress }: Readonly<{ icon: keyof typeof Ionicons.g
 }
 
 const styles = StyleSheet.create({
-  root: { backgroundColor: '#E5EEF8', flex: 1 },
+  root: { backgroundColor: colors.surfaceMuted, flex: 1 },
   flex: { flex: 1 },
   top: { left: 0, paddingHorizontal: spacing[12], position: 'absolute', right: 0, top: 0 },
   back: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     right: 0,
   },
   sheetHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[12] },
-  iconCircle: { alignItems: 'center', backgroundColor: '#FFEAEA', borderRadius: radius.radiusFull, height: 36, justifyContent: 'center', width: 36 },
+  iconCircle: { alignItems: 'center', backgroundColor: colors.errorLight, borderRadius: radius.radiusFull, height: 36, justifyContent: 'center', width: 36 },
   sheetTitle: { ...typography.headingM, color: colors.text },
   muted: { ...typography.bodySmall, color: colors.textSecondary },
   listScroll: { flexGrow: 0 },
@@ -469,5 +469,5 @@ const styles = StyleSheet.create({
   tripRow: { alignItems: 'center', flexDirection: 'row', gap: spacing[12], paddingVertical: spacing[8] },
   colorDot: { borderRadius: radius.radiusFull, height: 12, width: 12 },
   tripTitle: { ...typography.bodyMedium, color: colors.text, fontWeight: '600' },
-  error: { ...typography.bodySmall, backgroundColor: '#FFEAEA', color: colors.error, padding: spacing[12] },
+  error: { ...typography.bodySmall, backgroundColor: colors.errorLight, color: colors.error, padding: spacing[12] },
 });

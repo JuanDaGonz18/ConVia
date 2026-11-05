@@ -183,7 +183,7 @@ export function PlaceSearchField({
             onPress={() => void search(query)}
             style={styles.iconButton}
           >
-            {busy === 'search' ? <ActivityIndicator color={colors.white} /> : <Ionicons color={colors.white} name="search" size={18} />}
+            {busy === 'search' ? <ActivityIndicator color={colors.onPrimary} /> : <Ionicons color={colors.onPrimary} name="search" size={18} />}
           </Pressable>
         </View>
       )}
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     maxWidth: 180,
     paddingHorizontal: spacing[12],
   },
-  quickChipPressed: { backgroundColor: '#D1E4FF' },
+  quickChipPressed: { backgroundColor: colors.primaryBorder },
   quickText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
   gpsButton: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: spacing[8], paddingVertical: spacing[4] },
   gpsText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   },
   error: { ...typography.caption, color: colors.error },
   // Same invalid look as TextField.
-  boxError: { backgroundColor: '#FFFBFA', borderColor: colors.error },
+  boxError: { backgroundColor: colors.errorLight, borderColor: colors.error },
   selectedError: { borderColor: colors.error, borderWidth: 1 },
   errorRow: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   errorText: { ...typography.caption, color: colors.error, flex: 1 },

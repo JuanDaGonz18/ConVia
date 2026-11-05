@@ -51,6 +51,6 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   selectedTitle: {
-    color: colors.white,
+    color: colors.onPrimary,
   },
 });

@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 56,
   },
-  iconDanger: { backgroundColor: '#FEF3F2' },
+  iconDanger: { backgroundColor: colors.errorLight },
   title: { ...typography.headingM, color: colors.text, textAlign: 'center' },
   message: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
   actions: { alignSelf: 'stretch', gap: spacing[8], marginTop: spacing[8] },

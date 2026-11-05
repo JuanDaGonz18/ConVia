@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   orLine: { backgroundColor: colors.lightGray, flex: 1, height: 1 },
   orText: { ...typography.caption, color: colors.textSecondary },
   missingList: { gap: 2 },
-  missingItem: { ...typography.bodySmall, color: '#B54708' },
+  missingItem: { ...typography.bodySmall, color: colors.warningText },
   roleSection: { gap: spacing[8] },
   roleTitle: { ...typography.label, color: colors.text },
   roleHint: { ...typography.caption, color: colors.textSecondary },
