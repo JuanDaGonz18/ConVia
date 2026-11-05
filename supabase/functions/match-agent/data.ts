@@ -10,7 +10,7 @@ import { AVAILABLE_TRIP_COLUMNS, type AvailableTripRow } from './search.ts';
 import type { ToolData } from './tools.ts';
 import type { VerifyData } from './verify.ts';
 
-export function supabaseToolData(userClient: SupabaseClient): ToolData & VerifyData {
+export function supabaseToolData(userClient: SupabaseClient, userId: string): ToolData & VerifyData {
   return {
     async availableTrips() {
       const { data, error } = await userClient.from('available_trips').select(AVAILABLE_TRIP_COLUMNS).order('salida_at').limit(300);
@@ -29,10 +29,11 @@ export function supabaseToolData(userClient: SupabaseClient): ToolData & VerifyD
         .filter((row) => ['pendiente', 'aceptado', 'abordado'].includes(row.estado))
         .map((row) => ({ trip_id: row.trip_id, salida_at: row.salida_at }));
     },
+    // Institutions are verified by e-mail domain at sign-up: a profile with an institution is verified.
     async institutionVerified() {
-      const { data, error } = await userClient.rpc('my_institution');
-      if (error) throw new Error(`my_institution: ${error.message}`);
-      return (data as { status?: string } | null)?.status === 'verified';
+      const { data, error } = await userClient.from('profiles').select('institution_id').eq('id', userId).maybeSingle();
+      if (error) throw new Error(`profiles: ${error.message}`);
+      return !!data?.institution_id;
     },
     async savedPlaces() {
       const { data, error } = await userClient.from('saved_places').select('kind, label, address, lat, lng').limit(20);

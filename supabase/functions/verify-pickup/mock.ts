@@ -20,19 +20,23 @@ export function mockOutcome(plate: string, requested: unknown): PickupStatus {
 const box = (x1: number, y1: number, x2: number, y2: number, c: number) =>
   `<|box;x1=${x1};y1=${y1};x2=${x2};y2=${y2};w=${W};h=${H};c=${c}|><|mask;x=0;y=0;c=${c};data=2,2,!00|>`;
 
-/** 15 frames (3 s sampled at 5 fps): the arriving car (id 0) grows; a parked car (id 1) stays small and is lost. */
+/** SAM 3.1 indexes every frame of the clip; the app's clips and the fixtures are 30 fps. */
+const FPS = 30;
+
+/** 3 s of frames: the arriving car (id 0) grows; a parked car (id 1) stays small and is lost. */
 function carLines() {
-  return Array.from({ length: 15 }, (_, frame) => {
-    const grow = frame * 16;
-    return `<${frame}f>0${box(300 - grow, 200 - grow / 2, 900 + grow, 620 + grow / 4, 0.92)},1${box(40, 300, 160, 380, frame < 1 ? 0.6 : 0.02)}`;
+  return Array.from({ length: 3 * FPS }, (_, frame) => {
+    const grow = Math.round((frame / FPS) * 80);
+    return `<${frame}f>0${box(300 - grow, 200 - grow / 2, 900 + grow, 620 + grow / 4, 0.92)},1${box(40, 300, 160, 380, frame < FPS / 5 ? 0.6 : 0.02)}`;
   }).join('\n');
 }
 
-/** The plate of car 0 is visible on frames 1-9 (0.2-1.8 s); best view at frame 4 (0.8 s). */
+/** The plate of car 0 is visible from 0.2 s to 1.8 s; best view at 0.8 s. */
 function plateLines() {
-  return Array.from({ length: 9 }, (_, index) => {
-    const frame = index + 1;
-    const confidence = Number((0.55 + 0.4 * (1 - Math.abs(frame - 4) / 5)).toFixed(2));
+  const first = Math.round(0.2 * FPS);
+  return Array.from({ length: Math.round(1.6 * FPS) + 1 }, (_, index) => {
+    const frame = first + index;
+    const confidence = Number((0.55 + 0.4 * (1 - Math.abs(frame / FPS - 0.8))).toFixed(2));
     return `<${frame}f>0${box(560, 560, 720, 610, confidence)}`;
   }).join('\n');
 }

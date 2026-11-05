@@ -119,7 +119,7 @@ Deno.serve(async (request) => {
     if (typeof body.run_id !== 'string' || typeof body.proposal_hash !== 'string') return json({ error: 'INVALID_BODY' }, 400);
     const runId = body.run_id;
     const { data: run } = await admin.from('agent_runs').select('user_id, status, proposal_hash, pending_action, pending_action_used_at, finished_at').eq('id', runId).maybeSingle();
-    const data = supabaseToolData(userClient);
+    const data = supabaseToolData(userClient, user.id);
     const result = await confirmProposal({ run: run as StoredRun | null, callerId: user.id, hashFromClient: body.proposal_hash, now: new Date() }, {
       readTrip: (tripId) => data.availableTrip(tripId),
       claim: async () => {
@@ -179,7 +179,7 @@ Deno.serve(async (request) => {
         const { error } = await admin.from('agent_steps').insert(row);
         if (error) log('trace_error', { detail: error.message });
       };
-      const deps = { ...buildDeps(config, supabaseToolData(userClient), record, () => Date.now(), user.id), progress: (event: { step: string; status: string }) => send({ type: 'progress', ...event }) };
+      const deps = { ...buildDeps(config, supabaseToolData(userClient, user.id), record, () => Date.now(), user.id), progress: (event: { step: string; status: string }) => send({ type: 'progress', ...event }) };
       let outcome: AgentOutcome;
       try {
         outcome = await runAgent(state, deps, language);

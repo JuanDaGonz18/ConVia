@@ -1,9 +1,10 @@
 /**
  * verify-pickup analysis, from clip to verdict, overlapping the two models:
  *  1. Read fps and length from the MP4; reject long clips before paying for them.
- *  2. At once: SAM 3.1 streams "car" and "license plate" over the clip sampled at 5 fps (inline,
- *     never stored at the provider), and Muse Spark starts reading the middle frame, which shows a
- *     stopped car well. SAM's frame indices are at the sampled rate.
+ *  2. At once: SAM 3.1 streams "car" and "license plate" over every frame of the clip (inline,
+ *     never stored at the provider; SAM 3.1 rejects input_video.fps), and Muse Spark starts
+ *     reading the middle frame, which shows a stopped car well. SAM's frame indices are at the
+ *     clip's own rate.
  *  3. Early exit, only for "it's your ride": as soon as Muse has read the trip's plate and SAM's
  *     stream shows that plate inside the main car on that frame (seen on enough frames), answer
  *     without waiting for the rest of the stream.
@@ -38,17 +39,12 @@ export type PipelineConfig = {
   /** SAM detections below this confidence are ignored (calibrated with real clips). */
   minConfidence: number;
   maxDurationS: number;
-  /** Early "verified" needs the main car and its plate on at least this many streamed frames. */
-  earlyFrames: number;
-  /** Frames per second SAM samples from the clip (never above the clip's own rate). */
-  sampleFps: number;
+  /** Early "verified" needs the main car and its plate on streamed frames covering at least this many seconds. */
+  earlyS: number;
 };
 
-/**
- * 3 s at 5 fps is 15 frames per prompt, so SAM bills its minimum (50 frames) per prompt instead
- * of ~90 at 30 fps, and is enough for a car that has stopped.
- */
-export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = { minConfidence: 0.5, maxDurationS: 3, earlyFrames: 3, sampleFps: 5 };
+/** SAM 3.1 processes every frame of the clip: a 3 s clip at 30 fps bills 90 frames per prompt. */
+export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = { minConfidence: 0.5, maxDurationS: 3, earlyS: 0.6 };
 
 /** SAM bills at least this many frames per video request. */
 const SAM_MIN_BILLED_FRAMES = 50;
@@ -75,8 +71,8 @@ const MODEL_ERROR_REASON: Record<ModelErrorKind, 'timeout' | 'rate_limited' | 's
 
 /** Clips may run a little over the limit (encoder rounding). */
 const DURATION_TOLERANCE_S = 0.6;
-/** Sampled frames between Muse's frame and a SAM plate detection that still count as the same moment (0.2 s at 5 fps). */
-const FRAME_TOLERANCE = 1;
+/** Time between Muse's frame and a SAM plate detection that still counts as the same moment. */
+const SAME_MOMENT_S = 0.2;
 
 export function toBase64(bytes: Uint8Array) {
   let binary = '';
@@ -111,9 +107,10 @@ export async function analyzeClip(
   debug.video = info;
   if (info.durationS > config.maxDurationS + DURATION_TOLERANCE_S) return done(pickupRetry('clip_too_long'));
   if (!clip.frames.length) return done(pickupRetry('frame_missing'));
-  // The rate of SAM's frame indices.
-  const fps = Math.min(config.sampleFps, info.fps);
-  debug.sampleFps = fps;
+  // The rate of SAM's frame indices: the clip's own.
+  const fps = info.fps;
+  const frameTolerance = Math.max(1, Math.round(SAME_MOMENT_S * fps));
+  const earlyFrames = Math.max(1, Math.ceil(config.earlyS * fps));
 
   const read = (frame: FrameSource, plateBox: Parameters<ModelClient['readPlate']>[1]): Reading => ({
     frame,
@@ -135,13 +132,13 @@ export async function analyzeClip(
   const early = new Promise<PickupDecision>((resolve) => { resolveEarly = resolve; });
 
   /** The speculative frame shows `car`'s plate (per SAM, around that frame index). */
-  const speculativeShows = (car: Track) => plateOnCar(plates, car, speculative.frameIndex, FRAME_TOLERANCE);
+  const speculativeShows = (car: Track) => plateOnCar(plates, car, speculative.frameIndex, frameTolerance);
 
   const checkEarly = async () => {
     const car = pickMainCar(cars);
-    if (!car || car.boxes.size < config.earlyFrames) return;
+    if (!car || car.boxes.size < earlyFrames) return;
     const plateFrames = platesOnCar(plates, car).length;
-    if (plateFrames < config.earlyFrames || !speculativeShows(car)) return;
+    if (plateFrames < earlyFrames || !speculativeShows(car)) return;
     const reading = await speculative.report.catch(() => null);
     if (!reading) return;
     const decision = decidePickup(reading, registered);
@@ -172,15 +169,15 @@ export async function analyzeClip(
   try {
     const videoUrl = `data:${info.mimeType};base64,${toBase64(clip.video)}`;
     const sam = Promise.all([
-      client.segmentVideo(videoUrl, 'car', { fps, onLine: onLine(cars, 'car'), signal: stopSam.signal }),
-      client.segmentVideo(videoUrl, 'license plate', { fps, onLine: onLine(plates, 'plate'), signal: stopSam.signal }),
+      client.segmentVideo(videoUrl, 'car', { onLine: onLine(cars, 'car'), signal: stopSam.signal }),
+      client.segmentVideo(videoUrl, 'license plate', { onLine: onLine(plates, 'plate'), signal: stopSam.signal }),
     ]);
     const first = await Promise.race([sam.then((results) => ({ kind: 'sam' as const, results })), early.then((decision) => ({ kind: 'early' as const, decision }))]);
     if (first.kind === 'early') {
       mark('decided');
       stopSam.abort();
       sam.catch(() => undefined);
-      // SAM bills the whole (sampled) clip even when we stop reading, and at least 50 frames per prompt.
+      // SAM bills the whole clip even when we stop reading, and at least 50 frames per prompt.
       framesProcessed = 2 * Math.max(SAM_MIN_BILLED_FRAMES, Math.ceil(info.durationS * fps));
       debug.framesEstimated = true;
       return done(first.decision);

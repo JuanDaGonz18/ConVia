@@ -1,6 +1,6 @@
 /**
- * Meta Model API calls for verify-pickup: SAM 3.1 on video (sampled at a
- * fixed fps, see pipeline.ts) and Muse Spark 1.3 on one frame with strict
+ * Meta Model API calls for verify-pickup: SAM 3.1 on video (every frame:
+ * it rejects input_video.fps, see pipeline.ts) and Muse Spark 1.3 on one frame with strict
  * JSON. The clip goes inline as a base64 data URL, not through the Files
  * API: uploading and deleting a file added ~9 s per check, and inline
  * nothing is stored at the provider. Plain fetch and no Deno APIs, so the
@@ -23,8 +23,6 @@ export type ModelClientOptions = {
 export type SegmentResult = { text: string; framesProcessed: number | null };
 
 export type SegmentOptions = {
-  /** Frames per second SAM samples from the clip (fewer frames, lower cost); frame indices are at this rate. */
-  fps?: number;
   /** Called with each frame's line as SAM streams it (frames arrive in order for concept prompts). */
   onLine?: (line: string) => void;
   /** Aborting it stops reading the stream; the call then rejects with the abort error, not a ModelError. */
@@ -73,7 +71,7 @@ export function createModelClient({ apiKey, baseUrl, reasoningEffort = 'minimal'
      * SAM 3.1 on the whole clip, one concept prompt, streamed: one line per frame
      * (https://dev.meta.ai/docs/sam/segmenting#stream). Frames without matches have no line.
      */
-    async segmentVideo(videoDataUrl, prompt, { fps, onLine, signal } = {}) {
+    async segmentVideo(videoDataUrl, prompt, { onLine, signal } = {}) {
       const label = `sam:${prompt}`;
       const res = await request(label, '/responses', {
         method: 'POST',
@@ -83,7 +81,7 @@ export function createModelClient({ apiKey, baseUrl, reasoningEffort = 'minimal'
           stream: true,
           input: [{ type: 'message', role: 'user', content: [
             { type: 'input_text', text: prompt },
-            { type: 'input_video', video_url: videoDataUrl, ...(fps ? { fps } : {}) },
+            { type: 'input_video', video_url: videoDataUrl },
           ] }],
           metadata: { include_confidence: 'true', mask_encoding: 'one_bit', propagation_direction: 'forward' },
         }),

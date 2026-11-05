@@ -36,7 +36,7 @@ const MAX_BODY_BYTES = 1 * MB;
 const BUCKET = 'pickup-clips';
 const MIN_CONFIDENCE = Number(Deno.env.get('PICKUP_MIN_CONFIDENCE')) || DEFAULT_PIPELINE_CONFIG.minConfidence;
 const REASONING_EFFORT = (['minimal', 'low', 'medium', 'high'] as const).find((effort) => effort === Deno.env.get('PICKUP_REASONING_EFFORT')) ?? 'minimal';
-/** Each real attempt costs 2 SAM calls (≥ 50 frames each) + 1 Muse call. The app sends a frame every 200 ms (5 fps) of a 3 s clip. */
+/** Each real attempt costs 2 SAM calls (every clip frame, ≥ 50 each) + 1 Muse call. The app sends a frame every 200 ms of a 3 s clip. */
 const MAX_FRAMES = 16;
 const CLIP_NAME = /^clip-[A-Za-z0-9-]{8,64}\.(mp4|mov)$/;
 const FRAME_NAME = /^frame-[A-Za-z0-9-]{8,64}-\d{1,5}\.jpg$/;

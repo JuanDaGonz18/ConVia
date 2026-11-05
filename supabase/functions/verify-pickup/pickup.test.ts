@@ -199,7 +199,7 @@ describe('analyzeClip', () => {
     const verified = await analyzeClip(clip, REGISTERED, createMockClient(REGISTERED, 'verified'));
     assert.ok(verified.debug.earlyExit, 'verified should exit early');
     assert.equal(verified.timings.sam_done, undefined);
-    assert.equal(verified.framesProcessed, 2 * 50); // estimated: 2 s at 5 fps is under SAM's 50-frame minimum per prompt
+    assert.equal(verified.framesProcessed, 2 * 60); // estimated: the whole 2 s clip at 30 fps, per prompt
     const mismatch = await analyzeClip(clip, REGISTERED, createMockClient(REGISTERED, 'mismatch'));
     assert.equal(mismatch.debug.earlyExit, undefined);
     assert.equal(typeof mismatch.timings.sam_done, 'number');
@@ -209,8 +209,8 @@ describe('analyzeClip', () => {
   test("Muse reads the middle frame while SAM runs, and reads SAM's frame instead when the middle one does not show the plate", async () => {
     const loaded: number[] = [];
     const tracked = [0, 500, 2400, 2800].map((timeMs) => ({ timeMs, width: 640, height: 360, load: async () => { loaded.push(timeMs); return new Uint8Array([0xff]); } }));
-    // Mock plate lines cover frames 1-9 (0.2-1.8 s at 5 fps), best at frame 4 (0.8 s).
-    // The middle frame (2400 ms = frame 12) doesn't show it, so Muse reads the frame nearest to 0.8 s (500 ms).
+    // Mock plate lines cover 0.2-1.8 s, best at 0.8 s.
+    // The middle frame (2400 ms) doesn't show it, so Muse reads the frame nearest to 0.8 s (500 ms).
     const result = await analyzeClip({ ...clip, frames: tracked }, REGISTERED, createMockClient(REGISTERED, 'mismatch'));
     assert.equal(result.decision.status, 'mismatch');
     assert.equal(result.debug.museFrame, 'sam_pick');
@@ -220,7 +220,7 @@ describe('analyzeClip', () => {
   test("a middle frame only good for \"film again\" gets a second reading on SAM's frame (approaching car, night)", async () => {
     const loaded: number[] = [];
     const tracked = [0, 500, 1000].map((timeMs) => ({ timeMs, width: 640, height: 360, load: async () => { loaded.push(timeMs); return new Uint8Array([0xff]); } }));
-    // The middle frame (500 ms ≈ frame 3) shows the plate, but too small to read; SAM's best is frame 4 (0.8 s → 1000 ms).
+    // The middle frame (500 ms) shows the plate, but too small to read; SAM's best is 0.8 s → 1000 ms.
     const base = createMockClient(REGISTERED, 'verified');
     let reads = 0;
     const client: ModelClient = {
