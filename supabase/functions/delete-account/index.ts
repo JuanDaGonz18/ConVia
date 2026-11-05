@@ -8,8 +8,9 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
-// Face verification runs on the device and stores no photos, so only these hold user files.
-const BUCKETS = ['avatars', 'vehicle-photos'];
+// Face verification runs on the device and stores no photos today; face-verifications is
+// still emptied in case it holds files from older flows.
+const BUCKETS = ['avatars', 'vehicle-photos', 'face-verifications'];
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers });

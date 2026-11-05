@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+import { MB, readJsonBody } from '../_shared/guard.ts';
+
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 const headers = {
@@ -11,7 +13,7 @@ const headers = {
 type NotifyEvent = 'request_created' | 'request_responded' | 'request_cancelled' | 'message' | 'trip_updated';
 /** Alerts and schedule notices, built and rate-limited by the database (claim_* functions). */
 type ServerEvent = 'trip_published' | 'recurring_saved' | 'sweep';
-type Push = { recipients: string[]; title: string; body: string; data: Record<string, string> };
+type Push = { recipients: string[]; title: string; body: string; data: Record<string, string>; dedupeId?: string };
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers });
@@ -59,7 +61,7 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
       .eq('id', id)
       .single();
     if (!update || update.changed_by !== callerId) return null;
-    const trip = update.trip as { driver_id: string; destino_nombre: string; salida_at: string; driver: { nombre: string } | null } | null;
+    const trip = update.trip as unknown as { driver_id: string; destino_nombre: string; salida_at: string; driver: { nombre: string } | null } | null;
     if (!trip || trip.driver_id !== callerId) return null;
     const driverName = trip.driver?.nombre || 'El conductor';
     const data = { type: 'trip_updated', kind: update.kind as string, tripId: update.trip_id };
@@ -108,7 +110,7 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
     .eq('id', id)
     .single();
   if (!request) return null;
-  const trip = request.trip as { driver_id: string; destino_nombre: string; driver: { nombre: string } | null } | null;
+  const trip = request.trip as unknown as { driver_id: string; destino_nombre: string; driver: { nombre: string } | null } | null;
   if (!trip) return null;
   const passengerName = (request.passenger as { nombre?: string } | null)?.nombre || 'Un pasajero';
   const data = { type: event, requestId: id, tripId: request.trip_id };
@@ -120,7 +122,8 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
     return { recipients: [trip.driver_id], title: 'Solicitud cancelada', body: `${passengerName} canceló su solicitud.`, data };
   }
   if (event === 'request_responded' && trip.driver_id === callerId && RESPONSE_TEXT[request.estado]) {
-    return { recipients: [request.passenger_id], title: 'Respuesta a tu solicitud', body: `${trip.driver?.nombre || 'El conductor'} ${RESPONSE_TEXT[request.estado]}`, data };
+    // Each answer (accepted, rejected) is notified once.
+    return { recipients: [request.passenger_id], title: 'Respuesta a tu solicitud', body: `${trip.driver?.nombre || 'El conductor'} ${RESPONSE_TEXT[request.estado]}`, data, dedupeId: `${id}:${request.estado}` };
   }
   return null;
 }
@@ -194,11 +197,27 @@ async function send(pushes: Push[]) {
   return messages.length;
 }
 
+/**
+ * Claims (event, id) in notified_events so replaying the same request sends
+ * nothing. Returns a release function for when the send fails, or null when
+ * the push was already sent.
+ */
+async function claimOnce(event: NotifyEvent, id: string) {
+  const { error } = await admin.from('notified_events').insert({ event, ref_id: id });
+  if (error?.code === '23505') return null;
+  if (error) throw error;
+  return async () => {
+    await admin.from('notified_events').delete().eq('event', event).eq('ref_id', id);
+  };
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
   if (request.method !== 'POST') return response({ error: 'METHOD_NOT_ALLOWED' }, 405);
 
-  const body = await request.json().catch(() => null) as { event?: NotifyEvent | ServerEvent; id?: string } | null;
+  const read = await readJsonBody(request, 1 * MB);
+  if (!read.ok && read.status === 413) return response({ error: read.error }, 413);
+  const body = (read.ok ? read.body : null) as { event?: NotifyEvent | ServerEvent; id?: string } | null;
   if (!body?.event) return response({ error: 'EVENT_REQUIRED' }, 400);
 
   try {
@@ -218,8 +237,17 @@ Deno.serve(async (request) => {
     if (body.event === 'trip_published' || body.event === 'recurring_saved') {
       return response({ sent: await send(await serverPushes(body.event, body.id, authData.user.id)) });
     }
+    // Alerts above are already claimed once by the database; these are deduped here.
     const push = await buildPush(body.event, body.id, authData.user.id);
-    return response({ sent: push ? await send([push]) : 0 });
+    if (!push) return response({ sent: 0 });
+    const release = await claimOnce(body.event, push.dedupeId ?? body.id);
+    if (!release) return response({ sent: 0 });
+    try {
+      return response({ sent: await send([push]) });
+    } catch (error) {
+      await release();
+      throw error;
+    }
   } catch (error) {
     console.error('[notify]', error);
     return response({ error: 'NOTIFY_FAILED' }, 500);
