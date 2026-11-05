@@ -1354,15 +1354,6 @@
     "anonymous": "Usuario de ConVía",
     "failed": "No se pudieron cargar tus reseñas."
   },
-  "metaAi": {
-    "badge": "✨ IA de Meta",
-    "hint": "Muestra qué modelo de Meta se usa aquí",
-    "pickup": "SAM 3.1 sigue el carro y su placa en el video; Muse Spark 1.3 lee placa, marca y color.",
-    "autofill": "Muse Spark 1.3 lee marca, línea, color y placa de la foto del vehículo.",
-    "vehicleCheck": "SAM 3.1 encuentra el carro y la placa; Muse Spark 1.3 los lee para confirmar que es tu vehículo.",
-    "studentCard": "Muse Spark 1.3 lee el carné (la cara se difumina en tu teléfono antes de enviarlo).",
-    "agent": "Muse Spark Open (pesos abiertos) busca y compara los viajes por ti."
-  },
   "institution": {
     "kicker": "TU INSTITUCIÓN",
     "title": "Tu institución",
@@ -1553,23 +1544,6 @@
     "stale": "El viaje cambió desde que lo verificamos (hora, precio o cupos). Pregúntale de nuevo al asistente.",
     "confirmFailed": "No se pudo pedir el cupo.",
     "howDecided": "Cómo lo decidió el asistente"
-  },
-  "agentTrace": {
-    "title": "Cómo lo decidió",
-    "subtitle": "Cada paso del asistente: qué pensó, qué consultó y qué se verificó.",
-    "totals": "{{turns}} turnos del modelo · {{seconds}} s · ${{cost}}",
-    "judge": "Juez (Muse Spark 1.3)",
-    "ambiguous": "ambiguo",
-    "noPlace": "Ningún lugar encontrado",
-    "specAccepted": "Solicitud verificada y aceptada",
-    "specRejected": "Solicitud rechazada",
-    "options_one": "{{count}} opción, la mejor sale a las {{first}}",
-    "options_other": "{{count}} opciones, la mejor sale a las {{first}}",
-    "noOptions": "Ninguna opción en la ventana",
-    "verified": "Propuesta verificada",
-    "notVerified": "No verificada",
-    "ended": "Terminó: {{status}}",
-    "failed": "No se pudo cargar el recorrido."
   },
   "stats": {
     "kicker": "TUS VIAJES",
