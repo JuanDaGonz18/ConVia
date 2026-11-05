@@ -15,6 +15,7 @@ import {
   isBetaPerk,
   parsePlan,
   PLAN_LIMITS,
+  planLimitFromError,
   resolveCapabilities,
   resolveLimits,
 } from './plans.ts';
@@ -29,6 +30,12 @@ describe('beta mode', () => {
     for (const key of ['multiple_vehicles', 'repeat_trip', 'unlimited_results', 'advanced_saved_places'] as Capability[]) {
       assert.ok(caps.includes(key), key);
     }
+  });
+
+  test('beta never unlocks the paid AI features; pickup verification is FREE', () => {
+    const caps = resolveCapabilities('free', true);
+    assert.ok(!caps.includes('trip_assistant') && !caps.includes('vehicle_autofill'));
+    assert.ok(caps.includes('pickup_verification') && resolveCapabilities('free', false).includes('pickup_verification'));
   });
 
   test('beta never gives FREE what depends on the real plan (maps, traffic, priority, badge)', () => {
@@ -48,14 +55,25 @@ describe('beta mode', () => {
 
 describe('limits', () => {
   test('FREE and ConVía+ limits are defined', () => {
-    assert.deepEqual(PLAN_LIMITS.free, { vehicles: 1, saved_places: 3, favorite_drivers: 10, visible_results: 5, saved_routes: 1 });
-    assert.deepEqual(PLAN_LIMITS.plus, { vehicles: 10, saved_places: 20, favorite_drivers: null, visible_results: null, saved_routes: 10 });
+    assert.deepEqual(PLAN_LIMITS.free, { vehicles: 1, saved_places: 3, favorite_drivers: 10, visible_results: 5, saved_routes: 1, pickup_verifications_month: 10 });
+    assert.deepEqual(PLAN_LIMITS.plus, { vehicles: 10, saved_places: 20, favorite_drivers: null, visible_results: null, saved_routes: 10, pickup_verifications_month: null });
   });
 
   test('the beta relaxes limits (ConVía+ values) without deleting the FREE ones', () => {
-    assert.deepEqual(resolveLimits('free', true), PLAN_LIMITS.plus);
+    assert.deepEqual(resolveLimits('free', true), { ...PLAN_LIMITS.plus, pickup_verifications_month: 10 });
     assert.deepEqual(resolveLimits('free', false), PLAN_LIMITS.free);
     assert.equal(PLAN_LIMITS.free.vehicles, 1);
+  });
+
+  test('the monthly pickup verification limit follows the real plan, even in beta', () => {
+    assert.equal(resolveLimits('free', true).pickup_verifications_month, 10);
+    assert.equal(resolveLimits('free', false).pickup_verifications_month, 10);
+    assert.equal(resolveLimits('plus', true).pickup_verifications_month, null);
+    assert.equal(resolveLimits('plus', false).pickup_verifications_month, null);
+  });
+
+  test('server limit errors name the pickup limit', () => {
+    assert.deepEqual(planLimitFromError('LIMITE_PLAN:pickup_verifications_month:10'), { key: 'pickup_verifications_month', limit: 10 });
   });
 });
 
@@ -76,7 +94,7 @@ describe('server answers', () => {
     const plan = parsePlan({
       tier: 'free', name: 'ConVía', status: 'active', current_period_end: null,
       limits: { vehicles: 10, saved_places: 20 }, features: [],
-      plan_limits: { vehicles: 1, saved_places: 3, favorite_drivers: 10, visible_results: 5, saved_routes: 1 },
+      plan_limits: { vehicles: 1, saved_places: 3, favorite_drivers: 10, visible_results: 5, saved_routes: 1, pickup_verifications_month: 10 },
       capabilities: [...resolveCapabilities('free', true), 'unknown_future_capability'], beta_mode: true,
     });
     assert.equal(plan.limits.vehicles, 10);

@@ -399,6 +399,14 @@ verify_jwt = true
 [functions.verify-vehicle]
 verify_jwt = true
 
+# Called by the app with the user's JWT (ConVía+: vehicle_autofill).
+[functions.suggest-vehicle]
+verify_jwt = true
+
+# Called by the app with the user's JWT, and by pg_cron (anon key + x-convia-cron) to delete old clips.
+[functions.verify-pickup]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

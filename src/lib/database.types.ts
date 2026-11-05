@@ -230,6 +230,38 @@ export type Database = {
           },
         ]
       }
+      institution_identity_providers: {
+        Row: {
+          activo: boolean
+          created_at: string
+          institution_id: string
+          provider: string
+          tenant_id: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          institution_id: string
+          provider: string
+          tenant_id: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          institution_id?: string
+          provider?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_identity_providers_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institutions: {
         Row: {
           activo: boolean
@@ -296,6 +328,119 @@ export type Database = {
           },
         ]
       }
+      notified_events: {
+        Row: {
+          created_at: string
+          event: string
+          ref_id: string
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          ref_id: string
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          ref_id?: string
+        }
+        Relationships: []
+      }
+      pickup_verifications: {
+        Row: {
+          brand_match: boolean | null
+          brand_read: string | null
+          color_match: boolean | null
+          color_read: string | null
+          confidence: number | null
+          created_at: string
+          driver_id: string
+          frames_processed: number | null
+          id: string
+          latency_ms: number
+          mock: boolean
+          passenger_id: string
+          plate_read: string | null
+          reason: string
+          reported_at: string | null
+          request_id: string
+          status: string
+          timings: NonNullable<Json>
+          trip_id: string
+        }
+        Insert: {
+          brand_match?: boolean | null
+          brand_read?: string | null
+          color_match?: boolean | null
+          color_read?: string | null
+          confidence?: number | null
+          created_at?: string
+          driver_id: string
+          frames_processed?: number | null
+          id?: string
+          latency_ms: number
+          mock?: boolean
+          passenger_id: string
+          plate_read?: string | null
+          reason: string
+          reported_at?: string | null
+          request_id: string
+          status: string
+          timings?: NonNullable<Json>
+          trip_id: string
+        }
+        Update: {
+          brand_match?: boolean | null
+          brand_read?: string | null
+          color_match?: boolean | null
+          color_read?: string | null
+          confidence?: number | null
+          created_at?: string
+          driver_id?: string
+          frames_processed?: number | null
+          id?: string
+          latency_ms?: number
+          mock?: boolean
+          passenger_id?: string
+          plate_read?: string | null
+          reason?: string
+          reported_at?: string | null
+          request_id?: string
+          status?: string
+          timings?: NonNullable<Json>
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pickup_verifications_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pickup_verifications_passenger_id_fkey"
+            columns: ["passenger_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pickup_verifications_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "trip_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pickup_verifications_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_capabilities: {
         Row: {
           beta_unlocked: boolean
@@ -320,21 +465,21 @@ export type Database = {
       plans: {
         Row: {
           features: string[]
-          limits: Json
+          limits: NonNullable<Json>
           name: string
           tier: string
           updated_at: string
         }
         Insert: {
           features?: string[]
-          limits?: Json
+          limits?: NonNullable<Json>
           name: string
           tier: string
           updated_at?: string
         }
         Update: {
           features?: string[]
-          limits?: Json
+          limits?: NonNullable<Json>
           name?: string
           tier?: string
           updated_at?: string
@@ -1143,6 +1288,99 @@ export type Database = {
           },
         ]
       }
+      vehicle_suggestions: {
+        Row: {
+          created_at: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicle_verifications: {
+        Row: {
+          brand_match: boolean | null
+          brand_read: string | null
+          color_match: boolean | null
+          color_read: string | null
+          confidence: number | null
+          created_at: string
+          driver_id: string
+          id: string
+          image_quality: string | null
+          line_read: string | null
+          message: string
+          mock: boolean
+          plate_expected: string
+          plate_read: string | null
+          reason: string
+          status: string
+          vehicle_id: string
+        }
+        Insert: {
+          brand_match?: boolean | null
+          brand_read?: string | null
+          color_match?: boolean | null
+          color_read?: string | null
+          confidence?: number | null
+          created_at?: string
+          driver_id: string
+          id?: string
+          image_quality?: string | null
+          line_read?: string | null
+          message: string
+          mock?: boolean
+          plate_expected: string
+          plate_read?: string | null
+          reason: string
+          status: string
+          vehicle_id: string
+        }
+        Update: {
+          brand_match?: boolean | null
+          brand_read?: string | null
+          color_match?: boolean | null
+          color_read?: string | null
+          confidence?: number | null
+          created_at?: string
+          driver_id?: string
+          id?: string
+          image_quality?: string | null
+          line_read?: string | null
+          message?: string
+          mock?: boolean
+          plate_expected?: string
+          plate_read?: string | null
+          reason?: string
+          status?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_verifications_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_verifications_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           activo: boolean
@@ -1308,7 +1546,7 @@ export type Database = {
         }[]
       }
       claim_recurring_pushes: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
           body: string
           title: string
@@ -1317,7 +1555,7 @@ export type Database = {
       }
       delete_recurring_trip: { Args: { p_id: string }; Returns: Json }
       driver_trip_requests: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
           created_at: string
           destino_nombre: string
@@ -1341,7 +1579,7 @@ export type Database = {
       }
       finish_trip: { Args: { p_trip_id: string }; Returns: Json }
       get_my_plan: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
           beta_mode: boolean
           capabilities: string[]
@@ -1354,9 +1592,9 @@ export type Database = {
           tier: string
         }[]
       }
-      get_my_profile: { Args: never; Returns: Json }
+      get_my_profile: { Args: Record<PropertyKey, never>; Returns: Json }
       my_chat_trips: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
           destino_nombre: string
           driver_avatar_url: string
@@ -1368,7 +1606,7 @@ export type Database = {
         }[]
       }
       my_trip_requests: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
           created_at: string
           destino_nombre: string
@@ -1385,9 +1623,9 @@ export type Database = {
           trip_id: string
         }[]
       }
-      my_trip_stats: { Args: never; Returns: Json }
+      my_trip_stats: { Args: Record<PropertyKey, never>; Returns: Json }
       passenger_trip_history: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
           destino_nombre: string
           driver_avatar_url: string
@@ -1412,6 +1650,10 @@ export type Database = {
       }
       rate_trip_passenger: {
         Args: { p_comment?: string; p_request_id: string; p_score: number }
+        Returns: undefined
+      }
+      report_pickup_mismatch: {
+        Args: { p_verification_id: string }
         Returns: undefined
       }
       respond_trip_request: {
@@ -1463,6 +1705,19 @@ export type Database = {
           p_vehicle_id: string
         }
         Returns: Json
+      }
+      service_check_plan: {
+        Args: {
+          p_capability: string
+          p_limit?: string
+          p_used?: number
+          p_user: string
+        }
+        Returns: undefined
+      }
+      service_stale_pickup_clips: {
+        Args: { p_limit?: number; p_older_than?: string }
+        Returns: string[]
       }
       set_passenger_payment: {
         Args: { p_paid: boolean; p_request_id: string }
@@ -1606,12 +1861,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1635,11 +1890,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1660,11 +1915,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1685,11 +1940,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1702,11 +1957,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

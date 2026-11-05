@@ -228,7 +228,9 @@
       "openSettings": "Abrir ajustes del teléfono",
       "allowCamera": "Permitir cámara",
       "webUnavailable": "La verificación con video está disponible en la app para Android e iPhone.",
-      "mock": "Modo de prueba: resultado simulado, sin IA real."
+      "mock": "Modo de prueba: resultado simulado, sin IA real.",
+      "monthlyLimit_one": "Tu plan incluye {{count}} verificación al mes.",
+      "monthlyLimit_other": "Tu plan incluye {{count}} verificaciones al mes."
     },
     "steps": {
       "upload": {
@@ -385,15 +387,17 @@
       "unsupported_vehicle": {
         "title": "No disponible para este vehículo",
         "text": "La verificación con IA funciona solo con placas de carro (3 letras y 3 números)."
+      },
+      "monthly_limit": {
+        "title": "Llegaste al límite de este mes",
+        "text": "Ya usaste las verificaciones del carro incluidas en tu plan este mes ({{count}}). Podrás verificar de nuevo el próximo mes."
+      },
+      "plan_locked": {
+        "title": "No disponible en tu plan",
+        "text": "La verificación del carro no está incluida en tu plan."
       }
     },
-    "samples": {
-      "title": "¿Sin carro para filmar? Prueba con un video de ejemplo",
-      "text": "Carros ficticios generados con Muse Image. El análisis es el real: SAM 3.1 y Muse Spark, como con un video tuyo.",
-      "match": "Llega el carro del viaje",
-      "other": "Llega otro carro",
-      "covered": "Llega con la placa tapada"
-    }
+    "plusAction": "Conocer ConVía+"
   },
   "colors": {
     "blanco": "blanco",
@@ -1319,7 +1323,8 @@
     "applied": "Datos llenados. Revísalos antes de guardar.",
     "unclear": "No reconocimos el vehículo en la foto. Escribe los datos.",
     "unavailable": "La sugerencia con IA no está disponible ahora. Escribe los datos.",
-    "dismiss": "Cerrar sugerencia"
+    "dismiss": "Cerrar sugerencia",
+    "plusEntry": "Llena marca, línea, color y placa con una foto"
   },
   "demo": {
     "disabled": "Desactivado en modo demo",
@@ -1348,15 +1353,6 @@
     "noComment": "Sin comentario",
     "anonymous": "Usuario de ConVía",
     "failed": "No se pudieron cargar tus reseñas."
-  },
-  "metaAi": {
-    "badge": "✨ IA de Meta",
-    "hint": "Muestra qué modelo de Meta se usa aquí",
-    "pickup": "SAM 3.1 sigue el carro y su placa en el video; Muse Spark 1.3 lee placa, marca y color.",
-    "autofill": "Muse Spark 1.3 lee marca, línea, color y placa de la foto del vehículo.",
-    "vehicleCheck": "SAM 3.1 encuentra el carro y la placa; Muse Spark 1.3 los lee para confirmar que es tu vehículo.",
-    "studentCard": "Muse Spark 1.3 lee el carné (la cara se difumina en tu teléfono antes de enviarlo).",
-    "agent": "Muse Spark Open (pesos abiertos) busca y compara los viajes por ti."
   },
   "institution": {
     "kicker": "TU INSTITUCIÓN",
@@ -1548,23 +1544,6 @@
     "stale": "El viaje cambió desde que lo verificamos (hora, precio o cupos). Pregúntale de nuevo al asistente.",
     "confirmFailed": "No se pudo pedir el cupo.",
     "howDecided": "Cómo lo decidió el asistente"
-  },
-  "agentTrace": {
-    "title": "Cómo lo decidió",
-    "subtitle": "Cada paso del asistente: qué pensó, qué consultó y qué se verificó.",
-    "totals": "{{turns}} turnos del modelo · {{seconds}} s · ${{cost}}",
-    "judge": "Juez (Muse Spark 1.3)",
-    "ambiguous": "ambiguo",
-    "noPlace": "Ningún lugar encontrado",
-    "specAccepted": "Solicitud verificada y aceptada",
-    "specRejected": "Solicitud rechazada",
-    "options_one": "{{count}} opción, la mejor sale a las {{first}}",
-    "options_other": "{{count}} opciones, la mejor sale a las {{first}}",
-    "noOptions": "Ninguna opción en la ventana",
-    "verified": "Propuesta verificada",
-    "notVerified": "No verificada",
-    "ended": "Terminó: {{status}}",
-    "failed": "No se pudo cargar el recorrido."
   },
   "stats": {
     "kicker": "TUS VIAJES",
