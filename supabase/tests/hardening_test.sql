@@ -22,12 +22,14 @@ begin
   update public.app_config set beta_mode = true;
   insert into public.institutions (nombre, tipo, dominio) values ('Org O (prueba)', 'universidad', 'orgo-prueba.edu.co');
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
-    (dA, 'zz.hd.a@unisabana.edu.co', '{"nombre":"ZZ A","rol":"conductor"}', 'authenticated', 'authenticated'),
-    (dX, 'zz.hd.x@unisabana.edu.co', '{"nombre":"ZZ X","rol":"conductor"}', 'authenticated', 'authenticated'),
+    (dA, 'zz.hd.a@unisabana.edu.co', '{"nombre":"ZZ A"}', 'authenticated', 'authenticated'),
+    (dX, 'zz.hd.x@unisabana.edu.co', '{"nombre":"ZZ X"}', 'authenticated', 'authenticated'),
     (pF, 'zz.hd.f@unisabana.edu.co', '{"nombre":"ZZ F"}', 'authenticated', 'authenticated'),
     (pG, 'zz.hd.g@unisabana.edu.co', '{"nombre":"ZZ G"}', 'authenticated', 'authenticated'),
     (uM, 'zz.hd.m@unisabana.edu.co', '{"full_name":"ZZ Microsoft Persona"}', 'authenticated', 'authenticated'),
     (uO, 'zz.hd.o@orgo-prueba.edu.co', '{"nombre":"ZZ O"}', 'authenticated', 'authenticated');
+  -- Signup always creates 'usuario'; driver mode is set by the server (as switch_role would).
+  update public.profiles set rol = 'conductor' where id in (dA, dX);
   update public.profiles set verification_status = 'verificado' where id in (dA, dX, pF, pG);
   insert into public.driver_profiles (user_id, status) values (dA, 'aprobado'), (dX, 'aprobado')
     on conflict (user_id) do update set status = 'aprobado';

@@ -1,5 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+import { MB, readJsonBody } from '../_shared/guard.ts';
+import { type ClaimStore, type ExpoMessage, postToExpo, sendOnce } from './push.ts';
+
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 const headers = {
@@ -11,7 +14,7 @@ const headers = {
 type NotifyEvent = 'request_created' | 'request_responded' | 'request_cancelled' | 'message' | 'trip_updated';
 /** Alerts and schedule notices, built and rate-limited by the database (claim_* functions). */
 type ServerEvent = 'trip_published' | 'recurring_saved' | 'sweep';
-type Push = { recipients: string[]; title: string; body: string; data: Record<string, string> };
+type Push = { recipients: string[]; title: string; body: string; data: Record<string, string>; dedupeId?: string };
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers });
@@ -59,7 +62,7 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
       .eq('id', id)
       .single();
     if (!update || update.changed_by !== callerId) return null;
-    const trip = update.trip as { driver_id: string; destino_nombre: string; salida_at: string; driver: { nombre: string } | null } | null;
+    const trip = update.trip as unknown as { driver_id: string; destino_nombre: string; salida_at: string; driver: { nombre: string } | null } | null;
     if (!trip || trip.driver_id !== callerId) return null;
     const driverName = trip.driver?.nombre || 'El conductor';
     const data = { type: 'trip_updated', kind: update.kind as string, tripId: update.trip_id };
@@ -108,7 +111,7 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
     .eq('id', id)
     .single();
   if (!request) return null;
-  const trip = request.trip as { driver_id: string; destino_nombre: string; driver: { nombre: string } | null } | null;
+  const trip = request.trip as unknown as { driver_id: string; destino_nombre: string; driver: { nombre: string } | null } | null;
   if (!trip) return null;
   const passengerName = (request.passenger as { nombre?: string } | null)?.nombre || 'Un pasajero';
   const data = { type: event, requestId: id, tripId: request.trip_id };
@@ -120,7 +123,8 @@ async function buildPush(event: NotifyEvent, id: string, callerId: string): Prom
     return { recipients: [trip.driver_id], title: 'Solicitud cancelada', body: `${passengerName} canceló su solicitud.`, data };
   }
   if (event === 'request_responded' && trip.driver_id === callerId && RESPONSE_TEXT[request.estado]) {
-    return { recipients: [request.passenger_id], title: 'Respuesta a tu solicitud', body: `${trip.driver?.nombre || 'El conductor'} ${RESPONSE_TEXT[request.estado]}`, data };
+    // Each answer (accepted, rejected) is notified once.
+    return { recipients: [request.passenger_id], title: 'Respuesta a tu solicitud', body: `${trip.driver?.nombre || 'El conductor'} ${RESPONSE_TEXT[request.estado]}`, data, dedupeId: `${id}:${request.estado}` };
   }
   return null;
 }
@@ -169,36 +173,37 @@ async function send(pushes: Push[]) {
     .not('expo_push_token', 'is', null);
   if (error) throw error;
   const tokens = new Map((profiles ?? []).map((profile) => [profile.id as string, profile.expo_push_token as string]));
-  const messages = pushes.flatMap((push) => push.recipients
+  const messages: ExpoMessage[] = pushes.flatMap((push) => push.recipients
     .filter((userId) => tokens.has(userId))
     .map((userId) => ({
-      to: tokens.get(userId),
+      to: tokens.get(userId)!,
       title: push.title,
       body: push.body,
       data: push.data,
       sound: 'default',
       channelId: 'default',
     })));
-  // Expo accepts up to 100 messages per request.
-  for (let start = 0; start < messages.length; start += 100) {
-    const expoResponse = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(messages.slice(start, start + 100)),
-    });
-    if (!expoResponse.ok) {
-      console.error('[notify] Expo push failed', expoResponse.status, await expoResponse.text());
-      throw new Error('PUSH_FAILED');
-    }
-  }
-  return messages.length;
+  return postToExpo(messages);
 }
+
+/** notified_events, written only with the service role: each (event, id) is pushed once. */
+const notifiedEvents: ClaimStore = {
+  async insert(event, refId) {
+    const { error } = await admin.from('notified_events').insert({ event, ref_id: refId });
+    return error;
+  },
+  async remove(event, refId) {
+    await admin.from('notified_events').delete().eq('event', event).eq('ref_id', refId);
+  },
+};
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
   if (request.method !== 'POST') return response({ error: 'METHOD_NOT_ALLOWED' }, 405);
 
-  const body = await request.json().catch(() => null) as { event?: NotifyEvent | ServerEvent; id?: string } | null;
+  const read = await readJsonBody(request, 1 * MB);
+  if (!read.ok && read.status === 413) return response({ error: read.error }, 413);
+  const body = (read.ok ? read.body : null) as { event?: NotifyEvent | ServerEvent; id?: string } | null;
   if (!body?.event) return response({ error: 'EVENT_REQUIRED' }, 400);
 
   try {
@@ -218,8 +223,10 @@ Deno.serve(async (request) => {
     if (body.event === 'trip_published' || body.event === 'recurring_saved') {
       return response({ sent: await send(await serverPushes(body.event, body.id, authData.user.id)) });
     }
+    // Alerts above are already claimed once by the database; these are deduped here.
     const push = await buildPush(body.event, body.id, authData.user.id);
-    return response({ sent: push ? await send([push]) : 0 });
+    if (!push) return response({ sent: 0 });
+    return response({ sent: await sendOnce(notifiedEvents, body.event, push.dedupeId ?? body.id, () => send([push])) });
   } catch (error) {
     console.error('[notify]', error);
     return response({ error: 'NOTIFY_FAILED' }, 500);
