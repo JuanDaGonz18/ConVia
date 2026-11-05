@@ -53,8 +53,12 @@ type StreamEvent =
   | { type: 'progress'; step: PickupStage }
   | { type: 'result'; status: number; body: FunctionResponse | { error?: string } };
 
-/** 3 s is enough for a car that has stopped, and keeps SAM's cost per check low (it bills per frame). */
-export const PICKUP_CLIP_SECONDS = 3;
+/**
+ * 2 s is enough for a car that has stopped, and keeps SAM's cost per check low: it bills every
+ * frame, once per prompt (2 prompts), so ~120 frames per check at 30 fps. verify-pickup refuses
+ * clips over 2.5 s.
+ */
+export const PICKUP_CLIP_SECONDS = 2;
 /**
  * Frames sampled at 5 fps, the rate SAM tracks the clip at: the server reads
  * the one closest to where SAM saw the plate best.

@@ -43,8 +43,12 @@ export type PipelineConfig = {
   earlyS: number;
 };
 
-/** SAM 3.1 processes every frame of the clip: a 3 s clip at 30 fps bills 90 frames per prompt. */
-export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = { minConfidence: 0.5, maxDurationS: 3, earlyS: 0.6 };
+/**
+ * SAM 3.1 processes every frame of the clip and takes one concept per request (no multi-prompt
+ * syntax), so a check is 2 SAM calls. A 2 s clip at 30 fps bills 60 frames per prompt (≥ 50 each):
+ * 120 per check, down from 180 at 3 s.
+ */
+export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = { minConfidence: 0.5, maxDurationS: 2, earlyS: 0.6 };
 
 /** SAM bills at least this many frames per video request. */
 const SAM_MIN_BILLED_FRAMES = 50;
@@ -69,8 +73,8 @@ const MODEL_ERROR_REASON: Record<ModelErrorKind, 'timeout' | 'rate_limited' | 's
   malformed: 'bad_model_response',
 };
 
-/** Clips may run a little over the limit (encoder rounding). */
-const DURATION_TOLERANCE_S = 0.6;
+/** Clips may run a little over the limit (encoder rounding): a 2 s cap refuses anything over 2.5 s. */
+const DURATION_TOLERANCE_S = 0.5;
 /** Time between Muse's frame and a SAM plate detection that still counts as the same moment. */
 const SAME_MOMENT_S = 0.2;
 

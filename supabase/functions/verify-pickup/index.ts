@@ -11,7 +11,7 @@ import { MB, modelMode, positiveIntEnv, readJsonBody } from '../_shared/guard.ts
 import { checkPlan } from '../_shared/plan.ts';
 
 /**
- * verify-pickup: the passenger films the arriving car for up to 3 s and we
+ * verify-pickup: the passenger films the arriving car for up to 2 s and we
  * check it is the trip's car (see pipeline.ts). Only the trip's accepted
  * passenger can call it, while the trip is active, which is also when the
  * full plate is revealed to them. The clip and its frames are deleted from
@@ -36,7 +36,7 @@ const MAX_BODY_BYTES = 1 * MB;
 const BUCKET = 'pickup-clips';
 const MIN_CONFIDENCE = Number(Deno.env.get('PICKUP_MIN_CONFIDENCE')) || DEFAULT_PIPELINE_CONFIG.minConfidence;
 const REASONING_EFFORT = (['minimal', 'low', 'medium', 'high'] as const).find((effort) => effort === Deno.env.get('PICKUP_REASONING_EFFORT')) ?? 'minimal';
-/** Each real attempt costs 2 SAM calls (every clip frame, ≥ 50 each) + 1 Muse call. The app sends a frame every 200 ms of a 3 s clip. */
+/** Each real attempt costs 2 SAM calls (every clip frame, ≥ 50 each) + 1 Muse call. The app sends a frame every 200 ms of a 2 s clip. */
 const MAX_FRAMES = 16;
 const CLIP_NAME = /^clip-[A-Za-z0-9-]{8,64}\.(mp4|mov)$/;
 const FRAME_NAME = /^frame-[A-Za-z0-9-]{8,64}-\d{1,5}\.jpg$/;

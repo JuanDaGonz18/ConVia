@@ -23,9 +23,9 @@ const box = (x1: number, y1: number, x2: number, y2: number, c: number) =>
 /** SAM 3.1 indexes every frame of the clip; the app's clips and the fixtures are 30 fps. */
 const FPS = 30;
 
-/** 3 s of frames: the arriving car (id 0) grows; a parked car (id 1) stays small and is lost. */
+/** 2 s of frames (the app's cap): the arriving car (id 0) grows; a parked car (id 1) stays small and is lost. */
 function carLines() {
-  return Array.from({ length: 3 * FPS }, (_, frame) => {
+  return Array.from({ length: 2 * FPS }, (_, frame) => {
     const grow = Math.round((frame / FPS) * 80);
     return `<${frame}f>0${box(300 - grow, 200 - grow / 2, 900 + grow, 620 + grow / 4, 0.92)},1${box(40, 300, 160, 380, frame < FPS / 5 ? 0.6 : 0.02)}`;
   }).join('\n');
@@ -53,7 +53,8 @@ export function createMockClient(registered: { plate: string; brand: string; col
         onLine?.(line);
         await sleep(5);
       }
-      return { text, framesProcessed: 50 };
+      // 2 s at 30 fps = 60 frames per prompt (SAM bills at least 50).
+      return { text, framesProcessed: 2 * FPS };
     },
     async readPlate(): Promise<PickupReport> {
       await latency();

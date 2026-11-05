@@ -219,8 +219,8 @@
     "screen": {
       "kicker": "VERIFICAR MI CARRO",
       "title": "¿Es este tu carro?",
-      "intro": "Graba 3 segundos del carro que llega. Revisamos con IA que la placa, la marca y el color sean los del viaje. El video se borra apenas termina la verificación.",
-      "record": "Grabar 3 segundos",
+      "intro": "Graba 2 segundos del carro que llega. Revisamos con IA que la placa, la marca y el color sean los del viaje. El video se borra apenas termina la verificación.",
+      "record": "Grabar 2 segundos",
       "recording": "Grabando… {{seconds}}",
       "stop": "Detener",
       "cameraNeeded": "Necesitamos la cámara para grabar el carro.",
@@ -277,7 +277,7 @@
     "tips": {
       "front": "Apunta a la parte de adelante o de atrás del carro, donde está la placa.",
       "near": "Graba cuando el carro esté a pocos metros y casi detenido.",
-      "still": "Mantén el celular quieto durante los 3 segundos."
+      "still": "Mantén el celular quieto durante los 2 segundos."
     },
     "retry": {
       "clip_unreadable": {
@@ -286,7 +286,7 @@
       },
       "clip_too_long": {
         "title": "El video es muy largo",
-        "text": "Graba máximo 3 segundos."
+        "text": "Graba máximo 2 segundos."
       },
       "frame_missing": {
         "title": "No pudimos revisar el video",

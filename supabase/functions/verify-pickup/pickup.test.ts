@@ -203,7 +203,7 @@ describe('analyzeClip', () => {
     const mismatch = await analyzeClip(clip, REGISTERED, createMockClient(REGISTERED, 'mismatch'));
     assert.equal(mismatch.debug.earlyExit, undefined);
     assert.equal(typeof mismatch.timings.sam_done, 'number');
-    assert.equal(mismatch.framesProcessed, 100);
+    assert.equal(mismatch.framesProcessed, 120); // 2 prompts × 60 frames (2 s at 30 fps)
   });
 
   test("Muse reads the middle frame while SAM runs, and reads SAM's frame instead when the middle one does not show the plate", async () => {
@@ -276,5 +276,16 @@ describe('analyzeClip', () => {
     assert.equal((await analyzeClip({ video: new Uint8Array(10), frames }, REGISTERED, counting)).decision.reason, 'clip_unreadable');
     assert.equal((await analyzeClip(clip, REGISTERED, counting, { ...DEFAULT_PIPELINE_CONFIG, maxDurationS: 1 })).decision.reason, 'clip_too_long');
     assert.equal(calls, 0);
+  });
+
+  test('the default cap is 2 s: a 2 s clip is analyzed, a 3 s clip (> 2.5 s) is refused unpaid', async () => {
+    let calls = 0;
+    const counting: ModelClient = { ...createMockClient(REGISTERED, 'verified'), async segmentVideo(url, prompt, options) { calls++; return createMockClient(REGISTERED, 'verified').segmentVideo(url, prompt, options); } };
+    assert.equal((await analyzeClip({ video: fixture('square-3s.mp4'), frames }, REGISTERED, counting)).decision.reason, 'clip_too_long');
+    assert.equal(calls, 0);
+    const ok = await analyzeClip(clip, REGISTERED, counting);
+    assert.equal(ok.decision.status, 'verified');
+    assert.equal(calls, 2, 'one SAM call per prompt: car and license plate');
+    assert.ok((ok.framesProcessed ?? 0) <= 120, String(ok.framesProcessed));
   });
 });

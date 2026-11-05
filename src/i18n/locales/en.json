@@ -219,8 +219,8 @@
     "screen": {
       "kicker": "VERIFY MY CAR",
       "title": "Is this your car?",
-      "intro": "Record 3 seconds of the car arriving. We check with AI that the plate, make, and color match your ride. The video is deleted as soon as verification ends.",
-      "record": "Record 3 seconds",
+      "intro": "Record 2 seconds of the car arriving. We check with AI that the plate, make, and color match your ride. The video is deleted as soon as verification ends.",
+      "record": "Record 2 seconds",
       "recording": "Recording… {{seconds}}",
       "stop": "Stop",
       "cameraNeeded": "We need the camera to record the car.",
@@ -277,7 +277,7 @@
     "tips": {
       "front": "Aim at the front or back of the car, where the plate is.",
       "near": "Record when the car is a few meters away and almost stopped.",
-      "still": "Keep your phone steady for the 3 seconds."
+      "still": "Keep your phone steady for the 2 seconds."
     },
     "retry": {
       "clip_unreadable": {
@@ -286,7 +286,7 @@
       },
       "clip_too_long": {
         "title": "The video is too long",
-        "text": "Record 3 seconds max."
+        "text": "Record 2 seconds max."
       },
       "frame_missing": {
         "title": "We couldn't check the video",

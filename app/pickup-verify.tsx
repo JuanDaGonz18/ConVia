@@ -56,7 +56,7 @@ function retryKey(reason: string) {
 
 /**
  * "Verificar mi carro" (`?requestId=&tripId=`): the passenger films the arriving
- * car for up to 3 s and verify-pickup says whether it is the trip's car.
+ * car for up to 2 s and verify-pickup says whether it is the trip's car.
  * Nothing is kept: the clip and its frames are deleted after the check.
  * FREE has a monthly number of checks (the server enforces it).
  */

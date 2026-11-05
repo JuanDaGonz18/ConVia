@@ -37,16 +37,18 @@ async function makeUser(email) {
 }
 
 const CLIP = readFileSync(new globalThis.URL('../functions/verify-pickup/fixtures/square-faststart.mp4', import.meta.url));
+// 3 s: over the 2 s cap (+0.5 s encoder tolerance), refused before any paid call.
+const LONG_CLIP = readFileSync(new globalThis.URL('../functions/verify-pickup/fixtures/square-3s.mp4', import.meta.url));
 // Minimal valid JPEG (1x1).
 const JPEG = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
 
 /** Uploads a clip and two frames as the app does; returns the function body. */
-async function upload(user, requestId) {
+async function upload(user, requestId, clip = CLIP) {
   const attempt = crypto.randomUUID();
   const folder = `${user.id}/${requestId}`;
   const clipPath = `${folder}/clip-${attempt}.mp4`;
   const frames = [0, 500].map((ms) => ({ path: `${folder}/frame-${attempt}-${ms}.jpg`, time_ms: ms, width: 640, height: 360 }));
-  const { error } = await user.client.storage.from(BUCKET).upload(clipPath, CLIP, { contentType: 'video/mp4' });
+  const { error } = await user.client.storage.from(BUCKET).upload(clipPath, clip, { contentType: 'video/mp4' });
   if (error) throw error;
   for (const frame of frames) {
     const { error: frameError } = await user.client.storage.from(BUCKET).upload(frame.path, JPEG, { contentType: 'image/jpeg' });
@@ -116,6 +118,13 @@ for (const outcome of ['verified', 'mismatch', 'retry']) {
   if (outcome === 'mismatch') mismatchId = r.data?.verification_id;
 }
 
+// Clips longer than 2.5 s are refused before paying for SAM (the app records at most 2 s).
+{
+  const r = await invoke(passenger, await upload(passenger, requestId, LONG_CLIP));
+  check('3 s clip → retry clip_too_long', r.data?.status === 'retry' && r.data?.reason === 'clip_too_long', JSON.stringify(r.data));
+  check('files deleted after a too-long clip', (await leftFiles(passenger, requestId)) === 0);
+}
+
 // Security
 {
   const r = await invoke(stranger, await upload(stranger, requestId));
@@ -135,10 +144,10 @@ for (const outcome of ['verified', 'mismatch', 'retry']) {
 // Stored rows + RLS + report
 {
   const { data: rows } = await passenger.client.from('pickup_verifications').select('status, reason, latency_ms, timings, frames_processed').eq('request_id', requestId);
-  check('passenger reads the results (4 saved)', rows?.length === 4, JSON.stringify(rows?.map((row) => row.status)));
+  check('passenger reads the results (5 saved)', rows?.length === 5, JSON.stringify(rows?.map((row) => row.status)));
   check('latency and per-step timings stored', rows?.every((row) => row.latency_ms > 0 && typeof row.timings?.total === 'number'));
   const { data: driverRows } = await driver.client.from('pickup_verifications').select('id').eq('request_id', requestId);
-  check('driver of the trip reads them too', driverRows?.length === 4);
+  check('driver of the trip reads them too', driverRows?.length === 5);
   const { data: foreign } = await stranger.client.from('pickup_verifications').select('id').eq('request_id', requestId);
   check("anyone else can't", (foreign ?? []).length === 0);
   const { error: insertError } = await passenger.client.from('pickup_verifications').insert({
@@ -170,10 +179,10 @@ for (const outcome of ['verified', 'mismatch', 'retry']) {
   check('NDJSON: files deleted after the stream ends', (await leftFiles(passenger, requestId)) === 0);
 }
 
-// Attempt limit: 6 per request (5 already + 1 more allowed)
+// Attempt limit: 6 per request (6 already)
 {
   let last;
-  for (let i = 0; i < 2; i++) last = await invoke(passenger, await upload(passenger, requestId));
+  for (let i = 0; i < 1; i++) last = await invoke(passenger, await upload(passenger, requestId));
   check('7th attempt → retry too_many_attempts', last.data?.status === 'retry' && last.data?.reason === 'too_many_attempts', last.data?.reason);
   check('files deleted when the limit is hit', (await leftFiles(passenger, requestId)) === 0);
 }
