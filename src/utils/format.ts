@@ -69,6 +69,11 @@ export function rawErrorMessage(error: unknown) {
   return '';
 }
 
+/** Storage refused an upload because the per-user file cap (an RLS check) was reached. */
+export function isStorageQuotaError(error: unknown) {
+  return /row-level security/i.test(rawErrorMessage(error));
+}
+
 /** A message safe to show to the user, in their language (server messages stay in Spanish). */
 export function errorMessage(error: unknown, fallback: string) {
   const message = rawErrorMessage(error).trim();
