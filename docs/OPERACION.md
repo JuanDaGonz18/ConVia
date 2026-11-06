@@ -297,6 +297,10 @@ migración 040); si no, responden 403 `LEGAL_OUTDATED` y la app muestra el
 modal para aceptarlos. Al publicar una versión legal nueva, seguir el
 encabezado de esa migración.
 
+**Regla:** cualquier cambio de `LEGAL_VERSION` en `src/content/legal.ts` necesita,
+en el mismo PR, una migración que suba `private.current_legal_version()` a esa
+versión; las funciones de IA exigen esa versión.
+
 ### Secretos de las funciones (`npx supabase secrets list`)
 
 | Secreto | Uso | Producción |
