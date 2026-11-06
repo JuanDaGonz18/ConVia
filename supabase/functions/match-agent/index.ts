@@ -12,6 +12,7 @@ import { photonGeocoder } from './places.ts';
 import { type StepRow, toStepRow, totals } from './trace.ts';
 import { type Judge, ungroundedInRun, type VerifyData, verifyProposal } from './verify.ts';
 import type { ToolData } from './tools.ts';
+import { checkLegal } from '../_shared/legal.ts';
 
 /**
  * match-agent: the trip assistant. Muse Spark 1.3 on the Meta Model API
@@ -108,6 +109,9 @@ Deno.serve(async (request) => {
   const { data: authData, error: authError } = await admin.auth.getUser(token);
   if (authError || !authData.user) return json({ error: 'AUTH_REQUIRED' }, 401);
   const user = authData.user;
+  // Terms 1.2 cover the AI features: an older acceptance is a 403 the app answers with the modal.
+  const legal = await checkLegal(admin, user.id);
+  if (!legal.ok) return json({ error: legal.error }, legal.status);
   const userClient: SupabaseClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } });
 
   // ConVía+ (trip_assistant), decided by the database for runs and confirmations alike.

@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { MB, readJsonBody } from '../_shared/guard.ts';
 import { createTransport, MUSE_MODEL } from '../_shared/metaModel.ts';
 import { type CardReport, decideCard, decideDocument, type DocumentReport, type InstitutionRef } from './decide.ts';
+import { checkLegal } from '../_shared/legal.ts';
 
 /**
  * verify-student-id: the user's student card says they belong to the institution they chose.
@@ -150,6 +151,9 @@ Deno.serve(async (request) => {
   const { data: authData, error: authError } = await admin.auth.getUser(token);
   if (authError || !authData.user) return response({ error: 'AUTH_REQUIRED' }, 401);
   const userId = authData.user.id;
+  // Terms 1.2 cover the AI features: an older acceptance is a 403 the app answers with the modal.
+  const legal = await checkLegal(admin, userId);
+  if (!legal.ok) return response({ error: legal.error }, legal.status);
 
   const read = await readJsonBody(request, MAX_BODY_BYTES);
   if (!read.ok) return response({ error: read.error }, read.status);

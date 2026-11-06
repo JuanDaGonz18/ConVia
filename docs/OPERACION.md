@@ -291,6 +291,11 @@ tiene entrada y usa el valor por defecto, también `true`).
 | `match-agent` | app (JWT) | asistente de viajes: Muse Spark con herramientas (lee con la sesión del usuario, RLS) y una segunda llamada que juzga la propuesta | ConVía+ (`trip_assistant`) |
 
 Sin `MODEL_API_KEY` las funciones de IA responden 503 `MODEL_UNAVAILABLE`.
+Las cinco funciones de IA exigen además que la persona haya aceptado los
+documentos legales 1.2 o posteriores (`profiles.accepted_legal_version`,
+migración 040); si no, responden 403 `LEGAL_OUTDATED` y la app muestra el
+modal para aceptarlos. Al publicar una versión legal nueva, seguir el
+encabezado de esa migración.
 
 ### Secretos de las funciones (`npx supabase secrets list`)
 

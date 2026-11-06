@@ -11,6 +11,7 @@ import {
   type VisionReport,
 } from './decision.ts';
 import { parseSamBoxes, type SamBox } from './sam.ts';
+import { checkLegal } from '../_shared/legal.ts';
 
 /**
  * verify-vehicle: checks that the photo shows the driver's registered car.
@@ -260,6 +261,9 @@ Deno.serve(async (request) => {
   const { data: authData, error: authError } = await admin.auth.getUser(token);
   if (authError || !authData.user) return response({ error: 'AUTH_REQUIRED' }, 401);
   const userId = authData.user.id;
+  // Terms 1.2 cover the AI features: an older acceptance is a 403 the app answers with the modal.
+  const legal = await checkLegal(admin, userId);
+  if (!legal.ok) return response({ error: legal.error }, legal.status);
 
   const parsed = await readJsonBody(request, MAX_BODY_BYTES);
   if (!parsed.ok) return response({ error: parsed.error }, parsed.status);
