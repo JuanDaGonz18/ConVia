@@ -11,8 +11,8 @@
  * the version they accepted.
  */
 
-export const LEGAL_VERSION = '1.1';
-export const LEGAL_UPDATED_AT = '24 de octubre de 2026';
+export const LEGAL_VERSION = '1.2';
+export const LEGAL_UPDATED_AT = '6 de noviembre de 2026';
 
 export const LEGAL_COMPANY = {
   name: 'ConVía',
@@ -53,10 +53,13 @@ export const TERMS: LegalDocument = {
       title: '2. Qué es ConVía',
       body: [
         'ConVía es una plataforma tecnológica que permite a miembros de una comunidad universitaria publicar trayectos que ya van a realizar en su vehículo particular y a otros miembros solicitar un cupo en ellos (carro compartido).',
-        'ConVía es un proyecto académico desarrollado por estudiantes universitarios. No es una empresa constituida, no tiene ánimo de lucro y no es un servicio oficial ni respaldado por ninguna universidad o institución educativa, aunque solo admite correos de instituciones habilitadas.',
+        'ConVía es un proyecto académico desarrollado por estudiantes universitarios. No es una empresa constituida, no tiene ánimo de lucro y no es un servicio oficial ni respaldado por ninguna universidad o institución educativa.',
+        'Cualquier persona puede crear una cuenta, con cualquier correo. Para ver, pedir o publicar viajes debes verificar que perteneces a una institución habilitada en ConVía (ver sección 3). Mientras no lo hagas, no verás viajes, personas ni chats.',
         'La aplicación está en fase beta: es gratuita, puede tener errores y puede cambiar, interrumpirse o terminar en cualquier momento. Si ConVía deja de funcionar, eliminaremos los datos personales según la Política de Tratamiento de Datos.',
         'ConVía no es una empresa de transporte, no presta el servicio de transporte, no es propietaria de los vehículos, no contrata a los conductores y no es parte del acuerdo entre pasajero y conductor. Nuestra función se limita a facilitar el contacto y la coordinación entre usuarios.',
         'La aplicación no debe usarse para prestar servicio público de transporte ni ninguna actividad de transporte con fines comerciales o de lucro.',
+        'ConVía+ es un plan opcional con funciones adicionales: el asistente de viajes y el autocompletado de los datos del vehículo con inteligencia artificial, varios vehículos, viajes recurrentes, alertas de viajes, filtros y estadísticas avanzados, más lugares y conductores favoritos, verificaciones de recogida sin el límite mensual del plan gratis, mapas de Google con tráfico, prioridad entre solicitudes igual de compatibles y perfil destacado. El plan gratis conserva todo lo esencial para compartir viajes. El detalle vigente está en la pantalla ConVía+ de la aplicación.',
+        'Mientras dure la beta, ConVía+ es gratuito: algunas de sus funciones están abiertas a todos y las demás se activan sin costo. Nunca te cobraremos por ConVía+ sin mostrarte antes el precio y obtener tu aceptación expresa.',
       ],
     },
     {
@@ -66,12 +69,13 @@ export const TERMS: LegalDocument = {
         {
           bullets: [
             'Ser mayor de 18 años.',
-            'Pertenecer a una institución habilitada en ConVía y registrarte con tu correo institucional.',
+            'Para usar los viajes: pertenecer a una institución habilitada en ConVía y verificarlo con tu correo institucional, con tu cuenta institucional de Microsoft o con tu carné estudiantil. Si tu institución no aparece, puedes pedir que se agregue.',
             'Suministrar información veraz, completa y actualizada, y mantenerla así.',
             'Tener una sola cuenta, personal e intransferible.',
             'Completar la verificación de identidad cuando la aplicación la solicite.',
           ],
         },
+        `La verificación con el carné la hace un sistema automático con ayuda de inteligencia artificial. Si el resultado no es claro, o si usas un carné sin foto junto con una captura de tu cuenta institucional, una persona del equipo de ConVía revisa la solicitud antes de aprobarla o rechazarla. Si la verificación automática rechaza tu carné o no estás de acuerdo con su resultado, puedes pedir que una persona lo revise escribiendo a ${LEGAL_COMPANY.email}. Usar documentos falsos o ajenos es causal de cierre de la cuenta.`,
       ],
     },
     {
@@ -145,6 +149,8 @@ export const TERMS: LegalDocument = {
       title: '9. Seguridad y emergencias',
       body: [
         'Antes de subir, verifica que el conductor, la placa y el vehículo coincidan con lo que muestra la aplicación. Si algo no coincide o no te sientes seguro, no inicies el viaje.',
+        'La verificación del carro que llega (video de recogida) es una ayuda: puede fallar, por ejemplo con poca luz o una placa sucia, y no reemplaza que tú mismo revises la placa, el vehículo y al conductor.',
+        'El asistente de viajes solo te propone viajes; no pide un cupo ni decide por ti. Tú revisas la propuesta y decides si la confirmas.',
         'ConVía no presta servicios de emergencia. Ante cualquier emergencia comunícate con la Línea 123.',
       ],
     },
@@ -195,6 +201,7 @@ export const PRIVACY: LegalDocument = {
     'Usamos tus datos solo para que puedas compartir viajes de forma segura dentro de tu comunidad.',
     'Tu ubicación se usa mientras usas la aplicación (buscar lugares y viajes cercanos); no te rastreamos en segundo plano.',
     'Para verificar tu identidad convertimos tu rostro en una representación numérica. No guardamos fotos de tu cara ni de tu licencia.',
+    'Algunas funciones usan inteligencia artificial de Meta. Los videos de recogida se borran a más tardar en 1 hora y las imágenes del carné que van a revisión, a más tardar en 7 días.',
     'No vendemos tus datos. Puedes consultarlos, corregirlos o eliminar tu cuenta cuando quieras.',
     'ConVía es un proyecto académico de estudiantes, sin ánimo de lucro y sin empresa detrás.',
   ],
@@ -214,10 +221,13 @@ export const PRIVACY: LegalDocument = {
       body: [
         {
           bullets: [
-            'Identificación y contacto: nombre, correo institucional, teléfono (opcional) y foto de perfil.',
+            'Identificación y contacto: nombre, correo (institucional o personal), teléfono (opcional) y foto de perfil.',
             'Cuenta: contraseña (la administra nuestro proveedor de autenticación de forma cifrada; ConVía no puede verla), rol (pasajero o conductor), institución y la versión de estos documentos que aceptaste.',
             'Inicio de sesión con Microsoft (si lo usas): Microsoft nos envía tu nombre, tu correo institucional y el identificador de tu institución, que usamos para confirmar que perteneces a una institución habilitada. Nunca recibimos tu contraseña de Microsoft.',
-            'Vehículo (conductores): marca, color, placa, número de cupos y fotos del vehículo.',
+            'Institución: la institución que eliges y cómo la verificaste. Si la verificas con tu carné, tu teléfono recorta el carné y quita tu rostro antes de enviarlo; guardamos solo el resultado (sin tu nombre y con los últimos 4 dígitos de tu documento). Si usas un carné sin foto, también envías una captura de tu cuenta institucional con tu nombre y tu correo.',
+            'Vehículo (conductores): marca, color, placa, número de cupos y fotos del vehículo. Para verificar el vehículo o autocompletar sus datos, se analiza una foto del carro; esa foto se borra al terminar.',
+            'Video de recogida (pasajeros, opcional): un video de hasta 2 segundos del carro que llega, para confirmar que es el del viaje. Puede captar la placa y, de forma incidental, a personas en el entorno; no las identificamos. Guardamos solo el resultado.',
+            'Asistente de viajes (ConVía+, opcional): los mensajes que le escribes.',
             'Viajes: origen, destino, ruta, fecha, hora, aporte, cupos, solicitudes, puntos de recogida, abordaje con código QR y estado del viaje.',
             'Comunicaciones: mensajes del chat de cada viaje, calificaciones y comentarios, y registro de aportes pagados.',
             'Ubicación: la posición de tu teléfono cuando usas funciones como "Usar mi ubicación", el mapa o los viajes cercanos.',
@@ -234,7 +244,8 @@ export const PRIVACY: LegalDocument = {
         {
           bullets: [
             'Crear y administrar tu cuenta y confirmar que perteneces a una institución habilitada.',
-            'Verificar tu identidad y la de los conductores, y prevenir suplantaciones y fraudes.',
+            'Verificar tu identidad y la de los conductores, tu pertenencia a una institución, que el vehículo registrado y el que llega a recogerte coincidan, y prevenir suplantaciones y fraudes.',
+            'Proponerte viajes con el asistente, si lo usas.',
             'Publicar, buscar, solicitar y coordinar viajes, mostrar viajes cercanos o relevantes y calcular rutas.',
             'Mostrar a los participantes de un viaje la información necesaria: nombre, foto, calificación, vehículo, placa, ruta y punto de recogida.',
             'Permitir el chat entre participantes de un mismo viaje y enviarte notificaciones sobre tus viajes y solicitudes.',
@@ -272,6 +283,7 @@ export const PRIVACY: LegalDocument = {
           bullets: [
             'Otros usuarios, solo en la medida necesaria para el viaje (por ejemplo, el conductor ve tu nombre, foto y punto de recogida cuando solicitas un cupo).',
             'Proveedores tecnológicos que actúan como encargados del tratamiento: Supabase (base de datos, autenticación y almacenamiento de archivos), Microsoft (inicio de sesión con tu cuenta institucional, solo si lo usas), Google (Firebase Cloud Messaging para notificaciones en Android y Google Maps en las funciones que lo usan), Expo (envío de notificaciones) y GitHub (aloja esta página, la versión web y el archivo de instalación para Android; como cualquier sitio web, recibe datos técnicos de tu conexión, como la dirección IP).',
+            'Meta Platforms (Meta Model API), como encargado del tratamiento para las funciones con inteligencia artificial: recibe las fotos del vehículo, el video de recogida, los recortes del carné (sin tu rostro) o el carné sin foto y la captura de tu cuenta institucional, y, si usas el asistente, tus mensajes, tus lugares guardados y los datos de los viajes disponibles (por ejemplo, origen, destino, horario y nombre de pila del conductor). Nunca recibe tu selfie, la foto de tu licencia ni la representación numérica de tu rostro. Meta procesa estos datos solo para entregarnos el resultado y no los usa para entrenar sus modelos; ConVía no los usa para publicidad.',
             'Servicios de mapas basados en OpenStreetMap (Photon para buscar lugares, OSRM para calcular rutas y OpenStreetMap y OpenFreeMap para dibujar el mapa), a los que se envían las búsquedas y coordenadas necesarias, sin tu nombre ni tu correo.',
             'Autoridades competentes, cuando exista una orden o una obligación legal.',
           ],
@@ -310,6 +322,7 @@ export const PRIVACY: LegalDocument = {
       title: '9. Conservación y eliminación',
       body: [
         'Conservamos tus datos mientras tengas una cuenta activa. Cuando eliminas tu cuenta, se borran tu perfil, fotos, vehículos, viajes, solicitudes, mensajes y representaciones faciales, salvo la información que debamos conservar por obligación legal o para atender reclamaciones pendientes.',
+        'Videos de recogida: se borran al terminar la verificación y, en cualquier caso, a más tardar 1 hora después de subirlos. Fotos del vehículo para verificarlo: se borran al terminar la verificación. Imágenes del carné: si la verificación va a revisión manual, se guardan para quien revisa y se borran cuando se decide, cuando verificas de nuevo, cuando eliminas tu cuenta o, en cualquier caso, a más tardar 7 días después.',
         'Si el proyecto termina, eliminaremos los datos personales de todos los usuarios y te avisaremos con anticipación en la aplicación o por correo.',
         'Los mensajes y datos que otros usuarios ya recibieron durante un viaje pueden permanecer en sus dispositivos (por ejemplo, en capturas de pantalla), fuera del control de ConVía.',
       ],

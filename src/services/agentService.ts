@@ -1,6 +1,7 @@
 import { fetch as streamingFetch } from 'expo/fetch';
 
 import { supabase } from '@/lib/supabase';
+import { handleLegalOutdated } from '@/services/legalGate';
 
 /**
  * The ride-matching agent (Edge Function match-agent, Muse Spark Open). A run streams its real
@@ -61,6 +62,7 @@ export const agentService = {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => null) as { error?: string } | null;
+      handleLegalOutdated(body?.error);
       throw new Error(body?.error ?? `HTTP_${res.status}`);
     }
     const reader = res.body?.getReader();
@@ -91,6 +93,7 @@ export const agentService = {
       body: JSON.stringify({ run_id: runId, proposal_hash: proposalHash }),
     });
     const body = await res.json().catch(() => null) as { ok?: boolean; request_id?: string; error?: string } | null;
+    if (!res.ok) handleLegalOutdated(body?.error);
     if (!res.ok || !body?.ok || !body.request_id) throw new Error(body?.error ?? `HTTP_${res.status}`);
     return { requestId: body.request_id };
   },

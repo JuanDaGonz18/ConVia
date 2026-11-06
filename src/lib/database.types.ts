@@ -1897,6 +1897,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_legal: { Args: { p_version: string }; Returns: string }
       board_passenger: {
         Args: { p_qr_token: string }
         Returns: {
@@ -2039,6 +2040,7 @@ export type Database = {
           viewer_is_driver: boolean
         }[]
       }
+      my_accepted_legal_version: { Args: Record<PropertyKey, never>; Returns: string | null }
       my_institution: { Args: Record<PropertyKey, never>; Returns: Json }
       my_trip_requests: {
         Args: Record<PropertyKey, never>

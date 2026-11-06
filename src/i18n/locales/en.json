@@ -1879,5 +1879,25 @@
     "saved": "Saved",
     "rateFirst": "Pick a rating first.",
     "addComment": "Leave a comment"
+  },
+  "legalGate": {
+    "title": "We updated the Terms and the Privacy Policy",
+    "intro": "To keep using ConVía, review and accept version {{version}}. Here is what changed:",
+    "changes": {
+      "ai": "Some features use artificial intelligence from Meta, which receives only what each check needs and never your selfie.",
+      "pickup": "Pickup video: a short clip of the arriving car to confirm it is the trip's car. It is deleted within 1 hour at the latest.",
+      "card": "Student card: you can verify your institution with it. If it goes to manual review, the images (without your face) are deleted within 7 days at the latest.",
+      "signup": "Open sign-up: any e-mail can create an account; to use trips you must verify your institution."
+    },
+    "readTerms": "Read the Terms and Conditions (in Spanish)",
+    "readPrivacy": "Read the Privacy Policy (in Spanish)",
+    "accept": "I accept version {{version}}",
+    "acceptFailed": "Your acceptance could not be saved. Check your connection and try again.",
+    "reject": "I don't accept",
+    "rejectTitle": "Without accepting you can't keep using ConVía",
+    "rejectBody": "You can sign out and decide later, or delete your account and your data.",
+    "signOut": "Sign out",
+    "deleteAccount": "Delete my account",
+    "back": "Back"
   }
 }

@@ -1,7 +1,8 @@
 # Operación de ConVía en el plan Free de Supabase
 
 Guía para quien administra ConVía: límites del plan, revisión mensual de uso,
-copias de seguridad, inicio de sesión con Microsoft y cuándo escalar.
+copias de seguridad, inicio de sesión con Microsoft, funciones de IA y
+trabajos programados (sección 8) y cuándo escalar.
 
 > **Lo que este documento no afirma:** que el plan Free soporte 100 000
 > usuarios activos al mes. No se ha medido. La capacidad real se conoce con la
@@ -36,7 +37,7 @@ pausa, se reanuda desde el panel (Project → Restore); los datos se conservan.
 | Storage | Avatares y fotos de vehículos | Fotos de unos cientos de KB en vez de 2–3 MB; límites por bucket (avatares 3 MB, vehículos 4 MB) y solo JPG/PNG/WebP; un único archivo por usuario o vehículo (se reemplaza); al eliminar la cuenta se borran sus archivos. |
 | Base de datos | Viajes, solicitudes, mensajes, calificaciones, historial de `pg_cron` | Limpieza diaria: historial de `pg_cron` > 7 días y alertas de viajes que salieron hace > 30 días (migración 27). |
 | Realtime | Chat del viaje, QR de abordaje, solicitudes, estado de conductor | Solo se publican las 3 tablas que la app escucha; cada pantalla se suscribe al abrirse y se desuscribe al cerrarse; el pasajero filtra sus solicitudes por su id; varios cambios seguidos recargan una sola vez. |
-| Edge Functions | `notify` (avisos), `delete-account` | Las operaciones con RLS van directo a la API; `notify` se invoca solo tras acciones reales, y el envío programado solo llama a la función cuando hay algo pendiente (si no, no hay invocación). |
+| Edge Functions | `notify` (avisos), `delete-account` y las funciones de IA (sección 8) | Las operaciones con RLS van directo a la API; `notify` se invoca solo tras acciones reales, y el envío programado solo llama a la función cuando hay algo pendiente (si no, no hay invocación). |
 | CPU de la base de datos | Trabajos programados (`dispatch-pending-pushes` cada 5 min, `mark-unstarted-trips` cada 10 min, `generate-recurring-trips` cada hora) | Son lo que más tiempo de base de datos usa hoy (~22 ms por ejecución); está dentro de lo esperado. |
 | Escrituras | Token de notificaciones | Se guarda solo cuando cambia (antes se escribía en cada apertura de la app). |
 
@@ -110,9 +111,27 @@ npx supabase db dump --linked --data-only --use-copy -f backups/$(date +%F)/data
 
 - **Storage va aparte**: los archivos no están en el dump. Descargar los
   buckets desde el panel o con la CLI (`npx supabase storage cp -r ss:///avatars backups/<fecha>/avatars --experimental`, igual para `vehicle-photos`).
-- **Datos personales:** cifrar antes de sacarlos del equipo
-  (`gpg -c --cipher-algo AES256 data.sql`) y guardar en un lugar con acceso
-  restringido (no en Git: `backups/` y `*.sql.gpg` están en `.gitignore`).
+- **Datos personales:** no dejar la carpeta sin cifrar. El formato vigente
+  (desde el 2026-11-04) es **un archivo por copia**, `backups/<fecha>.tar.gpg`:
+  un `tar` de la carpeta de la fecha, cifrado con contraseña (simétrico,
+  AES-256, derivación de clave SHA-512):
+  ```bash
+  F=$(date +%F)
+  tar -cf - -C backups "$F" | gpg -c --cipher-algo AES256 --s2k-digest-algo SHA512 -o "backups/$F.tar.gpg"
+  gpg -d "backups/$F.tar.gpg" | tar -tf -   # comprobar que se descifra y lista los archivos
+  rm -rf "backups/$F"                       # solo después de la comprobación anterior
+  ```
+  La contraseña se guarda en el gestor de contraseñas del administrador, nunca
+  junto al archivo ni en el repositorio. Guardar el `.tar.gpg` en un lugar con
+  acceso restringido (no en Git: `backups/` y `*.sql.gpg` están en `.gitignore`).
+- **Restaurar desde un `.tar.gpg`:** descifrar en una carpeta temporal fuera
+  del repositorio, revisar el contenido, seguir la prueba de restauración de
+  abajo y borrar la carpeta al terminar.
+  ```bash
+  mkdir -p /tmp/convia-restore
+  gpg -d backups/<fecha>.tar.gpg | tar -xf - -C /tmp/convia-restore
+  ls /tmp/convia-restore/<fecha>   # roles.sql, schema.sql, data.sql (+ buckets si se descargaron)
+  ```
 - **Retención:** 4 copias semanales y 3 mensuales; borrar las más antiguas.
   Si una persona elimina su cuenta, sus datos desaparecen de las copias
   cuando estas se rotan (máx. 3 meses); documentarlo en la política de datos.
@@ -248,3 +267,110 @@ Nunca contra producción (el script se niega).
 
 Sin las pruebas de carga y la medición mensual no hay base para afirmar una
 capacidad; esta tabla se ajusta con esos datos.
+
+## 8. Funciones de IA, secretos y trabajos programados
+
+Estado verificado en producción (`hfnsgeunskbkapjavcao`) el 2026-11-06:
+migraciones hasta la 039 aplicadas, las 8 funciones activas y los trabajos
+de abajo con su última ejecución correcta.
+
+### Edge Functions
+
+Todas tienen `verify_jwt = true` (`supabase/config.toml`; `match-agent` no
+tiene entrada y usa el valor por defecto, también `true`).
+
+| Función | Quién la llama | Qué hace | Plan |
+| --- | --- | --- | --- |
+| `notify` | app (JWT) y `dispatch-pending-pushes` (`x-convia-cron`) | avisos push; anti-replay con `notified_events` | todos |
+| `delete-account` | app (JWT) | elimina la cuenta y sus archivos | todos |
+| `verify-vehicle` | app (JWT) | SAM 3.1 + Muse Spark 1.3: la foto muestra el carro registrado (placa, marca, color). La foto se borra al terminar | gratis |
+| `suggest-vehicle` | app (JWT) | Muse Spark propone marca, línea, color y placa desde una foto; no guarda nada | ConVía+ (`vehicle_autofill`) |
+| `verify-pickup` | app (JWT) y `cleanup-pickup-clips` (`x-convia-cron`) | clip de ≤ 2 s del carro que llega; va inline al modelo (sin Files API) y se borra de Storage al terminar | gratis, con límite mensual |
+| `verify-student-id` | app (JWT) | carné (recortes sin rostro) o carné sin foto + captura → Muse Spark; los casos dudosos y los de documento van a revisión manual | gratis |
+| `card-review-cleanup` | solo `cleanup-card-review-files` (`x-convia-cron`) | borra las imágenes de revisión de carné de más de 7 días; rechaza cualquier otra llamada | — |
+| `match-agent` | app (JWT) | asistente de viajes: Muse Spark con herramientas (lee con la sesión del usuario, RLS) y una segunda llamada que juzga la propuesta | ConVía+ (`trip_assistant`) |
+
+Sin `MODEL_API_KEY` las funciones de IA responden 503 `MODEL_UNAVAILABLE`.
+Las cinco funciones de IA exigen además que la persona haya aceptado los
+documentos legales 1.2 o posteriores (`profiles.accepted_legal_version`,
+migración 040); si no, responden 403 `LEGAL_OUTDATED` y la app muestra el
+modal para aceptarlos. Al publicar una versión legal nueva, seguir el
+encabezado de esa migración.
+
+**Regla:** cualquier cambio de `LEGAL_VERSION` en `src/content/legal.ts` necesita,
+en el mismo PR, una migración que suba `private.current_legal_version()` a esa
+versión; las funciones de IA exigen esa versión.
+
+### Secretos de las funciones (`npx supabase secrets list`)
+
+| Secreto | Uso | Producción |
+| --- | --- | --- |
+| `MODEL_API_KEY` | clave de la Meta Model API para todas las funciones de IA | obligatorio |
+| `CRON_SECRET` | encabezado `x-convia-cron` de los trabajos programados; igual a `convia_cron_secret` del Vault | obligatorio |
+| `MODEL_API_BASE_URL` | por defecto `https://api.meta.ai/v1` | opcional |
+| `ALLOW_MOCK` | respuestas simuladas sin clave | **nunca en producción** (solo local o staging) |
+| `VERIFY_VEHICLE_MAX_PER_DAY`, `PICKUP_*`, `STUDENT_ID_MAX_PER_DAY`, `AGENT_RUNS_PER_DAY` | ver «Límites de IA» | opcionales |
+
+Plantilla: `supabase/functions/.env.example`. Se cambian con
+`npx supabase secrets set NOMBRE=valor`. `secrets list` solo muestra nombres y
+hashes; nunca imprimir ni pegar valores.
+
+**Créditos gratuitos de Meta:** deben seguir **desactivados** en la cuenta de
+la Meta Model API que emite la `MODEL_API_KEY` de producción. Revisarlo en la
+consola de Meta en la revisión mensual y cada vez que se rote la clave.
+
+### Secretos del Vault (base de datos)
+
+Los usan los trabajos programados que llaman a funciones con `pg_net`. Sin
+ellos el trabajo no hace nada (no falla).
+
+| Nombre | Contenido |
+| --- | --- |
+| `convia_project_url` | URL del proyecto (`https://<ref>.supabase.co`) |
+| `convia_anon_key` | clave anon (para pasar `verify_jwt`) |
+| `convia_cron_secret` | el mismo valor que `CRON_SECRET` |
+
+Si se rota `CRON_SECRET`, cambiar los dos a la vez (secreto de funciones y Vault).
+
+### Trabajos programados (`pg_cron`)
+
+| Trabajo | Horario (UTC) | Qué hace | Migración |
+| --- | --- | --- | --- |
+| `dispatch-pending-pushes` | cada 5 min | llama a `notify` (`sweep`) solo si hay avisos pendientes | 025 |
+| `mark-unstarted-trips` | cada 10 min | marca los viajes que no arrancaron | 015 |
+| `generate-recurring-trips` | `7 * * * *` | crea los viajes recurrentes | 025 |
+| `cleanup-logs` | `17 3 * * *` | historial de `pg_cron` de más de 7 días | 027 |
+| `cleanup-alert-hits` | `23 3 * * *` | alertas de viajes viejos | 027 |
+| `cleanup-notified-events` | `29 3 * * *` | anti-replay de `notify` de más de 30 días | 030 |
+| `cleanup-vehicle-suggestions` | `31 3 * * *` | contador de `suggest-vehicle` de más de 1 día | 032 |
+| `cleanup-pickup-clips` | cada 30 min | clips de recogida de más de 1 hora (vía `verify-pickup`) | 033 |
+| `cleanup-card-review-files` | `41 3 * * *` | imágenes de revisión de carné de más de 7 días (vía `card-review-cleanup`) | 038 |
+
+En el repositorio del hackathon, `cleanup-notified-events` y
+`cleanup-vehicle-suggestions` eran un solo trabajo, `cleanup-function-guards`;
+aquí no existe con ese nombre.
+
+Comprobar (solo lectura):
+```sql
+select j.jobname, j.active, r.status, r.start_time
+  from cron.job j
+  left join lateral (select * from cron.job_run_details d where d.jobid = j.jobid
+                     order by start_time desc limit 1) r on true
+ order by 1;
+-- respuesta HTTP de los trabajos que llaman a funciones (pg_net la guarda pocas horas):
+select status_code, count(*), max(created) from net._http_response group by 1;
+```
+No incluir `cron.job.command` en reportes que se compartan.
+
+### Límites de IA
+
+| Función | Límite | Variable |
+| --- | --- | --- |
+| `verify-vehicle` | 10 intentos por conductor por hora y 20 en 24 h | `VERIFY_VEHICLE_MAX_PER_DAY` (el de 1 h es fijo) |
+| `verify-pickup` | plan: `pickup_verifications_month` (Gratis 10 al mes, ConVía+ sin tope; la beta no lo relaja); además 6 por solicitud, 30 por pasajero en 24 h y 1 000 en total en 24 h | `PICKUP_MAX_ATTEMPTS`, `PICKUP_MAX_PER_USER_DAY`, `PICKUP_MAX_TOTAL_DAY` |
+| `verify-student-id` | 5 por usuario al día | `STUDENT_ID_MAX_PER_DAY` |
+| `suggest-vehicle` | 20 por usuario por hora (contador en la base, entre instancias) | fijo |
+| `match-agent` | 30 ejecuciones por usuario al día | `AGENT_RUNS_PER_DAY` |
+
+Cada intento real cuesta llamadas al modelo: subir un límite es una decisión
+de costo. Revisar el consumo en la consola de Meta en la revisión mensual.

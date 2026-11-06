@@ -9,6 +9,7 @@ import { analyzeClip, DEFAULT_PIPELINE_CONFIG, type FrameSource, type PipelineRe
 import { ndjsonStream } from './stream.ts';
 import { MB, modelMode, positiveIntEnv, readJsonBody } from '../_shared/guard.ts';
 import { checkPlan } from '../_shared/plan.ts';
+import { checkLegal } from '../_shared/legal.ts';
 
 /**
  * verify-pickup: the passenger films the arriving car for up to 2 s and we
@@ -153,6 +154,9 @@ Deno.serve(async (request) => {
   const { data: authData, error: authError } = await admin.auth.getUser(token);
   if (authError || !authData.user) return response({ error: 'AUTH_REQUIRED' }, 401);
   const userId = authData.user.id;
+  // Terms 1.2 cover the AI features: an older acceptance is a 403 the app answers with the modal.
+  const legal = await checkLegal(admin, userId);
+  if (!legal.ok) return response({ error: legal.error }, legal.status);
 
   const read = await readJsonBody(request, MAX_BODY_BYTES);
   if (!read.ok) return response({ error: read.error }, read.status);

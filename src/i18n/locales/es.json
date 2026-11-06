@@ -1879,5 +1879,25 @@
     "saved": "Guardado",
     "rateFirst": "Primero elige una calificación.",
     "addComment": "Dejar un comentario"
+  },
+  "legalGate": {
+    "title": "Actualizamos los Términos y la Política de datos",
+    "intro": "Para seguir usando ConVía, revisa y acepta la versión {{version}}. Esto es lo que cambió:",
+    "changes": {
+      "ai": "Algunas funciones usan inteligencia artificial de Meta, que recibe solo lo necesario para cada verificación y nunca tu selfie.",
+      "pickup": "Video de recogida: un clip corto del carro que llega para confirmar que es el del viaje. Se borra a más tardar en 1 hora.",
+      "card": "Carné estudiantil: puedes verificar tu institución con él. Si va a revisión manual, las imágenes (sin tu rostro) se borran a más tardar en 7 días.",
+      "signup": "Registro abierto: cualquier correo puede crear una cuenta; para usar los viajes debes verificar tu institución."
+    },
+    "readTerms": "Leer los Términos y Condiciones",
+    "readPrivacy": "Leer la Política de Tratamiento de Datos",
+    "accept": "Acepto la versión {{version}}",
+    "acceptFailed": "No se pudo guardar tu aceptación. Revisa tu conexión e inténtalo de nuevo.",
+    "reject": "No acepto",
+    "rejectTitle": "Sin aceptar no puedes seguir usando ConVía",
+    "rejectBody": "Puedes cerrar sesión y decidir después, o eliminar tu cuenta y tus datos.",
+    "signOut": "Cerrar sesión",
+    "deleteAccount": "Eliminar mi cuenta",
+    "back": "Volver"
   }
 }

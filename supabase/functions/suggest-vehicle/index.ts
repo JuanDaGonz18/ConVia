@@ -4,6 +4,7 @@ import { MB, modelMode, readJsonBody } from '../_shared/guard.ts';
 import { createTransport, ModelError, museStructured } from '../_shared/metaModel.ts';
 import { checkPlan } from '../_shared/plan.ts';
 import { isSuggestionReport, SUGGESTION_INSTRUCTIONS, SUGGESTION_SCHEMA, type SuggestionOutcome, toSuggestion } from './suggest.ts';
+import { checkLegal } from '../_shared/legal.ts';
 
 /**
  * suggest-vehicle: the driver adds a photo of their vehicle and Muse Spark
@@ -98,6 +99,9 @@ Deno.serve(async (request) => {
   const { data: authData, error: authError } = await admin.auth.getUser(token);
   if (authError || !authData.user) return response({ error: 'AUTH_REQUIRED' }, 401);
   const userId = authData.user.id;
+  // Terms 1.2 cover the AI features: an older acceptance is a 403 the app answers with the modal.
+  const legal = await checkLegal(admin, userId);
+  if (!legal.ok) return response({ error: legal.error }, legal.status);
 
   const read = await readJsonBody(request, MAX_BODY_BYTES);
   if (!read.ok) return response({ error: read.error }, read.status);

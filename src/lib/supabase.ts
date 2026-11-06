@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 // Genera los tipos con:  npx supabase gen types typescript --project-id hfnsgeunskbkapjavcao > src/lib/database.types.ts
 import type { Database } from './database.types';
 import { createResilientFetch } from './resilientFetch';
+import { createLegalAwareFetch } from '@/services/legalGate';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -48,7 +49,8 @@ export const supabase = createClient<Database>(
       flowType: 'pkce',
     },
     // Timeouts for every request; reads retried with backoff (never writes).
-    global: { fetch: createResilientFetch(fetch) },
+    // A 403 LEGAL_OUTDATED from an Edge Function opens the new-terms modal.
+    global: { fetch: createLegalAwareFetch(createResilientFetch(fetch)) },
   },
 );
 
