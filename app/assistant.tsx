@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, type NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextInputKeyPressEventData, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, type ScrollViewInstance, type TextInputKeyPressEvent, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -59,14 +59,14 @@ export default function AssistantScreen() {
   const [confirming, setConfirming] = useState<{ runId: string; hash: string } | null>(null);
   const [confirmed, setConfirmed] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
   const nextId = useRef(1);
 
   const update = (id: number, change: (turn: Turn) => Turn) => setTurns((all) => all.map((turn) => (turn.id === id ? change(turn) : turn)));
 
   // Web: Enter sends, Shift+Enter adds a line. Phones keep the return key for new lines and send with the button.
-  const onWebKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
-    const key = event.nativeEvent as TextInputKeyPressEventData & { shiftKey?: boolean; isComposing?: boolean };
+  const onWebKeyPress = (event: TextInputKeyPressEvent) => {
+    const key = event.nativeEvent as TextInputKeyPressEvent['nativeEvent'] & { shiftKey?: boolean; isComposing?: boolean };
     if (key.key !== 'Enter' || key.shiftKey || key.isComposing) return;
     event.preventDefault();
     void ask(text);

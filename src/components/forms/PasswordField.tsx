@@ -1,5 +1,5 @@
 import { forwardRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, type TextInputInstance, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
@@ -10,7 +10,7 @@ import { typography } from '@/constants/typography';
 import { PASSWORD_RULES } from '@/utils/password';
 
 /** Password input with an eye button to show or hide what was typed. */
-export const PasswordField = forwardRef<TextInput, Omit<TextFieldProps, 'secureTextEntry' | 'right'>>(function PasswordField(props, ref) {
+export const PasswordField = forwardRef<TextInputInstance, Omit<TextFieldProps, 'secureTextEntry' | 'right'>>(function PasswordField(props, ref) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   return (
