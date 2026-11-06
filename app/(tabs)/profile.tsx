@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,7 @@ import { typography } from '@/constants/typography';
 import { radius } from '@/constants/radius';
 import { useAppStore } from '@/store/appStore';
 import { authService } from '@/services/authService';
+import { useLegalGate } from '@/services/legalGate';
 import { notificationService } from '@/services/notificationService';
 import { profileService } from '@/services/profileService';
 import { isSupabaseEnabled } from '@/lib/supabase';
@@ -48,6 +49,19 @@ export default function ProfileScreen() {
   const [showVerification, setShowVerification] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // ?delete=1: the new-terms modal sent the person here to delete their account.
+  // Opened while rendering (not in an effect); the param is cleared once handled, so it can come again.
+  const { delete: deleteParam } = useLocalSearchParams<{ delete?: string }>();
+  const [deleteParamHandled, setDeleteParamHandled] = useState(false);
+  if (deleteParam === '1' && !deleteParamHandled) {
+    setDeleteParamHandled(true);
+    setShowDeleteModal(true);
+  } else if (deleteParam !== '1' && deleteParamHandled) {
+    setDeleteParamHandled(false);
+  }
+  useEffect(() => {
+    if (deleteParam === '1') router.setParams({ delete: undefined });
+  }, [deleteParam]);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean | null>(null);
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +101,7 @@ export default function ProfileScreen() {
       router.replace('/(auth)/login');
     } catch (deleteError) {
       setShowDeleteModal(false);
+      useLegalGate.getState().resume();
       setError(errorMessage(deleteError, t('profile.deleteFailed')));
     } finally {
       setDeleting(false);
@@ -311,7 +326,11 @@ export default function ProfileScreen() {
         icon="trash-outline"
         tone="danger"
         message={t('profile.deleteMessage')}
-        onCancel={() => setShowDeleteModal(false)}
+        onCancel={() => {
+          setShowDeleteModal(false);
+          // Came from the new-terms modal: it comes back.
+          useLegalGate.getState().resume();
+        }}
         onConfirm={() => void handleConfirmDelete()}
         title={t('profile.deleteTitle')}
         visible={showDeleteModal}

@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { membershipService } from '@/services/membershipService';
 import { AppErrorFallback } from '@/components/layout/AppErrorFallback';
 import { AppFrame } from '@/components/layout/AppFrame';
+import { LegalGateHost } from '@/components/legal/LegalGateHost';
 import { PlusGateHost } from '@/components/subscription/PlusGate';
 import { ToastHost } from '@/components/ui/Toast';
 import { colors, isDarkTheme } from '@/constants/colors';
@@ -97,6 +98,8 @@ export default function RootLayout() {
         </Stack>
         <SubscriptionSync />
         <PlusGateHost />
+        {/* Last, so it covers the Plus modal: new terms to accept block the app. */}
+        <LegalGateHost />
         <ToastHost />
       </AppFrame>
     </SafeAreaProvider>

@@ -7,6 +7,7 @@ import type { PickupClientReason } from '@/content/pickupVerification';
 import { ensureSupabaseConfigured, isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { capabilityFromError, planLimitFromError } from '@/subscription/plans';
 import { isStorageQuotaError } from '@/utils/format';
+import { handleLegalOutdated } from '@/services/legalGate';
 
 export type PickupStatus = 'verified' | 'mismatch' | 'retry';
 /** Real steps: the app's own upload, then what the server reports as it happens. */
@@ -104,6 +105,8 @@ function fromResponse(data: FunctionResponse): PickupVerification {
 /** HTTP refusals the screen explains; anything else is a connection problem. */
 function refusal(status: number, error?: unknown): PickupVerification {
   const code = typeof error === 'string' ? error : '';
+  // New terms to accept: the modal opens on top of the screen (the streamed call skips the client's fetch).
+  if (status === 403 && handleLegalOutdated(code)) return clientRetry('network_error');
   if (status === 403) {
     const limit = planLimitFromError(code);
     if (limit?.key === 'pickup_verifications_month') return { ...clientRetry('monthly_limit'), limit: limit.limit };

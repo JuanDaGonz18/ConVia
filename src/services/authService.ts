@@ -6,6 +6,7 @@ import { FunctionsHttpError } from '@supabase/supabase-js';
 
 import { ensureSupabaseConfigured, supabase } from '@/lib/supabase';
 import { LEGAL_VERSION } from '@/content/legal';
+import { legalService } from '@/services/legalService';
 import { notificationService } from '@/services/notificationService';
 import { DriverStatus, User, UserRole } from '@/types';
 import { microsoftErrorMessage, parseAuthUrl } from '@/utils/authLink';
@@ -84,14 +85,19 @@ export const MICROSOFT_CALLBACK_FLAG = 'microsoft';
 /** Marks on the callback URL that a password-reset link was opened: the next screen sets the new password. */
 export const RESET_PASSWORD_NEXT = 'reset-password';
 
-/** The terms are shown next to the Microsoft button: continuing accepts them (first time only). */
+/**
+ * The terms are shown next to the Microsoft button: continuing accepts them (first time only),
+ * in the current version. Someone who accepted an older version gets the new-terms modal instead.
+ */
 export async function acceptTermsIfNeeded(userId: string) {
   // Never blocks the sign-in: the person already accepted by continuing.
-  await supabase
+  const { data } = await supabase
     .from('profiles')
     .update({ terms_accepted_at: new Date().toISOString() })
     .eq('id', userId)
-    .is('terms_accepted_at', null);
+    .is('terms_accepted_at', null)
+    .select('id');
+  if (data?.length) await legalService.accept().catch(() => undefined);
 }
 
 /** Link types the e-mail templates send (supabase/templates): sign-up, password reset, e-mail change. */
