@@ -73,7 +73,12 @@
         {
           "android": {
             "minSdkVersion": 26,
-            "enableMinifyInReleaseBuilds": false
+            "buildArchs": [
+              "arm64-v8a"
+            ],
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "# Nitro modules (VisionCamera, face detector, nitro-image): JNI-bound hybrid objects.\n-keep class com.margelo.nitro.** { *; }\n-keep class com.madebyevan.thumbhash.** { *; }\n# ONNX Runtime: the native library looks up Java classes and fields via JNI.\n-keep class ai.onnxruntime.** { *; }\n# MapLibre (native SDK calls back into Java via JNI) and react-native-maps.\n-keep class org.maplibre.** { *; }\n-keep class com.rnmaps.** { *; }\n# Reanimated / Worklets.\n-keep class com.swmansion.reanimated.** { *; }\n-keep class com.swmansion.worklets.** { *; }\n# Expo modules: module definitions and records are read by reflection.\n-keep class * extends expo.modules.kotlin.modules.Module { *; }\n-keep class * implements expo.modules.kotlin.records.Record { *; }\n-keep enum * implements expo.modules.kotlin.types.Enumerable { *; }\n-keepclassmembers class * { @expo.modules.kotlin.records.Field *; }\n# Google ML Kit (barcode + face detection).\n-keep class com.google.mlkit.** { *; }\n-dontwarn com.google.mlkit.**"
           }
         }
       ]
