@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,7 @@ import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import { notificationService } from '@/services/notificationService';
 import { DEFAULT_PREFERENCES, personalizationService } from '@/services/personalizationService';
 import { useAppStore } from '@/store/appStore';
 import { usePlan } from '@/subscription/usePlan';
@@ -159,12 +160,18 @@ export default function PreferencesScreen() {
             value={draft.notifyRecurring}
           />
         </View>
-        <Text style={styles.hint}>{t('preferences.pushHint')}</Text>
+        {/* The profile's Notifications switch only exists where push works (same check as the profile). */}
+        <Text style={styles.hint}>{t(pushHintKey())}</Text>
 
         <ButtonPrimary disabled={!allowed} loading={saving} onPress={() => void save()} title={t('preferences.save')} />
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+function pushHintKey() {
+  if (notificationService.isAvailable()) return 'preferences.pushHint';
+  return Platform.OS === 'web' ? 'preferences.pushWebHint' : 'preferences.pushUnavailableHint';
 }
 
 function SwitchRow({ label, subtitle, value, onChange }: Readonly<{ label: string; subtitle: string; value: boolean; onChange: (value: boolean) => void }>) {

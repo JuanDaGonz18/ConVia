@@ -204,7 +204,7 @@ export const LIMIT_INFO: Record<PlanLimit, LimitInfo> = {
     reachedText: (limit) => `Ya guardaste el máximo de tu plan (${plural(limit, 'ruta', 'rutas')}).`,
   },
   pickup_verifications_month: {
-    title: 'Verificaciones del carro al mes',
+    title: 'Verificaciones de recogida al mes',
     icon: 'videocam-outline',
     freeText: (limit) => `Con el plan gratis puedes verificar el carro ${plural(limit, 'vez', 'veces')} al mes.`,
     plusText: (limit) => (limit === null ? 'Verifica el carro cada vez que lo necesites con ConVía+.' : `Hasta ${plural(limit, 'verificación', 'verificaciones')} al mes con ConVía+.`),

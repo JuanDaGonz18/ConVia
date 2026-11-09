@@ -213,6 +213,11 @@
           "button": "Confirm"
         }
       }
+    },
+    "microsoft": {
+      "terms": "By continuing you accept the terms and the data processing policy.",
+      "readMore": "Read more",
+      "failed": "We couldn't sign you in with Microsoft. Please try again."
     }
   },
   "pickup": {
@@ -228,7 +233,7 @@
       "cameraBlocked": "Camera is blocked for ConVía. Turn it on in your phone settings.",
       "openSettings": "Open phone settings",
       "allowCamera": "Allow camera",
-      "webUnavailable": "Video verification is available in the app for Android and iPhone.",
+      "webUnavailable": "Video verification is available in the Android app.",
       "mock": "Test mode: simulated result, no real AI.",
       "monthlyLimit_one": "Your plan includes {{count}} check per month.",
       "monthlyLimit_other": "Your plan includes {{count}} checks per month."
@@ -1621,7 +1626,8 @@
     "notifyRecurring": "Recurring rides posted",
     "notifyRecurringHint": "A summary when we post the rides for your weekly schedule.",
     "pushHint": "Requests, replies, messages, and changes to your rides follow the Notifications switch in your profile.",
-    "pushUnavailableHint": "This version of ConVía doesn't send push notifications. Requests, replies, messages and changes to your trips show up in the app when you open it."
+    "pushUnavailableHint": "This version of ConVía doesn't send push notifications. Requests, replies, messages and changes to your trips show up in the app when you open it.",
+    "pushWebHint": "The web version doesn't send push notifications. Requests, replies, messages and changes to your rides show up when you open ConVía. In the Android app you can turn them on in your profile."
   },
   "placeKinds": {
     "home": "Home",
@@ -1899,5 +1905,13 @@
     "signOut": "Sign out",
     "deleteAccount": "Delete my account",
     "back": "Back"
+  },
+  "plusLimits": {
+    "vehicles": "Registered vehicles",
+    "saved_places": "Saved places",
+    "favorite_drivers": "Favorite drivers",
+    "visible_results": "Matching rides shown",
+    "saved_routes": "Saved routes",
+    "pickup_verifications_month": "Pickup verifications per month"
   }
 }

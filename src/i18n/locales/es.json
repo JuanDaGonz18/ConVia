@@ -213,6 +213,11 @@
           "button": "Confirmar"
         }
       }
+    },
+    "microsoft": {
+      "terms": "Al continuar aceptas los términos y la política de tratamiento de datos.",
+      "readMore": "Leer más",
+      "failed": "No pudimos iniciar sesión con Microsoft. Inténtalo de nuevo."
     }
   },
   "pickup": {
@@ -228,7 +233,7 @@
       "cameraBlocked": "La cámara está bloqueada para ConVía. Actívala en los ajustes del teléfono.",
       "openSettings": "Abrir ajustes del teléfono",
       "allowCamera": "Permitir cámara",
-      "webUnavailable": "La verificación con video está disponible en la app para Android e iPhone.",
+      "webUnavailable": "La verificación con video está disponible en la app para Android.",
       "mock": "Modo de prueba: resultado simulado, sin IA real.",
       "monthlyLimit_one": "Tu plan incluye {{count}} verificación al mes.",
       "monthlyLimit_other": "Tu plan incluye {{count}} verificaciones al mes."
@@ -1621,7 +1626,8 @@
     "notifyRecurring": "Viajes recurrentes publicados",
     "notifyRecurringHint": "Un resumen cuando publicamos los viajes de tu horario semanal.",
     "pushHint": "Las solicitudes, respuestas, mensajes y cambios de tus viajes siguen el interruptor de Notificaciones de tu perfil.",
-    "pushUnavailableHint": "Esta versión de ConVía no envía notificaciones push. Las solicitudes, respuestas, mensajes y cambios de tus viajes aparecen en la app al abrirla."
+    "pushUnavailableHint": "Esta versión de ConVía no envía notificaciones push. Las solicitudes, respuestas, mensajes y cambios de tus viajes aparecen en la app al abrirla.",
+    "pushWebHint": "En la web no hay notificaciones push. Las solicitudes, respuestas, mensajes y cambios de tus viajes aparecen al abrir ConVía. En la app para Android puedes activarlas en tu perfil."
   },
   "placeKinds": {
     "home": "Casa",
@@ -1899,5 +1905,13 @@
     "signOut": "Cerrar sesión",
     "deleteAccount": "Eliminar mi cuenta",
     "back": "Volver"
+  },
+  "plusLimits": {
+    "vehicles": "Vehículos registrados",
+    "saved_places": "Lugares guardados",
+    "favorite_drivers": "Conductores favoritos",
+    "visible_results": "Viajes compatibles visibles",
+    "saved_routes": "Rutas guardadas",
+    "pickup_verifications_month": "Verificaciones de recogida al mes"
   }
 }
