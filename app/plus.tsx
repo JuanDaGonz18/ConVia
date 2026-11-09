@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
@@ -37,7 +38,7 @@ function limitLabel(value: number | null) {
  * catalog) and limits (from the server). During the beta, FREE shows "En beta"
  * for what the beta opens to everyone.
  */
-function planRows(plans: Record<PlanTier, Plan>, betaMode: boolean): Row[] {
+function planRows(plans: Record<PlanTier, Plan>, betaMode: boolean, limitTitle: (key: PlanLimit) => string): Row[] {
   const rows: Row[] = [{ label: 'Mapa', free: 'OpenStreetMap', plus: 'Google Maps' }];
   (Object.keys(CAPABILITIES) as Capability[])
     .filter((key) => {
@@ -51,7 +52,7 @@ function planRows(plans: Record<PlanTier, Plan>, betaMode: boolean): Row[] {
   (Object.keys(LIMIT_INFO) as PlanLimit[])
     .filter((key) => plans.free.planLimits[key] !== plans.plus.planLimits[key])
     .forEach((key) => rows.push({
-      label: LIMIT_INFO[key].title,
+      label: limitTitle(key),
       free: limitLabel(plans.free.planLimits[key]),
       plus: limitLabel(plans.plus.planLimits[key]),
     }));
@@ -68,6 +69,7 @@ function Cell({ value, highlight }: Readonly<{ value: string | boolean; highligh
 }
 
 export default function PlusScreen() {
+  const { t } = useTranslation();
   const { plan, isPlus, betaMode } = usePlan();
   const [plans, setPlans] = useState<Record<PlanTier, Plan>>(DEFAULT_PLANS);
   const [checking, setChecking] = useState(false);
@@ -117,7 +119,7 @@ export default function PlusScreen() {
             <Text style={[styles.cell, styles.headerText]}>Gratis</Text>
             <View style={styles.cell}><PlusBadge /></View>
           </View>
-          {[...ESSENTIALS, ...planRows(plans, betaMode)].map((row) => (
+          {[...ESSENTIALS, ...planRows(plans, betaMode, (key) => t(`plusLimits.${key}`, { defaultValue: LIMIT_INFO[key].title }))].map((row) => (
             <View key={row.label} style={styles.row}>
               <Text style={styles.label}>{row.label}</Text>
               <View style={styles.cell}><Cell value={row.free} /></View>

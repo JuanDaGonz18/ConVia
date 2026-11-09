@@ -172,7 +172,7 @@ export default function RequestsScreen() {
                 </Text>
               </View>
               {isDriver && request.match ? <MatchSummary match={request.match} maxReasons={2} /> : null}
-              <MetaRow icon="location-outline" text={t('requests.pickup', { place: request.direccion })} />
+              <MetaRow icon="location-outline" text={t('requests.pickup', { place: request.pickupLabel || request.direccion })} />
               {request.dropoffLabel ? <MetaRow icon="flag-outline" text={t('requests.dropoff', { place: request.dropoffLabel })} /> : null}
               {isDriver && request.tripLabel ? <MetaRow icon="navigate-outline" text={request.tripLabel} /> : null}
               {request.tripDepartureAt ? <MetaRow icon="time-outline" text={formatDateTime(request.tripDepartureAt)} /> : null}

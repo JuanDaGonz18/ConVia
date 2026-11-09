@@ -1446,6 +1446,7 @@ export type Database = {
           pago_marcado_at: string | null
           passenger_id: string
           qr_token: string
+          recogida_nombre: string | null
           responded_at: string | null
           trip_id: string
           updated_at: string
@@ -1467,6 +1468,7 @@ export type Database = {
           pago_marcado_at?: string | null
           passenger_id: string
           qr_token?: string
+          recogida_nombre?: string | null
           responded_at?: string | null
           trip_id: string
           updated_at?: string
@@ -1487,6 +1489,7 @@ export type Database = {
           pago_marcado_at?: string | null
           passenger_id?: string
           qr_token?: string
+          recogida_nombre?: string | null
           responded_at?: string | null
           trip_id?: string
           updated_at?: string
@@ -2007,6 +2010,7 @@ export type Database = {
           passenger_nombre: string
           pickup_km: number
           qr_token: string
+          recogida_nombre: string
           responded_at: string
           salida_at: string
           trip_id: string
@@ -2055,6 +2059,7 @@ export type Database = {
           last_changes: string[]
           origen_viaje: string
           qr_token: string
+          recogida_nombre: string
           responded_at: string
           salida_at: string
           trip_id: string

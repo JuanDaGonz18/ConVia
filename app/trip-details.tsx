@@ -113,7 +113,7 @@ export default function TripDetailsScreen() {
     setShowFaceCheck(false);
     setLoading(true);
     try {
-      await tripService.requestPickup(trip.id, pickup.address, pickup.latitude, pickup.longitude, dropoff);
+      await tripService.requestPickup(trip.id, pickup.address, pickup.latitude, pickup.longitude, dropoff, pickup.label);
       setRequested(true);
     } catch (requestError) {
       setError(requestErrorMessage(requestError));

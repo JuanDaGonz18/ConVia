@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Link, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { colors } from '@/constants/colors';
@@ -21,12 +22,13 @@ type MicrosoftSignInButtonProps = {
 };
 
 /**
- * Institutional Microsoft sign-in, shared by the login and sign-up screens.
- * The first Microsoft sign-in also creates the account (the server checks
- * the tenant and the e-mail domain), so both screens use the same flow.
+ * Microsoft sign-in, shared by the login and sign-up screens. Sign-up is open:
+ * any Microsoft account works, and the first sign-in also creates the account,
+ * so both screens use the same flow.
  * Render it only when isMicrosoftAuthEnabled is true.
  */
 export function MicrosoftSignInButton({ title, dividerText = 'o', disabled = false, onBusyChange, onError }: Readonly<MicrosoftSignInButtonProps>) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
 
@@ -50,7 +52,7 @@ export function MicrosoftSignInButton({ title, dividerText = 'o', disabled = fal
       setCurrentUser(user);
       router.replace('/(tabs)');
     } catch (microsoftError) {
-      onError(errorMessage(microsoftError, 'No pudimos iniciar sesión con Microsoft. Inténtalo de nuevo.'));
+      onError(errorMessage(microsoftError, t('auth.microsoft.failed')));
       setBusy(false);
     }
   };
@@ -70,8 +72,8 @@ export function MicrosoftSignInButton({ title, dividerText = 'o', disabled = fal
         title={title}
       />
       <Text style={styles.terms}>
-        Usa tu cuenta institucional. Al continuar aceptas los términos y la política de tratamiento de datos.{' '}
-        <Link href="/legal" style={styles.termsLink}>Leer más</Link>
+        {t('auth.microsoft.terms')}{' '}
+        <Link href="/legal" style={styles.termsLink}>{t('auth.microsoft.readMore')}</Link>
       </Text>
     </>
   );

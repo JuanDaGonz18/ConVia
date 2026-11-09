@@ -78,6 +78,8 @@ export type TripRequestRecord = {
   tripDepartureAt: string | null;
   /** Latest change the driver made to the trip, shown to the passenger. */
   lastUpdate: { changes: string[]; at: string } | null;
+  /** Name of the pickup place the passenger chose (e.g. "Portal Norte"); null on older requests. */
+  pickupLabel: string | null;
   /** Where the passenger gets off, when they said (exact only once accepted). */
   dropoffLabel: string | null;
   /** Driver view: how well the request fits the trip, computed by the server. */
@@ -259,7 +261,7 @@ export const tripService = {
     return data;
   },
   /** `dropoff`: where the passenger wants to get off (optional), so the driver can judge the fit. */
-  async requestPickup(tripId: string, address: string, lat?: number, lng?: number, dropoff?: Location | null) {
+  async requestPickup(tripId: string, address: string, lat?: number, lng?: number, dropoff?: Location | null, pickupName?: string | null) {
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     const userId = await requireUserId();
     const { data, error } = await supabase
@@ -268,6 +270,7 @@ export const tripService = {
         trip_id: tripId,
         passenger_id: userId,
         direccion: address,
+        recogida_nombre: pickupName?.trim() ? pickupName.trim().slice(0, 200) : null,
         lat,
         lng,
         destino_nombre: dropoff?.label ?? null,
@@ -302,6 +305,7 @@ export const tripService = {
       tripLabel: `${row.origen_viaje} → ${row.destino_viaje}`,
       tripDepartureAt: row.salida_at,
       lastUpdate: row.last_changes?.length ? { changes: row.last_changes, at: row.last_change_at } : null,
+      pickupLabel: row.recogida_nombre || null,
       dropoffLabel: row.destino_nombre || null,
       match: null,
     }));
@@ -330,6 +334,7 @@ export const tripService = {
       tripLabel: `${row.origen_nombre} → ${row.destino_viaje}`,
       tripDepartureAt: row.salida_at,
       lastUpdate: null,
+      pickupLabel: row.recogida_nombre || null,
       dropoffLabel: row.destino_nombre || null,
       match: matchFromServer({ score: row.match_score, level: row.match_level, pickupKm: row.pickup_km, dropoffKm: row.dropoff_km }),
     }));
