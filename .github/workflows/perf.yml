@@ -1,0 +1,99 @@
+# Prueba de carga del pico de la mañana (300 usuarios, 10 min) contra un stack
+# LOCAL de Supabase en el runner, con datos sintéticos (scripts/perf/seed.sql).
+# Nunca toca el proyecto alojado: no usa secretos ni comandos remotos.
+# Ver docs/OPERACION.md, sección 6.
+name: Perf
+
+on:
+  push:
+    branches: [perf/load-readiness]   # TEMPORAL: solo mientras se ajusta; se quita antes del PR
+  workflow_dispatch:
+    inputs:
+      vus:
+        description: Usuarios virtuales simultáneos
+        default: '300'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: perf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  peak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      OUT: ${{ github.workspace }}/perf-out
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Reservar los puertos del stack local
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
+
+      # Sin Studio, imágenes, correo, logs ni Edge Functions: no los usa la prueba
+      # y le quitarían CPU a la base en el mismo runner.
+      - name: Supabase local
+        run: |
+          npx supabase --version
+          npx supabase start -x studio,imgproxy,mailpit,logflare,vector,edge-runtime
+
+      - name: Reset de la base (migraciones + seed)
+        run: npx supabase db reset
+
+      - name: Datos sintéticos
+        run: |
+          mkdir -p "$OUT"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f scripts/perf/seed.sql
+
+      - name: EXPLAIN (ANALYZE, BUFFERS) de las rutas calientes
+        run: |
+          explain_summary() {
+            awk '/^=== /{name=substr($0,5)} /Execution Time:/{gsub(/^ +/,""); printf "%-70s %s\n", name, $0}' "$1"
+          }
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/perf/explain-before.sql > "$OUT/explain-before.txt" 2>&1
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/perf/explain.sql > "$OUT/explain-after.txt" 2>&1
+          {
+            echo '### EXPLAIN — sin los índices de la migración 44'; echo '```'; explain_summary "$OUT/explain-before.txt"; echo '```'
+            echo '### EXPLAIN — con los índices'; echo '```'; explain_summary "$OUT/explain-after.txt"; echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: grafana/setup-k6-action@v1
+
+      - name: Tokens de los usuarios de carga
+        run: node scripts/perf/tokens.mjs "$RUNNER_TEMP/perf-users.json"
+
+      - name: Reiniciar estadísticas
+        run: psql "$DB_URL" -q -c 'select extensions.pg_stat_statements_reset()' || true
+
+      - name: k6 — pico de la mañana
+        run: k6 run --quiet -e USERS_FILE="$RUNNER_TEMP/perf-users.json" -e OUT_DIR="$OUT" -e VUS="${{ inputs.vus || '300' }}" scripts/perf/k6-peak.js
+
+      - name: Consultas más costosas durante la prueba
+        if: always()
+        run: |
+          psql "$DB_URL" -P pager=off -f scripts/perf/top-queries.sql > "$OUT/top-queries.txt" 2>&1 || true
+          cat "$OUT/top-queries.txt"
+
+      - name: Resumen
+        if: always()
+        run: |
+          if [ -f "$OUT/k6-summary.txt" ]; then
+            { echo '### k6'; echo '```'; cat "$OUT/k6-summary.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-k6-summary
+          path: perf-out/
+          if-no-files-found: warn
