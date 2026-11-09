@@ -29,6 +29,11 @@ jobs:
 
       - run: npm ci
 
+      # 54320-54329 están dentro del rango de puertos efímeros de Linux: una conexión
+      # saliente (p. ej. docker pull) puede tomar uno antes de que el stack lo use.
+      - name: Reservar los puertos del stack local
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
+
       # La versión de la CLI es la de package-lock.json (devDependency `supabase`).
       - name: Supabase local
         run: |
