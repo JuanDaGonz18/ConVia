@@ -1,0 +1,99 @@
+# CI: pruebas de la base de datos, de las funciones y de la app contra un
+# stack local de Supabase (Docker del runner). Sin secretos: nunca toca el
+# proyecto alojado.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # La versión de la CLI es la de package-lock.json (devDependency `supabase`).
+      - name: Supabase local
+        run: |
+          npx supabase --version
+          npx supabase start
+
+      - name: Reset de la base (migraciones + seed)
+        run: npx supabase db reset
+
+      # Cada archivo termina con RAISE EXCEPTION (todo se deshace) y el mensaje
+      # es el reporte: una línea OK o BAD por caso. Falla con cualquier BAD o si
+      # no aparece el reporte (p. ej. un error de SQL antes del final).
+      - name: Pruebas SQL (supabase/tests/*.sql)
+        run: |
+          status=0
+          for f in supabase/tests/*.sql; do
+            echo "::group::$f"
+            out="$(npx supabase db query -f "$f" 2>&1 || true)"
+            echo "$out"
+            echo "::endgroup::"
+            if echo "$out" | grep -q 'BAD'; then
+              echo "::error file=$f::al menos un caso BAD"
+              status=1
+            elif ! echo "$out" | grep -q 'OK '; then
+              echo "::error file=$f::no se encontró el reporte OK/BAD"
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Pruebas de funciones
+        run: npm run test:functions
+
+      - name: Servir Edge Functions (ALLOW_MOCK=true)
+        run: |
+          env_file="$RUNNER_TEMP/functions.env"
+          cron_secret="$(openssl rand -hex 24)"
+          echo "::add-mask::$cron_secret"
+          printf 'ALLOW_MOCK=true\nCRON_SECRET=%s\n' "$cron_secret" > "$env_file"
+          echo "LOCAL_CRON_SECRET=$cron_secret" >> "$GITHUB_ENV"
+          nohup npx supabase functions serve --env-file "$env_file" > "$RUNNER_TEMP/functions.log" 2>&1 &
+          for i in $(seq 1 90); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:54321/functions/v1/verify-vehicle || true)"
+            case "$code" in 2??|4??) echo "Funciones listas (HTTP $code)"; exit 0 ;; esac
+            sleep 2
+          done
+          echo "::error::Las funciones no respondieron"
+          cat "$RUNNER_TEMP/functions.log"
+          exit 1
+
+      - name: E2E verify-vehicle
+        run: npm run test:verify-vehicle
+
+      - name: E2E verify-pickup
+        run: npm run test:verify-pickup
+
+      - name: Log de las funciones
+        if: failure()
+        run: cat "$RUNNER_TEMP/functions.log" || true
+
+      - name: Pruebas de la app
+        run: npm test
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx expo lint
