@@ -9,8 +9,8 @@ export const REJECT_REASONS = {
 };
 
 // A check that goes to manual review keeps the images Muse read (face already cut out on the phone) at
-// face-verifications/<user_id>/student-card-review-*.jpg. They are deleted on approve/reject, on the user's
-// next check, and after 7 days (card-review-cleanup). Nothing else in the bucket is ever shown.
+// face-verifications/<user_id>/student-card-review-*.jpg. They are deleted on approve/reject, when a later
+// check of the user's goes to review or is verified, and after 7 days (card-review-cleanup). Nothing else in the bucket is ever shown.
 const REVIEW_BUCKET = 'face-verifications';
 const REVIEW_PREFIX = 'student-card-review-';
 

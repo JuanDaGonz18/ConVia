@@ -32,7 +32,9 @@ export type Reason =
   | 'face_mismatch'
   /** No face comparison (web: no on-device face model). */
   | 'face_not_checked'
-  | 'low_confidence';
+  | 'low_confidence'
+  /** Would have gone to review, but no image could be kept for the reviewer. */
+  | 'review_image_missing';
 
 export type CardDecision = {
   decision: 'verified' | 'review' | 'retry';
@@ -166,7 +168,8 @@ export type DocumentReason =
   | 'email_domain_mismatch'
   | 'not_institutional_account'
   | 'edited_screenshot'
-  | 'low_confidence';
+  | 'low_confidence'
+  | 'review_image_missing';
 
 export type DocumentDecision = {
   /** Never 'verified': a screenshot is easy to fake, so a person always approves. */
@@ -255,4 +258,15 @@ export function decideDocument(
   if (screenshot.signs_of_editing) reasons.push('edited_screenshot');
   if (!(report.confidence >= MIN_CONFIDENCE)) reasons.push('low_confidence');
   return { decision: 'review', reasons, ...base, summary: summaryOf(reasons) };
+}
+
+// ─── A manual review needs something to look at ────────────────────────────────
+
+/**
+ * A case only goes to manual review when at least one image was kept for the reviewer; otherwise the
+ * reviewer could not decide, so the user is asked to try again (no review row is created).
+ */
+export function requireReviewImages<D extends CardDecision | DocumentDecision>(result: D, storedImages: number): D {
+  if (result.decision !== 'review' || storedImages > 0) return result;
+  return { ...result, decision: 'retry', reasons: [...result.reasons, 'review_image_missing'] } as D;
 }

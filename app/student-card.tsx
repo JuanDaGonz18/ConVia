@@ -22,9 +22,10 @@ import { errorMessage } from '@/utils/format';
 
 type Phase =
   | { kind: 'idle' }
-  | { kind: 'working'; step: 'face' | 'reading' | 'review' }
+  | { kind: 'working'; step: 'face' | 'reading' }
   | { kind: 'done'; decision: StudentCardDecision; reasons: string[] }
-  // The device couldn't use the card's photo: nothing was sent; try again, or ask for a manual review.
+  // The device couldn't find or cut out the card's face: nothing is sent (a review needs images).
+  // Try again with a better photo, or use the card-without-photo + screenshot route.
   | { kind: 'noFace'; reason: string };
 
 /**
@@ -66,19 +67,6 @@ export default function StudentCardScreen() {
     if (uri) await check(uri);
   };
 
-  /** Without crops the server records a manual review (reason face_not_found). */
-  const requestReview = async () => {
-    setError(null);
-    setPhase({ kind: 'working', step: 'review' });
-    try {
-      const result = await membershipService.verifyCard([]);
-      setPhase({ kind: 'done', decision: result.decision, reasons: result.reasons });
-    } catch (reviewError) {
-      setPhase({ kind: 'idle' });
-      setError(errorMessage(reviewError, t('studentCard.failed')));
-    }
-  };
-
   const working = phase.kind === 'working';
 
   return (
@@ -92,8 +80,8 @@ export default function StudentCardScreen() {
             <Text style={styles.resultTitle}>{t('studentCard.noFace.title')}</Text>
             <Text style={styles.resultText}>{t(`studentCard.noFace.${phase.reason}`, { defaultValue: t('studentCard.noFace.face_not_found') })}</Text>
             <ButtonPrimary icon="camera" onPress={() => setPhase({ kind: 'idle' })} title={t('studentCard.tryAgain')} />
-            <ButtonSecondary icon="person-outline" onPress={() => void requestReview()} title={t('studentCard.noFace.requestReview')} />
-            <Text style={styles.reason}>{t('studentCard.noFace.reviewNote')}</Text>
+            <ButtonSecondary icon="document-text-outline" onPress={() => router.push('/student-document')} title={t('studentCard.noFace.useDocument')} />
+            <Text style={styles.reason}>{t('studentCard.noFace.documentNote')}</Text>
           </View>
         ) : phase.kind !== 'done' ? (
           <>
@@ -108,7 +96,7 @@ export default function StudentCardScreen() {
             {working ? (
               <View style={styles.working}>
                 <ActivityIndicator color={colors.primary} />
-                <Text style={styles.tipText}>{t(phase.step === 'face' ? 'studentCard.stepFace' : phase.step === 'review' ? 'studentCard.stepReview' : 'studentCard.stepReading')}</Text>
+                <Text style={styles.tipText}>{t(phase.step === 'face' ? 'studentCard.stepFace' : 'studentCard.stepReading')}</Text>
               </View>
             ) : (
               <>

@@ -117,7 +117,10 @@ function show(row, index, total, files) {
     } else console.log('AI summary:   -');
   }
   if (files.length) for (const f of files) console.log(`Image (5 min, face removed): ${f.name}\n  ${f.url}`);
-  else console.log('Image:        none kept (e.g. the phone could not cut the face out, so nothing was sent)');
+  else {
+    console.log('Image:        NONE: there is nothing to review for this case (no image was kept).');
+    console.log('              Suggested: r → 1 (unclear), so the user is asked to send a new photo.');
+  }
 }
 
 async function pickReason() {

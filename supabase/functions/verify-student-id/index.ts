@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { MB, readJsonBody } from '../_shared/guard.ts';
 import { createTransport, MUSE_MODEL } from '../_shared/metaModel.ts';
-import { type CardReport, decideCard, decideDocument, type DocumentReport, type InstitutionRef } from './decide.ts';
+import { type CardReport, decideCard, decideDocument, type DocumentReport, type InstitutionRef, requireReviewImages } from './decide.ts';
 import { checkLegal } from '../_shared/legal.ts';
 
 /**
@@ -14,7 +14,8 @@ import { checkLegal } from '../_shared/legal.ts';
  * recorded (no name, last 4 ID digits only). When a check goes to manual review, the images Muse
  * read (face already removed on the device) are kept for the reviewer in the private
  * face-verifications bucket, <user_id>/student-card-review-*.jpg, and deleted when the reviewer
- * decides, on the next check, or after 7 days (card-review-cleanup).
+ * decides, when a later check goes to review or is verified, or after 7 days (card-review-cleanup). A check never goes to review
+ * without at least one image kept: if none could be stored, the user is asked to try again.
  */
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -116,29 +117,48 @@ type Body = { mode?: unknown; crops?: unknown; card?: unknown; screenshot?: unkn
 
 const isImage = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= MAX_CROP_BASE64 && /^[A-Za-z0-9+/=]+$/.test(value);
 
+const errorDetail = (error: unknown) => String((error as Error)?.message ?? error).slice(0, 200);
+
+/** Removes the user's review images, except the ones named in `keep`. */
+async function removeReviewImages(userId: string, keep: string[] = []) {
+  const bucket = admin.storage.from(REVIEW_BUCKET);
+  const { data: old, error } = await bucket.list(userId, { search: REVIEW_PREFIX, limit: 100 });
+  if (error) throw error;
+  const stale = (old ?? [])
+    .filter((file) => file.name.startsWith(REVIEW_PREFIX))
+    .map((file) => `${userId}/${file.name}`)
+    .filter((path) => !keep.includes(path));
+  if (stale.length) {
+    const { error: removeError } = await bucket.remove(stale);
+    if (removeError) throw removeError;
+  }
+}
+
 /**
- * The images of the user's latest check that went to manual review (none otherwise). Older ones are
- * removed first. Never fails the check: without the images the reviewer still has the recorded result.
+ * Stores the images of a check that would go to manual review and returns how many were kept: 0 when
+ * any upload fails (the partial set is removed, and older images stay for the case they belong to).
+ * Only once the whole set is stored are the user's older review images removed. Never throws.
  */
 async function keepForReview(userId: string, images: { name: string; base64: string }[]) {
+  if (!images.length) return 0;
+  const bucket = admin.storage.from(REVIEW_BUCKET);
+  const stamp = Date.now();
+  const uploaded: string[] = [];
   try {
-    const bucket = admin.storage.from(REVIEW_BUCKET);
-    const { data: old, error } = await bucket.list(userId, { search: REVIEW_PREFIX, limit: 100 });
-    if (error) throw error;
-    const stale = (old ?? []).filter((file) => file.name.startsWith(REVIEW_PREFIX)).map((file) => `${userId}/${file.name}`);
-    if (stale.length) {
-      const { error: removeError } = await bucket.remove(stale);
-      if (removeError) throw removeError;
-    }
-    const stamp = Date.now();
     for (const image of images) {
+      const path = `${userId}/${REVIEW_PREFIX}${stamp}-${image.name}.jpg`;
       const bytes = Uint8Array.from(atob(image.base64), (c) => c.charCodeAt(0));
-      const { error: uploadError } = await bucket.upload(`${userId}/${REVIEW_PREFIX}${stamp}-${image.name}.jpg`, bytes, { contentType: 'image/jpeg' });
+      const { error: uploadError } = await bucket.upload(path, bytes, { contentType: 'image/jpeg' });
       if (uploadError) throw uploadError;
+      uploaded.push(path);
     }
   } catch (error) {
-    log('review_files_failed', { detail: String((error as Error)?.message ?? error).slice(0, 200) });
+    log('review_files_failed', { detail: errorDetail(error) });
+    if (uploaded.length) await bucket.remove(uploaded).catch(() => undefined);
+    return 0;
   }
+  await removeReviewImages(userId, uploaded).catch((error) => log('review_files_cleanup_failed', { detail: errorDetail(error) }));
+  return uploaded.length;
 }
 
 Deno.serve(async (request) => {
@@ -159,7 +179,8 @@ Deno.serve(async (request) => {
   if (!read.ok) return response({ error: read.error }, read.status);
   const body = read.body as Body;
   const documentMode = body.mode === 'document';
-  // No crops: the phone couldn't find or exclude the face, so nothing was sent → manual review.
+  // No crops: the phone couldn't find or exclude the face. The app no longer sends this, and a review
+  // without any image can't be decided, so it gets retry below, before anything is recorded.
   const crops = Array.isArray(body.crops) ? body.crops : [];
   if (documentMode
     ? !isImage(body.card) || !isImage(body.screenshot)
@@ -188,33 +209,33 @@ Deno.serve(async (request) => {
     if (documentMode) {
       if (!MODEL_API_KEY.trim()) return response({ error: 'MODEL_UNAVAILABLE' }, 503);
       const result = await readDocument(userId, membership.institution_id, body.card as string, body.screenshot as string);
-      // Never verified automatically: a person approves documents (private.approve_membership).
-      await record({
-        kind: 'document',
-        decision: result.decision.decision,
-        reasons: result.decision.reasons,
-        institution_read: result.decision.institutionRead,
-        expires_on: result.decision.expiresOn,
-        email_domain: result.decision.emailDomain,
-        review_summary: result.decision.summary,
-        looks_real: !result.lookedLikeScreen,
-        model: MODEL,
-        request_id: result.requestId,
-      }, result.decision.decision === 'review' ? 'review' : null);
+      // Images are stored before anything is recorded: none kept → retry, never an empty review.
       // The card is kept only if Muse also saw no person photo on it (the device checked both).
-      await keepForReview(userId, result.decision.decision !== 'review' ? [] : [
+      const stored = result.decision.decision !== 'review' ? 0 : await keepForReview(userId, [
         ...(result.cardHasPhoto ? [] : [{ name: 'card', base64: body.card as string }]),
         { name: 'account', base64: body.screenshot as string },
       ]);
-      log('decided', { kind: 'document', decision: result.decision.decision, reasons: result.decision.reasons, ms: Math.round(performance.now() - started) });
-      return response({ decision: result.decision.decision, reasons: result.decision.reasons });
+      const decision = requireReviewImages(result.decision, stored);
+      // Never verified automatically: a person approves documents (private.approve_membership).
+      await record({
+        kind: 'document',
+        decision: decision.decision,
+        reasons: decision.reasons,
+        institution_read: decision.institutionRead,
+        expires_on: decision.expiresOn,
+        email_domain: decision.emailDomain,
+        review_summary: decision.summary,
+        looks_real: !result.lookedLikeScreen,
+        model: MODEL,
+        request_id: result.requestId,
+      }, decision.decision === 'review' ? 'review' : null);
+      log('decided', { kind: 'document', decision: decision.decision, reasons: decision.reasons, images: stored, ms: Math.round(performance.now() - started) });
+      return response({ decision: decision.decision, reasons: decision.reasons });
     }
     if (!crops.length) {
-      await record({ decision: 'review', reasons: ['face_not_found'] }, 'review');
-      // Nothing was sent (the device couldn't exclude the face), so there is no image to keep.
-      await keepForReview(userId, []);
-      log('decided', { decision: 'review', reasons: ['face_not_found'] });
-      return response({ decision: 'review', reasons: ['face_not_found'] });
+      // No image at all, so no review row: the app asks for a better photo or the no-photo route.
+      log('decided', { decision: 'retry', reasons: ['face_not_found'] });
+      return response({ decision: 'retry', reasons: ['face_not_found'] });
     }
     if (!MODEL_API_KEY.trim()) return response({ error: 'MODEL_UNAVAILABLE' }, 503);
 
@@ -247,7 +268,10 @@ Deno.serve(async (request) => {
     const report = JSON.parse(typeof content === 'string' ? content : '{}') as CardReport;
 
     const today = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const decision = decideCard(report, { profileName: profile.nombre, institution: institutionRef, faceMatch, today });
+    const cardDecision = decideCard(report, { profileName: profile.nombre, institution: institutionRef, faceMatch, today });
+    // The crops are stored before anything is recorded: none kept → retry, never an empty review.
+    const stored = cardDecision.decision !== 'review' ? 0 : await keepForReview(userId, crops.map((crop, i) => ({ name: `crop${i + 1}`, base64: crop as string })));
+    const decision = requireReviewImages(cardDecision, stored);
     await record({
       decision: decision.decision,
       reasons: decision.reasons,
@@ -260,9 +284,10 @@ Deno.serve(async (request) => {
       model: MODEL,
       request_id: data.id ?? null,
     }, decision.decision === 'retry' ? null : decision.decision);
-    await keepForReview(userId, decision.decision === 'review' ? crops.map((crop, i) => ({ name: `crop${i + 1}`, base64: crop as string })) : []);
+    // Verified: no review is pending any more, so older review images go.
+    if (decision.decision === 'verified') await removeReviewImages(userId).catch((error) => log('review_files_cleanup_failed', { detail: errorDetail(error) }));
     // Reason codes only, never the name or numbers read.
-    log('decided', { decision: decision.decision, reasons: decision.reasons, crops: crops.length, ms: Math.round(performance.now() - started) });
+    log('decided', { decision: decision.decision, reasons: decision.reasons, crops: crops.length, images: stored, ms: Math.round(performance.now() - started) });
     return response({ decision: decision.decision, reasons: decision.reasons });
   } catch (error) {
     log('error', { detail: String((error as Error)?.message ?? error).slice(0, 200) });

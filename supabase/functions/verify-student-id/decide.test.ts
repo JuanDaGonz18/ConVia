@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { type CardReport, decideCard, decideDocument, type DocumentReport, domainBelongs, emailDomainOf, idLast4, institutionMatches, nameSimilarity, parseExpiry } from './decide.ts';
+import { type CardReport, decideCard, decideDocument, type DocumentReport, domainBelongs, emailDomainOf, idLast4, institutionMatches, nameSimilarity, parseExpiry, requireReviewImages } from './decide.ts';
 
 const sabana = { nombre: 'Universidad de La Sabana', nombre_corto: 'La Sabana', dominios: ['unisabana.edu.co'] };
 const report = (changes: Partial<CardReport> = {}): CardReport => ({
@@ -139,5 +139,43 @@ describe('decideDocument (card without photo + account screenshot)', () => {
     assert.ok(!domainBelongs('unal.edu.co.evil.com', unal));
     assert.equal(emailDomainOf('Ana <ana@UNAL.edu.co>'), null);
     assert.equal(emailDomainOf(' ana@UNAL.edu.co '), 'unal.edu.co');
+  });
+});
+
+describe('requireReviewImages (never a review case without images)', () => {
+  const unal = { nombre: 'Universidad Nacional de Colombia', nombre_corto: 'UNAL', dominios: ['unal.edu.co'] };
+  const review = decideCard(report({ expiry_date: null }), context);
+  const documentReview = decideDocument({
+    card: { is_student_id_card: true, has_person_photo: false, looks_like_screen_or_printout: false, full_name: 'PABLO DEMO', institution_name: 'UNIVERSIDAD NACIONAL DE COLOMBIA', expiry_date: '2027-06-30' },
+    screenshot: { looks_like_institutional_account: true, full_name: 'Pablo Demo', email: 'pademo@unal.edu.co', signs_of_editing: false },
+    readable: true,
+    confidence: 0.9,
+  }, { profileName: 'Pablo Demo', institution: unal, today: '2026-10-28' });
+
+  test('review with no image stored → retry, keeping the reasons and adding review_image_missing', () => {
+    assert.equal(review.decision, 'review');
+    const result = requireReviewImages(review, 0);
+    assert.equal(result.decision, 'retry');
+    assert.deepEqual(result.reasons, ['no_expiry', 'review_image_missing']);
+    assert.equal(result.expiresOn, review.expiresOn);
+  });
+
+  test('document review with no image stored → retry', () => {
+    assert.equal(documentReview.decision, 'review');
+    const result = requireReviewImages(documentReview, 0);
+    assert.equal(result.decision, 'retry');
+    assert.ok(result.reasons.includes('review_image_missing'));
+  });
+
+  test('review with images stored stays review', () => {
+    assert.equal(requireReviewImages(review, 2), review);
+    assert.equal(requireReviewImages(documentReview, 1), documentReview);
+  });
+
+  test('verified and retry are left alone, with or without images', () => {
+    const verified = decideCard(report(), context);
+    const retry = decideCard(report({ readable: false }), context);
+    assert.equal(requireReviewImages(verified, 0), verified);
+    assert.equal(requireReviewImages(retry, 0), retry);
   });
 });

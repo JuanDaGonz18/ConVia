@@ -1458,20 +1458,20 @@
       "names_differ": "The names on the card and the screenshot don't match.",
       "email_domain_mismatch": "The screenshot's email isn't from the chosen institution.",
       "not_institutional_account": "The screenshot doesn't look like an institutional account.",
-      "edited_screenshot": "The screenshot shows signs of editing."
+      "edited_screenshot": "The screenshot shows signs of editing.",
+      "review_image_missing": "We couldn't save the image for the review. Please try again."
     },
     "tryAgain": "Try again",
     "done": "Done",
     "failed": "Couldn't verify the student ID.",
-    "stepReview": "Sending for review…",
     "noFace": {
       "title": "We couldn't find the photo on your card",
-      "face_not_found": "We couldn't locate your photo on the card. Take the picture straight on, with the whole card flat and no glare on the photo.",
+      "face_not_found": "We couldn't locate your photo on the card. Find good light with no glare, and keep the whole card in the frame, flat and straight on.",
       "several_faces": "We saw more than one face. Photograph only your card, with no other people or documents around it.",
       "face_unusable": "Your card's photo isn't sharp enough. Move a little closer, in good light, without glare.",
       "nothing_to_read": "The card's photo fills almost the whole picture. Step back a little so the whole card shows.",
-      "requestReview": "Request a manual review",
-      "reviewNote": "A person will review your request; no photo is sent. You'll see the result in the app when it's done."
+      "useDocument": "Use card without photo + screenshot",
+      "documentNote": "If your card has no photo or we can't read it, verify with the front of your card and a screenshot of your institutional account."
     }
   },
   "verifyCard": {
