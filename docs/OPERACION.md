@@ -2,7 +2,7 @@
 
 Guía para quien administra ConVía: límites del plan, revisión mensual de uso,
 copias de seguridad, inicio de sesión con Microsoft, funciones de IA y
-trabajos programados (sección 8) y cuándo escalar.
+trabajos programados (sección 8), revisión manual (sección 9) y cuándo escalar.
 
 > **Lo que este documento no afirma:** que el plan Free soporte 100 000
 > usuarios activos al mes. No se ha medido. La capacidad real se conoce con la
@@ -352,6 +352,7 @@ Si se rota `CRON_SECRET`, cambiar los dos a la vez (secreto de funciones y Vault
 | `cleanup-vehicle-suggestions` | `31 3 * * *` | contador de `suggest-vehicle` de más de 1 día | 032 |
 | `cleanup-pickup-clips` | cada 30 min | clips de recogida de más de 1 hora (vía `verify-pickup`) | 033 |
 | `cleanup-card-review-files` | `41 3 * * *` | imágenes de revisión de carné de más de 7 días (vía `card-review-cleanup`) | 038 |
+| `admin-review-alerts` | `0 12,22 * * *` | si hay carnés o instituciones por revisar, encola un aviso por administrador (máx. uno al día); lo envía `dispatch-pending-pushes` | 041 |
 
 En el repositorio del hackathon, `cleanup-notified-events` y
 `cleanup-vehicle-suggestions` eran un solo trabajo, `cleanup-function-guards`;
@@ -381,3 +382,69 @@ No incluir `cron.job.command` en reportes que se compartan.
 
 Cada intento real cuesta llamadas al modelo: subir un límite es una decisión
 de costo. Revisar el consumo en la consola de Meta en la revisión mensual.
+
+## 9. Revisión manual
+
+Los carnés que la IA no pudo confirmar (y los documentos sin foto) quedan en
+revisión (`institution_memberships.status = 'review'`); las solicitudes de
+«Mi institución no aparece» quedan `pendiente`. Se deciden desde la terminal
+con `scripts/admin/review-cli.mjs`, nunca desde la app.
+
+### Configuración (una vez)
+
+Copiar `scripts/admin/.env.review.example` a `scripts/admin/.env.review.local`
+(está en `.gitignore`, fuera del bundle de la app) y llenar:
+
+| Variable | Valor |
+| --- | --- |
+| `SUPABASE_URL` | URL del proyecto a revisar (`http://127.0.0.1:54321` para el stack local) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Dashboard → Project Settings → API Keys → clave secreta (`service_role`) |
+
+Esa clave salta RLS: nunca va en el `.env` de la app, ni en un chat, ni en
+un commit. La herramienta solo muestra el host del proyecto, nunca la clave.
+
+### Comandos
+
+| Comando | Qué hace | Teclas |
+| --- | --- | --- |
+| `npm run review` | carnés en revisión, el más antiguo primero; abre un enlace de 5 min a las imágenes | `a` aprobar · `r` rechazar (elige motivo `1` unclear, `2` mismatch, `3` not_student, `c` cancelar) · `s` saltar · `q` salir |
+| `npm run review -- --institutions` | solicitudes de institución | `a` aprobar (crea la institución y sus dominios) · `m` unir a una existente · `r` rechazar con motivo · `s` saltar · `q` salir |
+| `npm run review -- --count` | cuántos carnés y solicitudes hay pendientes | — |
+| `npm run review -- --user <user_id>` | solo esa persona (con `--institutions`, su solicitud) | las mismas |
+
+Aprobar o unir vuelve a revisar el correo de quien pidió la institución: si es
+de ese dominio, queda verificado de inmediato.
+
+### Imágenes de revisión (7 días)
+
+Las imágenes que se guardan para revisar un carné (recortes sin rostro, o el
+documento sin foto + la captura) están en
+`face-verifications/<user_id>/student-card-review-*.jpg`. Se borran al aprobar
+o rechazar, cuando la persona vuelve a intentarlo, al eliminar la cuenta y, en
+todo caso, a los **7 días** (`cleanup-card-review-files` → `card-review-cleanup`,
+migración 038). Pasados 7 días sin decidir, el caso sigue en revisión pero ya
+sin imágenes.
+
+### Aviso a los administradores
+
+A las 12:00 y 22:00 UTC (07:00 y 17:00 en Bogotá), si hay algo pendiente, cada
+administrador recibe un push: «ConVía: N carnés y M instituciones por revisar».
+Como máximo uno por persona y día (la corrida de las 22:00 solo avisa si la de
+las 12:00 no lo hizo); si los dos conteos son 0 no se envía nada. El texto solo
+lleva los conteos, sin nombres ni imágenes. Usa la misma ruta que los demás
+avisos (`notify`, secretos del Vault de la sección 8): $0 adicional. El
+administrador necesita una cuenta en la app con las notificaciones activadas.
+
+Agregar un administrador (SQL editor del Dashboard, con el `user_id` de su
+cuenta en Authentication → Users):
+
+```sql
+insert into private.admins (user_id) values ('<user_id>');
+-- quitarlo:
+delete from private.admins where user_id = '<user_id>';
+-- ver quiénes son:
+select a.user_id, u.email from private.admins a join auth.users u on u.id = a.user_id;
+```
+
+`private.admins` solo es accesible con `service_role` o desde el SQL editor;
+la app no puede leerla ni escribirla.
