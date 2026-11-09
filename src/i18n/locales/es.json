@@ -1458,20 +1458,20 @@
       "names_differ": "El nombre del carné y el de la captura no coinciden.",
       "email_domain_mismatch": "El correo de la captura no es de la institución elegida.",
       "not_institutional_account": "La captura no parece de una cuenta institucional.",
-      "edited_screenshot": "La captura muestra señales de edición."
+      "edited_screenshot": "La captura muestra señales de edición.",
+      "review_image_missing": "No pudimos guardar la imagen para la revisión. Intenta de nuevo."
     },
     "tryAgain": "Intentar de nuevo",
     "done": "Listo",
     "failed": "No se pudo verificar el carné.",
-    "stepReview": "Enviando a revisión…",
     "noFace": {
       "title": "No encontramos la foto de tu carné",
-      "face_not_found": "No pudimos ubicar la foto de tu cara en el carné. Toma la foto de frente, con el carné plano, completo y sin reflejos sobre la foto.",
+      "face_not_found": "No pudimos ubicar la foto de tu cara en el carné. Busca buena luz, sin reflejos, y que el carné completo quede dentro del cuadro, plano y de frente.",
       "several_faces": "Vimos más de un rostro. Fotografía solo tu carné, sin otras personas ni documentos alrededor.",
       "face_unusable": "La foto de tu carné no se ve con suficiente nitidez. Acércate un poco, con buena luz y sin reflejos.",
       "nothing_to_read": "La foto del carné ocupa casi toda la imagen. Aléjate un poco para que se vea el carné completo.",
-      "requestReview": "Pedir revisión manual",
-      "reviewNote": "Una persona revisará tu solicitud; no se envía ninguna foto. Verás el resultado en la app cuando quede lista."
+      "useDocument": "Usar carné sin foto + captura",
+      "documentNote": "Si tu carné no tiene foto o no logramos leerla, verifícate con el frente del carné y una captura de tu cuenta institucional."
     }
   },
   "verifyCard": {

@@ -113,8 +113,9 @@ export const membershipService = {
     return data as { decision: StudentCardDecision; reasons: string[] };
   },
 
-  /** Crops of the card around the face (base64 JPEG). No crops = the face couldn't be excluded: manual review. */
+  /** Crops of the card around the face (base64 JPEG). Never empty: without images there is nothing to review. */
   async verifyCard(crops: string[]): Promise<{ decision: StudentCardDecision; reasons: string[] }> {
+    if (!crops.length) throw new Error('NO_CARD_CROPS');
     const { data, error } = await supabase.functions.invoke('verify-student-id', { body: { crops } });
     if (error) {
       const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
