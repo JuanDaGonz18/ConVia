@@ -1,7 +1,7 @@
 -- =====================================================================
 -- ConVía — capacidades de IA y límite mensual de verificación del carro
 --
--- Uso local: npx supabase db query --local -f supabase/tests/ai_capabilities_test.sql
+-- Uso local: npx supabase db query -f supabase/tests/ai_capabilities_test.sql
 -- Todo se deshace al final (el bloque termina con RAISE EXCEPTION); el
 -- mensaje de error es el reporte. Cada línea dice OK o BAD.
 -- =====================================================================

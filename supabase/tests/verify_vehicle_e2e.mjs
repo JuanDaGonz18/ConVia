@@ -21,7 +21,7 @@ const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  → ' + detail : ''}`); };
 
 async function makeUser(email) {
-  const { data, error } = await admin.auth.admin.createUser({ email, password: 'Test-12345!', email_confirm: true, user_metadata: { nombre: 'ZZ Prueba', rol: 'usuario', terms_accepted: true, terms_version: '1.0' } });
+  const { data, error } = await admin.auth.admin.createUser({ email, password: 'Test-12345!', email_confirm: true, user_metadata: { nombre: 'ZZ Prueba', rol: 'usuario', terms_accepted: true, terms_version: '1.2' } });
   if (error) throw error;
   const client = createClient(URL, ANON, { auth: { persistSession: false } });
   const { error: signInError } = await client.auth.signInWithPassword({ email, password: 'Test-12345!' });

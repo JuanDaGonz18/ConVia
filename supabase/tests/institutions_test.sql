@@ -1,7 +1,7 @@
 -- =====================================================================
 -- ConVía — registro abierto e instituciones verificadas (migraciones 036–039)
 --
--- Uso local: npx supabase db query --local -f supabase/tests/institutions_test.sql
+-- Uso local: npx supabase db query -f supabase/tests/institutions_test.sql
 -- Todo se deshace al final (el bloque termina con RAISE EXCEPTION); el
 -- mensaje de error es el reporte. Cada línea dice OK o BAD.
 -- =====================================================================

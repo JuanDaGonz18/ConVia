@@ -1,7 +1,7 @@
 -- =====================================================================
 -- ConVía — pruebas de seguridad, privacidad y prioridad (base de datos real)
 --
--- Uso: npx supabase db query --linked -f supabase/tests/security_audit_test.sql
+-- Uso: npx supabase db query -f supabase/tests/security_audit_test.sql --remote
 -- Todo corre en un bloque que termina con RAISE EXCEPTION, así que NADA queda
 -- guardado: el mensaje de error es el reporte. Cada línea dice OK o BAD.
 -- =====================================================================

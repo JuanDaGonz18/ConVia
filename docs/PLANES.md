@@ -138,7 +138,7 @@ on conflict (user_id) do update set tier = 'plus', status = 'active', provider =
 ## Pruebas
 
 - `npm test`: catálogo, límites, beta y paridad app ↔ migración (`src/subscription/plans.test.ts`).
-- `npx supabase db query --linked -f supabase/tests/plan_capabilities_test.sql`: beta activa y
+- `npx supabase db query -f supabase/tests/plan_capabilities_test.sql --remote`: beta activa y
   terminada, ConVía+, vencimiento y que nadie se dé ConVía+ ni cambie la configuración.
-- `npx supabase db query --linked -f supabase/tests/planned_features_test.sql`: cada función
+- `npx supabase db query -f supabase/tests/planned_features_test.sql --remote`: cada función
   ConVía+ con beta y sin ella (horarios, alertas, rutas, estadísticas).

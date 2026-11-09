@@ -3,7 +3,7 @@
 --  Microsoft por tenant, borrado de viajes, transiciones de estado
 --  inválidas, escalamiento de privilegios, Storage y Realtime.
 --
--- Uso: npx supabase db query --linked -f supabase/tests/hardening_test.sql
+-- Uso: npx supabase db query -f supabase/tests/hardening_test.sql --remote
 -- Todo se deshace al final (el bloque termina con RAISE EXCEPTION).
 -- =====================================================================
 do $$
