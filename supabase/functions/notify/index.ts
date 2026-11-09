@@ -158,6 +158,12 @@ async function serverPushes(event: ServerEvent, id: string | null, callerId: str
     for (const row of (schedules ?? []) as { user_id: string; title: string; body: string }[]) {
       pushes.push({ recipients: [row.user_id], title: row.title, body: row.body, data: { type: 'recurring_published' } });
     }
+    // Manual-review backlog for the admins (private.admins): counts only, at most one a day.
+    const { data: reviews, error: reviewError } = await admin.rpc('claim_admin_review_pushes');
+    if (reviewError) throw reviewError;
+    for (const row of (reviews ?? []) as { user_id: string; title: string; body: string }[]) {
+      pushes.push({ recipients: [row.user_id], title: row.title, body: row.body, data: { type: 'admin_review' } });
+    }
   }
   return pushes;
 }
