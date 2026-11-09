@@ -2,7 +2,7 @@
 -- ConVía — reporte de uso para la revisión mensual (solo lectura)
 --
 -- Uso (administrador, nunca desde la app):
---   npx supabase db query --linked -f supabase/admin/usage_report.sql
+--   npx supabase db query --read-only -f supabase/admin/usage_report.sql --remote
 --
 -- Lo que la base de datos puede medir. Egress, invocaciones de Edge
 -- Functions, mensajes y conexiones de Realtime y MAU oficiales se leen en

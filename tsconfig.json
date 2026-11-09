@@ -19,6 +19,8 @@
     "**/*.tsx"
   ],
   "exclude": [
-    "supabase/functions/**"
+    "supabase/functions/**",
+    // Proyecto aparte con su propio package.json y tsconfig.
+    "server/**"
   ]
 }

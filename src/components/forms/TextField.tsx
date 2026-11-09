@@ -1,5 +1,5 @@
 import { forwardRef, ReactNode, useState } from 'react';
-import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
+import { StyleSheet, Text, TextInput, type TextInputInstance, TextInputProps, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '@/constants/colors';
@@ -19,7 +19,7 @@ export type TextFieldProps = TextInputProps & {
   right?: ReactNode;
 };
 
-export const TextField = forwardRef<TextInput, TextFieldProps>(function TextField(
+export const TextField = forwardRef<TextInputInstance, TextFieldProps>(function TextField(
   { label, error, hint, disabled = false, editable, style, right, onFocus, onBlur, ...props },
   ref,
 ) {

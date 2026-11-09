@@ -8,6 +8,13 @@ trabajos programados (sección 8) y cuándo escalar.
 > usuarios activos al mes. No se ha medido. La capacidad real se conoce con la
 > prueba de carga en staging (sección 6), no antes.
 
+> **Supabase CLI v3:** los comandos apuntan a la base local por defecto. Para
+> el proyecto enlazado se agrega `--remote` al final (reemplaza `--linked`,
+> `--project-ref` y `--db-url`). Todo cambio en el proyecto alojado
+> (`db push`, `functions deploy`, `secrets set/unset`, `db query` sin
+> `--read-only`…) pide confirmación; `--yes` solo en CI. `secrets unset` sin
+> nombres ya no borra todo (es `secrets unset --all`).
+
 ## 1. Límites del plan Free
 
 Tomados de <https://supabase.com/pricing> el 2026-10-21. Revisarlos cada
@@ -50,7 +57,7 @@ crear ni cobrar nada dos veces (`src/lib/resilientFetch.ts`).
 
 1. Reporte de la base de datos (solo lectura):
    ```bash
-   npx supabase db query --linked -f supabase/admin/usage_report.sql
+   npx supabase db query --read-only -f supabase/admin/usage_report.sql --remote
    ```
    Tamaño de la base, tablas más grandes, archivos por bucket, archivos
    huérfanos, usuarios activos en 30 días, crecimiento de viajes, solicitudes
@@ -104,13 +111,13 @@ de cada migración.
 
 ```bash
 mkdir -p backups/$(date +%F)
-npx supabase db dump --linked --role-only -f backups/$(date +%F)/roles.sql
-npx supabase db dump --linked             -f backups/$(date +%F)/schema.sql
-npx supabase db dump --linked --data-only --use-copy -f backups/$(date +%F)/data.sql
+npx supabase db dump --role-only -f backups/$(date +%F)/roles.sql --remote
+npx supabase db dump -f backups/$(date +%F)/schema.sql --remote
+npx supabase db dump --data-only --use-copy -f backups/$(date +%F)/data.sql --remote
 ```
 
 - **Storage va aparte**: los archivos no están en el dump. Descargar los
-  buckets desde el panel o con la CLI (`npx supabase storage cp -r ss:///avatars backups/<fecha>/avatars --experimental`, igual para `vehicle-photos`).
+  buckets desde el panel o con la CLI (`npx supabase storage cp -r ss:///avatars backups/<fecha>/avatars --experimental --remote`, igual para `vehicle-photos`).
 - **Datos personales:** no dejar la carpeta sin cifrar. El formato vigente
   (desde el 2026-11-04) es **un archivo por copia**, `backups/<fecha>.tar.gpg`:
   un `tar` de la carpeta de la fecha, cifrado con contraseña (simétrico,
@@ -238,7 +245,7 @@ Supabase.
 Nunca contra producción (el script se niega).
 
 1. Crear un proyecto Free de staging, aplicar las migraciones
-   (`npx supabase db push` con ese proyecto) y una institución de prueba.
+   (`npx supabase db push --remote=<ref>` con ese proyecto) y una institución de prueba.
 2. Generar cuentas y datos sintéticos: 500 usuarios, 50 conductores
    aprobados, 300 viajes abiertos con rutas reales de la zona, 2 000
    solicitudes, 10 000 mensajes.

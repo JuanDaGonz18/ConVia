@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,7 +23,7 @@ export default function LegalScreen() {
   const { t, i18n } = useTranslation();
   const params = useLocalSearchParams<{ doc?: string }>();
   const [tab, setTab] = useState<Tab>(params.doc === 'privacy' ? 'privacy' : 'terms');
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   // The legal documents exist only in Spanish, the version that applies.
   const document = tab === 'terms' ? TERMS : PRIVACY;
 

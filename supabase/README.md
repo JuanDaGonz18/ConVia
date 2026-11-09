@@ -50,11 +50,11 @@ Sin esos secretos el envío programado no hace nada; las alertas siguen visibles
 
 ## Pruebas
 
-- `npx supabase db query --linked -f supabase/tests/security_audit_test.sql`: privacidad, organizaciones, chat, calificaciones, planes y prioridad. Corre dentro de una transacción que se deshace; el error final es el reporte (debe decir `0 failing`).
-- `npx supabase db query --linked -f supabase/tests/plan_capabilities_test.sql`: planes, capacidades y modo beta.
-- `npx supabase db query --linked -f supabase/tests/planned_features_test.sql`: viajes recurrentes, alertas, rutas, preferencias, estadísticas, repetir viaje y varios vehículos (propiedad, organización y privacidad incluidas).
-- `npx supabase db query --linked -f supabase/tests/hardening_test.sql`: Microsoft por tenant, borrado de viajes, transiciones de estado inválidas, escalamiento de privilegios, Storage, Realtime y ruta pública.
-- `npx supabase db query --linked -f supabase/admin/usage_report.sql`: reporte de uso para la revisión mensual (solo lectura, administradores).
+- `npx supabase db query -f supabase/tests/security_audit_test.sql --remote`: privacidad, organizaciones, chat, calificaciones, planes y prioridad. Corre dentro de una transacción que se deshace; el error final es el reporte (debe decir `0 failing`).
+- `npx supabase db query -f supabase/tests/plan_capabilities_test.sql --remote`: planes, capacidades y modo beta.
+- `npx supabase db query -f supabase/tests/planned_features_test.sql --remote`: viajes recurrentes, alertas, rutas, preferencias, estadísticas, repetir viaje y varios vehículos (propiedad, organización y privacidad incluidas).
+- `npx supabase db query -f supabase/tests/hardening_test.sql --remote`: Microsoft por tenant, borrado de viajes, transiciones de estado inválidas, escalamiento de privilegios, Storage, Realtime y ruta pública.
+- `npx supabase db query --read-only -f supabase/admin/usage_report.sql --remote`: reporte de uso para la revisión mensual (solo lectura, administradores).
 - `node --env-file=.env supabase/tests/auth_e2e.mjs`: registro, perfil, notificaciones, sesión, contraseña y privacidad, con una cuenta temporal que se elimina al final.
 
 ## Conectar la app
@@ -62,7 +62,7 @@ Sin esos secretos el envío programado no hace nada; las alertas siguen visibles
 ```bash
 npx expo install @supabase/supabase-js react-native-url-polyfill expo-secure-store
 cp .env.example .env   # pega la anon/publishable key (Supabase → Connect)
-npx supabase gen types typescript --project-id hfnsgeunskbkapjavcao > src/lib/database.types.ts
+npx supabase gen types typescript --remote=hfnsgeunskbkapjavcao > src/lib/database.types.ts
 ```
 El cliente está en `src/lib/supabase.ts` (sesión guardada en SecureStore).
 

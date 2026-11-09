@@ -4,7 +4,7 @@ import './cryptoPolyfill';
 import { AppState } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { createClient } from '@supabase/supabase-js';
-// Genera los tipos con:  npx supabase gen types typescript --project-id hfnsgeunskbkapjavcao > src/lib/database.types.ts
+// Genera los tipos con:  npx supabase gen types typescript --remote=hfnsgeunskbkapjavcao > src/lib/database.types.ts
 import type { Database } from './database.types';
 import { createResilientFetch } from './resilientFetch';
 import { createLegalAwareFetch } from '@/services/legalGate';

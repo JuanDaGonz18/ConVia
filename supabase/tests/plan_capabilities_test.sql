@@ -1,7 +1,7 @@
 -- =====================================================================
 -- ConVía — pruebas de planes, capacidades y modo beta (base de datos real)
 --
--- Uso: npx supabase db query --linked -f supabase/tests/plan_capabilities_test.sql
+-- Uso: npx supabase db query -f supabase/tests/plan_capabilities_test.sql --remote
 -- Todo se deshace al final (el bloque termina con RAISE EXCEPTION); el
 -- mensaje de error es el reporte. Cada línea dice OK o BAD.
 -- =====================================================================

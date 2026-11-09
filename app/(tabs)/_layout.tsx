@@ -71,7 +71,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
       }}
-      tabBar={({ navigation, state }) => {
+      tabBar={({ navigateToTab, state }) => {
         const routeName = state.routes[state.index].name;
         const activeKey = routeName === 'index' ? 'home' : routeName;
 
@@ -86,7 +86,8 @@ export default function TabsLayout() {
             ]}
             onPress={(key) => {
               const targetRoute = key === 'home' ? 'index' : key;
-              navigation.navigate(targetRoute);
+              const route = state.routes.find((item) => item.name === targetRoute);
+              if (route) navigateToTab(route.key);
             }}
           />
         );
