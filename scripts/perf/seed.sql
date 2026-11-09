@@ -129,7 +129,7 @@ on conflict (user_id) do update set status = 'aprobado';
 
 insert into public.vehicles (id, driver_id, placa, marca, color, puestos, activo)
 select md5('convia-perf-vehicle-' || n)::uuid, id,
-       'PRF' || lpad(n::text, 3, '0'),
+       'PRF' || lpad(n::text, 4, '0'),
        (array['Renault Logan', 'Chevrolet Onix', 'Mazda 2', 'Kia Picanto', 'Toyota Corolla'])[1 + n % 5],
        (array['Gris', 'Blanco', 'Rojo', 'Negro', 'Azul'])[1 + (n / 5) % 5],
        4, true
