@@ -69,7 +69,7 @@ enabled = false
 enabled = false
 [studio]
 enabled = false
-[inbucket]
+[local_smtp]
 enabled = false
 [analytics]
 enabled = false
@@ -78,7 +78,7 @@ enabled = false
 [edge_runtime]
 enabled = false
 EOF
-sb start -x realtime,imgproxy,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor >/dev/null
+sb start -x realtime,imgproxy,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor >"$WORK/start.log" 2>&1 || { cat "$WORK/start.log" >&2; exit 1; }
 
 # 3. Restore, as Supabase's restore guide does: roles, schema, then data with triggers off.
 # supabase_admin: the load also writes auth.*, storage.*, cron.* and vault.*.
