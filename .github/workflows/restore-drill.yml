@@ -1,0 +1,76 @@
+# Restore drill with a SYNTHETIC backup: builds the schema from the migrations in a local
+# stack, adds made-up rows (and a fake cron job + Vault secret, to prove the drill empties
+# them), makes a backup exactly like docs/OPERACION.md §4 (roles/schema/data dump → tar →
+# gpg AES-256) and runs scripts/restore-drill.sh on it. No secrets, no real data, never
+# the hosted project: the real backups stay off GitHub and are drilled locally (§4).
+name: Restore drill
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/restore-drill.sh
+      - supabase/migrations/**
+      - .github/workflows/restore-drill.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: restore-drill-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Both stacks' ports (source 5432x, drill 5562x) are in Linux's ephemeral range.
+      - name: Reserve the local stacks' ports
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329,55620-55629
+
+      - name: Source stack (migrations)
+        run: npx supabase start -x realtime,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Synthetic rows
+        run: |
+          cat > "$RUNNER_TEMP/seed.sql" <<'SQL'
+          insert into public.institutions (nombre, tipo, dominio) values ('Drill U (synthetic)', 'universidad', 'drill-synthetic.edu.co');
+          insert into auth.users (id, email, raw_user_meta_data, raw_app_meta_data, aud, role) values
+            (gen_random_uuid(), 'zz.drill.1@drill-synthetic.edu.co', '{"nombre":"ZZ Drill 1"}', '{"provider":"email"}', 'authenticated', 'authenticated'),
+            (gen_random_uuid(), 'zz.drill.2@drill-synthetic.edu.co', '{"nombre":"ZZ Drill 2"}', '{"provider":"email"}', 'authenticated', 'authenticated'),
+            (gen_random_uuid(), 'zz.drill.3@drill-synthetic.edu.co', '{"nombre":"ZZ Drill 3"}', '{"provider":"email"}', 'authenticated', 'authenticated');
+          -- What a production dump may carry and the drill must never act on.
+          select vault.create_secret('https://drill-must-not-call.invalid', 'convia_project_url');
+          select cron.schedule('drill-must-be-removed', '* * * * *', $$select 1$$);
+          select (select count(*) from public.profiles) as profiles, (select count(*) from auth.users) as users;
+          SQL
+          npx supabase db query -f "$RUNNER_TEMP/seed.sql"
+
+      - name: Synthetic backup (same commands as OPERACION.md §4, local instead of --remote)
+        env:
+          PASS: ${{ github.run_id }}-synthetic
+        run: |
+          F=2000-01-01
+          mkdir -p "backups/$F"
+          npx supabase db dump --role-only -f "backups/$F/roles.sql"
+          npx supabase db dump -f "backups/$F/schema.sql"
+          npx supabase db dump --data-only --use-copy -f "backups/$F/data.sql"
+          tar -cf - -C backups "$F" | gpg --batch --pinentry-mode loopback --passphrase "$PASS" \
+            -c --cipher-algo AES256 --s2k-digest-algo SHA512 -o "backups/$F.tar.gpg"
+          rm -rf "backups/$F"
+          npx supabase stop --no-backup
+
+      - name: Restore drill
+        env:
+          CONVIA_BACKUP_PASSPHRASE: ${{ github.run_id }}-synthetic
+        run: bash scripts/restore-drill.sh backups/2000-01-01.tar.gpg

@@ -54,8 +54,10 @@ src/maps/            Map abstraction (AppMap, MapMarker, MapLine) and its provid
 src/store/appStore   Global state (zustand)
 src/utils/           Pure helpers: formatting, password rules, trip ranking, auth links
 src/dev/             Development-only tools (disabled outside __DEV__)
-supabase/            SQL migrations (apply in order) and Edge Functions (notify, delete-account)
+supabase/            SQL migrations (apply in order) and the 8 Edge Functions (see docs/API.md)
 ```
+
+Server reference: **[docs/API.md](docs/API.md)** lists every Edge Function (`notify`, `delete-account`, `verify-vehicle`, `suggest-vehicle`, `verify-pickup`, `verify-student-id`, `card-review-cleanup`, `match-agent`) with its auth, input, output, errors and limits, plus the public RPCs, scheduled jobs and webhooks. The data model is in **[docs/DER.md](docs/DER.md)**.
 
 Screens never call Supabase directly; they go through `src/services`. User-facing errors go through `errorMessage()` in `src/utils/format.ts` so users never see raw technical text.
 
