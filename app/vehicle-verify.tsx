@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, Linking, ScrollView, StyleSheet, Text, View }
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 
 import { Notice } from '@/components/ui/Notice';

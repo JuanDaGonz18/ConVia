@@ -12,7 +12,7 @@ import {
   ViewAnnotation,
 } from '@maplibre/maplibre-react-native';
 import * as ExpoLocation from 'expo-location';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
