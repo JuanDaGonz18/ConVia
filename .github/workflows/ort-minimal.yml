@@ -1,0 +1,53 @@
+# Builds the minimal ONNX Runtime Android AAR (arm64-v8a, only the SFace operators)
+# that the app vendors at vendor/onnxruntime/. Uses ONNX Runtime's own Docker-based
+# custom build (tools/android_custom_build). Download the AAR from the run's
+# artifacts and commit it when the operator config or the ORT version changes.
+name: ORT minimal build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/ort-minimal/**
+      - .github/workflows/ort-minimal.yml
+
+permissions:
+  contents: read
+
+env:
+  ORT_TAG: v1.24.3
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get ONNX Runtime's custom build tooling
+        run: |
+          git clone --depth 1 --branch "$ORT_TAG" --filter=blob:none --sparse https://github.com/microsoft/onnxruntime.git ort && git -C ort sparse-checkout set tools/android_custom_build
+          # The v1.24.3 image is Ubuntu 20.04 (Python 3.8), too old for that release's
+          # build scripts (they use built-in generics like set[str]).
+          sed -i 's/^FROM ubuntu:20.04$/FROM ubuntu:22.04/' ort/tools/android_custom_build/Dockerfile
+          grep -n '^FROM' ort/tools/android_custom_build/Dockerfile
+
+      - name: Build the AAR
+        run: |
+          python3 ort/tools/android_custom_build/build_custom_android_package.py work \
+            --onnxruntime_branch_or_tag "$ORT_TAG" \
+            --build_settings scripts/ort-minimal/build_settings.json \
+            --include_ops_by_config scripts/ort-minimal/required_operators_and_types.config \
+            --config MinSizeRel
+
+      - name: Collect
+        run: |
+          aar=$(find work/output/aar_out -name 'onnxruntime-android-*.aar' | head -1)
+          mkdir out && cp "$aar" out/onnxruntime-android-1.24.3-sface.aar
+          sha256sum out/*.aar | tee out/SHA256SUMS
+          unzip -l out/*.aar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: onnxruntime-android-1.24.3-sface
+          path: out/

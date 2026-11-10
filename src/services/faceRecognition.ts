@@ -1,7 +1,7 @@
 /**
  * On-device face pipeline (free, offline):
  *   photo → ML Kit face detection + landmarks → quality checks →
- *   5-point similarity alignment to 112×112 → SFace (ONNX) → 128-d embedding.
+ *   5-point similarity alignment to 112×112 → SFace (ONNX Runtime, ORT format) → 128-d embedding.
  *
  * Two sources share the model, alignment and normalization:
  *   'selfie'   — a live photo of the user.
@@ -39,9 +39,11 @@ export type { FaceSource };
 type NitroImages = typeof import('react-native-nitro-image')['Images'];
 type Ort = { InferenceSession: typeof InferenceSession; Tensor: typeof Tensor };
 
-// Metro bundles the model as an asset (see metro.config.js assetExts).
+// Metro bundles the model as an asset (see metro.config.js assetExts). Android ships a
+// minimal ONNX Runtime that only reads ORT format, so native uses the converted model
+// (scripts/ort-minimal); the web build keeps the .onnx file.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const MODEL_ASSET = require('../../assets/models/sface_int8.onnx');
+const MODEL_ASSET = require('../../assets/models/sface_int8.ort');
 
 const UNAVAILABLE = new FaceCheckError(
   'model_unavailable',
