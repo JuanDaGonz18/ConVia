@@ -66,6 +66,7 @@ jobs:
           npx supabase db dump --role-only -f "backups/$F/roles.sql"
           npx supabase db dump -f "backups/$F/schema.sql"
           npx supabase db dump --data-only --use-copy -f "backups/$F/data.sql"
+          grep -nE '^(COPY|INSERT|\\.)' "backups/$F/data.sql" | cut -c1-120 | head -80  # synthetic data only
           tar -cf - -C backups "$F" | gpg --batch --pinentry-mode loopback --passphrase "$PASS" \
             -c --cipher-algo AES256 --s2k-digest-algo SHA512 -o "backups/$F.tar.gpg"
           rm -rf "backups/$F"
