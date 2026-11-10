@@ -1,6 +1,6 @@
 import { forwardRef, ReactNode, useState } from 'react';
 import { StyleSheet, Text, TextInput, type TextInputInstance, TextInputProps, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';

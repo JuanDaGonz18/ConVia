@@ -1,11 +1,52 @@
 diff --git a/node_modules/onnxruntime-react-native/android/build.gradle b/node_modules/onnxruntime-react-native/android/build.gradle
-index 41b4359..ab70213 100644
+index 41b4359..4649ca0 100644
 --- a/node_modules/onnxruntime-react-native/android/build.gradle
 +++ b/node_modules/onnxruntime-react-native/android/build.gradle
-@@ -247,7 +247,7 @@ dependencies {
-     extractLibs "com.microsoft.onnxruntime:onnxruntime-android:latest.integration@aar"
+@@ -64,6 +64,10 @@ def readPackageJsonField(field) {
+ 
+ boolean ortExtensionsEnabled = readPackageJsonField('onnxruntimeExtensionsEnabled') == "true"
+ boolean useQnn = readPackageJsonField('onnxruntimeUseQnn') == "true"
++// Optional custom ONNX Runtime AAR (e.g. a minimal build), relative to the app root.
++// Custom minimal builds have no NNAPI, so the binding is compiled without it.
++def customOrtAar = readPackageJsonField('onnxruntimeCustomAar')
++boolean useNnapi = !useQnn && !customOrtAar
+ 
+ def REACT_NATIVE_VERSION = ['node', '--print', "JSON.parse(require('fs').readFileSync(require.resolve('react-native/package.json'), 'utf-8')).version"].execute(null, rootDir).text.trim()
+ def REACT_NATIVE_MINOR_VERSION = REACT_NATIVE_VERSION.split("\\.")[1].toInteger()
+@@ -89,13 +93,13 @@ android {
+             "-DORT_EXTENSIONS_ENABLED=${ortExtensionsEnabled}",
+             "-DREACT_NATIVE_VERSION=${REACT_NATIVE_VERSION}",
+             "-DUSE_QNN=${useQnn}",
+-            "-DUSE_NNAPI=${!useQnn}"
++            "-DUSE_NNAPI=${useNnapi}"
+         } else {
+           arguments "-DNODE_MODULES_DIR=${nodeModules}",
+             "-DORT_EXTENSIONS_ENABLED=${ortExtensionsEnabled}",
+             "-DREACT_NATIVE_VERSION=${REACT_NATIVE_VERSION}",
+             "-DUSE_QNN=${useQnn}",
+-            "-DUSE_NNAPI=${!useQnn}"
++            "-DUSE_NNAPI=${useNnapi}"
+         }
+         abiFilters (*reactNativeArchitectures())
+       }
+@@ -241,13 +245,18 @@ dependencies {
+ 
+   implementation "junit:junit:4.12"
+ 
+-  if (useQnn) {
+-    extractLibs "com.microsoft.onnxruntime:onnxruntime-android-qnn:latest.integration@aar"
++  // Pinned to the JS binding's version (onnxruntime-react-native/onnxruntime-common 1.24.3)
++  // instead of latest.integration, so every build ships the same native runtime.
++  def ortVersion = "1.24.3"
++  if (customOrtAar) {
++    extractLibs files(new File(project.rootDir.parentFile, customOrtAar))
++  } else if (useQnn) {
++    extractLibs "com.microsoft.onnxruntime:onnxruntime-android-qnn:${ortVersion}@aar"
+   } else {
+-    extractLibs "com.microsoft.onnxruntime:onnxruntime-android:latest.integration@aar"
++    extractLibs "com.microsoft.onnxruntime:onnxruntime-android:${ortVersion}@aar"
    }
-
+ 
 -  if (VersionNumber.parse(REACT_NATIVE_VERSION) < VersionNumber.parse("0.71")) {
 +  if (REACT_NATIVE_VERSION.startsWith("0.6") || REACT_NATIVE_VERSION.startsWith("0.7")) {
      extractLibs "com.facebook.fbjni:fbjni:+:headers"

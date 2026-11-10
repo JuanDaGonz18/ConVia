@@ -2,6 +2,7 @@ const path = require('node:path');
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
+// Face model for the web build. Native downloads the ORT-format model on first use.
 config.resolver.assetExts.push('onnx');
 
 // Web build (the version iPhone users open in Safari): swap native-only

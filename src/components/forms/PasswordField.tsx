@@ -1,6 +1,6 @@
 import { forwardRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, type TextInputInstance, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 
 import { TextField, TextFieldProps } from '@/components/forms/TextField';

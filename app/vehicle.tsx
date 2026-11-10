@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, T
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';

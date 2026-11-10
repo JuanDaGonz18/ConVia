@@ -3,7 +3,7 @@ import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, Text, Vie
 import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { type TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 

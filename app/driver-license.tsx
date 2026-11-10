@@ -4,7 +4,7 @@ import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from '
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';

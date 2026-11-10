@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 
 import { RateDriverModal, RateDriverTarget } from '@/components/trip/RateDriverModal';

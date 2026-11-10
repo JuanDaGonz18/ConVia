@@ -1,21 +1,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { withAppBuildGradle, withGradleProperties } = require('expo/config-plugins');
+const { withAppBuildGradle } = require('expo/config-plugins');
 
-// Only real phones' CPUs (64- and 32-bit ARM). Dropping the x86 emulator
-// builds of every native library cuts the APK to roughly half its size.
-const ANDROID_ARCHITECTURES = 'arm64-v8a,armeabi-v7a';
+// Only 64-bit ARM phones. Libraries compiled from source (React Native, Expo
+// modules) follow `buildArchs` in app.json (expo-build-properties); prebuilt native
+// libraries (ONNX Runtime, MapLibre, ML Kit…) are filtered here when packaging the APK.
+const ANDROID_ABI_FILTERS = ['arm64-v8a'];
 
 function withPhoneArchitectures(config) {
-  // Libraries compiled from source (React Native, Expo modules).
-  config = withGradleProperties(config, (mod) => {
-    mod.modResults = mod.modResults.filter((item) => item.key !== 'reactNativeArchitectures');
-    mod.modResults.push({ type: 'property', key: 'reactNativeArchitectures', value: ANDROID_ARCHITECTURES });
-    return mod;
-  });
-  // Prebuilt native libraries (ONNX Runtime, MapLibre, camera…) are filtered when packaging the APK.
   return withAppBuildGradle(config, (mod) => {
-    const filters = ANDROID_ARCHITECTURES.split(',').map((abi) => `"${abi}"`).join(', ');
+    const filters = ANDROID_ABI_FILTERS.map((abi) => `"${abi}"`).join(', ');
     if (!mod.modResults.contents.includes('abiFilters')) {
       mod.modResults.contents = mod.modResults.contents.replace(
         /defaultConfig\s*\{/,
