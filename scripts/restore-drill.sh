@@ -101,8 +101,11 @@ awk '
 # 5. Actual rows, one count per table.
 : >"$WORK/actual.tsv"
 while IFS=$'\t' read -r table _; do
-  printf '%s\t%s\n' "$table" "$(psql -At -c "select count(*) from $table")" >>"$WORK/actual.tsv"
+  # </dev/null: docker exec -i would otherwise eat the rest of expected.tsv.
+  printf '%s\t%s\n' "$table" "$(psql -At -c "select count(*) from $table" </dev/null)" >>"$WORK/actual.tsv"
 done <"$WORK/expected.tsv"
+[ "$(wc -l <"$WORK/actual.tsv")" -eq "$(wc -l <"$WORK/expected.tsv")" ] \
+  || { echo "Counted $(wc -l <"$WORK/actual.tsv") of $(wc -l <"$WORK/expected.tsv") tables." >&2; exit 1; }
 
 printf '\n%-55s %9s %9s\n' "table" "dump" "restored"
 join -t $'\t' "$WORK/expected.tsv" "$WORK/actual.tsv" | awk -F'\t' '
