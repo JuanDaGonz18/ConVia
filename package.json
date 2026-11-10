@@ -78,10 +78,12 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\"",
+    "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\" \"scripts/admin/*.test.mjs\"",
     "test:verify-vehicle": "node scripts/test-verify-vehicle.mjs",
     "test:verify-pickup": "node scripts/test-verify-pickup.mjs",
     "review": "node --env-file-if-exists=scripts/admin/.env.review.local scripts/admin/review-cli.mjs",
+    "feedback": "node --env-file-if-exists=scripts/admin/.env.review.local scripts/admin/feedback-cli.mjs",
+    "errors": "node --env-file-if-exists=scripts/admin/.env.review.local scripts/admin/errors-cli.mjs",
     "test:functions": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"supabase/functions/**/*.test.ts\""
   },
   "private": true,

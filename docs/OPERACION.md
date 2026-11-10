@@ -294,7 +294,7 @@ tiene entrada y usa el valor por defecto, también `true`).
 | `suggest-vehicle` | app (JWT) | Muse Spark propone marca, línea, color y placa desde una foto; no guarda nada | ConVía+ (`vehicle_autofill`) |
 | `verify-pickup` | app (JWT) y `cleanup-pickup-clips` (`x-convia-cron`) | clip de ≤ 2 s del carro que llega; va inline al modelo (sin Files API) y se borra de Storage al terminar | gratis, con límite mensual |
 | `verify-student-id` | app (JWT) | carné (recortes sin rostro) o carné sin foto + captura → Muse Spark; los casos dudosos y los de documento van a revisión manual | gratis |
-| `card-review-cleanup` | solo `cleanup-card-review-files` (`x-convia-cron`) | borra las imágenes de revisión de carné de más de 7 días; rechaza cualquier otra llamada | — |
+| `card-review-cleanup` | solo `cleanup-card-review-files` (`x-convia-cron`) | borra las imágenes de revisión de carné de más de 7 días y las capturas de los reportes de más de 30 (bucket `feedback`); rechaza cualquier otra llamada | — |
 | `match-agent` | app (JWT) | asistente de viajes: Muse Spark con herramientas (lee con la sesión del usuario, RLS) y una segunda llamada que juzga la propuesta | ConVía+ (`trip_assistant`) |
 
 Sin `MODEL_API_KEY` las funciones de IA responden 503 `MODEL_UNAVAILABLE`.
@@ -352,7 +352,8 @@ Si se rota `CRON_SECRET`, cambiar los dos a la vez (secreto de funciones y Vault
 | `cleanup-vehicle-suggestions` | `31 3 * * *` | contador de `suggest-vehicle` de más de 1 día | 032 |
 | `cleanup-pickup-clips` | cada 30 min | clips de recogida de más de 1 hora (vía `verify-pickup`) | 033 |
 | `cleanup-card-review-files` | `41 3 * * *` | imágenes de revisión de carné de más de 7 días (vía `card-review-cleanup`) | 038 |
-| `admin-review-alerts` | `0 12,22 * * *` | si hay carnés o instituciones por revisar, encola un aviso por administrador (máx. uno al día); lo envía `dispatch-pending-pushes` | 041 |
+| `admin-review-alerts` | `0 12,22 * * *` | si hay carnés, instituciones o reportes nuevos por revisar, encola un aviso por administrador (máx. uno al día); lo envía `dispatch-pending-pushes`. Un reporte de seguridad avisa al instante (solo el número) | 041, 045 |
+| `cleanup-monitoring` | `53 3 * * *` | `client_errors` y `app_events` de más de 90 días, reportes de más de 1 año y la ruta de las capturas vencidas | 045 |
 
 En el repositorio del hackathon, `cleanup-notified-events` y
 `cleanup-vehicle-suggestions` eran un solo trabajo, `cleanup-function-guards`;

@@ -5,6 +5,9 @@ export type FeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
 export const FEEDBACK_MIN_LENGTH = 10;
 export const FEEDBACK_MAX_LENGTH = 1000;
 
+/** Thrown by feedbackService when the optional screenshot can't be uploaded. */
+export const FEEDBACK_UPLOAD_FAILED = 'FEEDBACK_UPLOAD_FAILED';
+
 export type FeedbackProblem = 'category' | 'tooShort' | 'tooLong';
 
 export function isFeedbackCategory(value: unknown): value is FeedbackCategory {
@@ -27,8 +30,9 @@ export function feedbackProblems(category: string | null, description: string): 
 }
 
 /** Maps the server's error codes to i18n keys under `feedback.errors`. */
-export function feedbackErrorKey(rawMessage: string): 'rateLimit' | 'invalid' | 'auth' | null {
+export function feedbackErrorKey(rawMessage: string): 'rateLimit' | 'invalid' | 'auth' | 'upload' | null {
   if (/FEEDBACK_RATE_LIMIT/.test(rawMessage)) return 'rateLimit';
+  if (/FEEDBACK_(UPLOAD_FAILED|SCREENSHOT_INVALID)/.test(rawMessage)) return 'upload';
   if (/FEEDBACK_(CATEGORY_INVALID|TOO_SHORT|TOO_LONG)/.test(rawMessage)) return 'invalid';
   if (/AUTH_REQUIRED/.test(rawMessage)) return 'auth';
   return null;

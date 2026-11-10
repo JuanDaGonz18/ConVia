@@ -1948,7 +1948,13 @@
       "generic": "No pudimos enviar el reporte. Inténtalo de nuevo.",
       "rateLimit": "Enviaste varios reportes seguidos. Espera un rato antes de enviar otro.",
       "invalid": "Revisa el tipo y el texto del reporte.",
-      "auth": "Tu sesión expiró. Inicia sesión de nuevo."
-    }
+      "auth": "Tu sesión expiró. Inicia sesión de nuevo.",
+      "upload": "No se pudo subir la captura. Inténtalo de nuevo o envía el reporte sin ella."
+    },
+    "screenshot": "Adjuntar captura (opcional)",
+    "screenshotChange": "Cambiar captura",
+    "screenshotRemove": "Quitar captura",
+    "screenshotAlt": "Captura adjunta",
+    "attached": "Se envían también la versión de la app ({{version}}) y el sistema ({{platform}}). La captura se borra a los 30 días."
   }
 }

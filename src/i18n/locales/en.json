@@ -1948,7 +1948,13 @@
       "generic": "We couldn't send the report. Please try again.",
       "rateLimit": "You sent several reports in a row. Wait a while before sending another.",
       "invalid": "Check the report type and text.",
-      "auth": "Your session expired. Sign in again."
-    }
+      "auth": "Your session expired. Sign in again.",
+      "upload": "The screenshot could not be uploaded. Try again or send the report without it."
+    },
+    "screenshot": "Attach a screenshot (optional)",
+    "screenshotChange": "Change screenshot",
+    "screenshotRemove": "Remove screenshot",
+    "screenshotAlt": "Attached screenshot",
+    "attached": "The app version ({{version}}) and system ({{platform}}) are sent too. The screenshot is deleted after 30 days."
   }
 }

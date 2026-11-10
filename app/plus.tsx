@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +15,7 @@ import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import { monitoring } from '@/services/monitoringService';
 import { subscriptionService } from '@/services/subscriptionService';
 import { CAPABILITIES, Capability, DEFAULT_PLANS, LIMIT_INFO, Plan, PlanLimit, PlanTier } from '@/subscription/plans';
 import { refreshPlan, usePlan } from '@/subscription/usePlan';
@@ -73,6 +74,7 @@ export default function PlusScreen() {
   const { plan, isPlus, betaMode } = usePlan();
   const [plans, setPlans] = useState<Record<PlanTier, Plan>>(DEFAULT_PLANS);
   const [checking, setChecking] = useState(false);
+  useEffect(() => monitoring.track('plan_view', { plus: isPlus }), [isPlus]);
 
   useFocusEffect(useCallback(() => {
     void refreshPlan();

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 
 import { TextField } from '@/components/forms/TextField';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
+import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { toast } from '@/components/ui/Toast';
@@ -13,7 +15,7 @@ import { dimensions } from '@/constants/dimensions';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
-import { type FeedbackReport, feedbackService } from '@/services/feedbackService';
+import { type FeedbackReport, type FeedbackScreenshot, feedbackService } from '@/services/feedbackService';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
 import {
   FEEDBACK_CATEGORIES,
@@ -33,6 +35,18 @@ export default function FeedbackScreen() {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [reports, setReports] = useState<FeedbackReport[]>([]);
+  const [screenshot, setScreenshot] = useState<FeedbackScreenshot | null>(null);
+
+  const pickScreenshot = async () => {
+    setError(null);
+    try {
+      const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1, allowsEditing: false, exif: false });
+      const asset = picked.canceled ? null : picked.assets?.[0];
+      if (asset?.uri) setScreenshot({ uri: asset.uri, width: asset.width, height: asset.height });
+    } catch {
+      setError(t('feedback.errors.upload'));
+    }
+  };
 
   const loadReports = useCallback(() => {
     // The list is secondary; sending still works without it.
@@ -53,9 +67,10 @@ export default function FeedbackScreen() {
     if (problems.length || !category || sending) return;
     setSending(true);
     try {
-      await feedbackService.submit(category, description);
+      await feedbackService.submit(category, description, screenshot);
       setCategory(null);
       setDescription('');
+      setScreenshot(null);
       toast.success(t('feedback.sent'));
       loadReports();
     } catch (submitError) {
@@ -101,7 +116,17 @@ export default function FeedbackScreen() {
             textAlignVertical="top"
             value={description}
           />
+          {screenshot ? (
+            <View style={styles.preview}>
+              <Image accessibilityLabel={t('feedback.screenshotAlt')} resizeMode="contain" source={{ uri: screenshot.uri }} style={styles.image} />
+              <ButtonSecondary icon="image-outline" onPress={() => void pickScreenshot()} title={t('feedback.screenshotChange')} />
+              <ButtonSecondary icon="close-outline" onPress={() => setScreenshot(null)} title={t('feedback.screenshotRemove')} tone="danger" />
+            </View>
+          ) : (
+            <ButtonSecondary icon="image-outline" onPress={() => void pickScreenshot()} title={t('feedback.screenshot')} />
+          )}
           <Text style={styles.hint}>{t('feedback.privacy')}</Text>
+          <Text style={styles.hint}>{t('feedback.attached', { version: feedbackService.appVersion(), platform: Platform.OS })}</Text>
 
           {error ? <Notice tone="error">{error}</Notice> : null}
           <ButtonPrimary loading={sending} onPress={() => void submit()} title={t('feedback.submit')} />
@@ -134,6 +159,8 @@ const styles = StyleSheet.create({
   chipText: { ...typography.bodySmall, color: colors.text },
   chipTextSelected: { color: colors.primary, fontWeight: '600' },
   textarea: { minHeight: 120 },
+  preview: { gap: spacing[8] },
+  image: { backgroundColor: colors.lightGray, borderRadius: radius.radiusLarge, height: 220, width: '100%' },
   error: { ...typography.caption, color: colors.error },
   hint: { ...typography.caption, color: colors.textSecondary },
   mineTitle: { marginTop: spacing[8] },

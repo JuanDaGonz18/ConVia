@@ -10,7 +10,7 @@ const headers = {
 
 // Face verification runs on the device and stores no photos today; face-verifications is
 // still emptied in case it holds files from older flows.
-const BUCKETS = ['avatars', 'vehicle-photos', 'face-verifications'];
+const BUCKETS = ['avatars', 'vehicle-photos', 'face-verifications', 'feedback'];
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers });

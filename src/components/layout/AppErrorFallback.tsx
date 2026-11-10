@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ErrorBoundaryProps } from 'expo-router';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -8,15 +9,17 @@ import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
+import { monitoring } from '@/services/monitoringService';
 
 /**
  * What the user sees instead of a blank screen (web) or a crash (phone) when a screen throws
  * while rendering. Exported as the root layout's ErrorBoundary, so it replaces the whole app
  * shell: it brings its own SafeAreaProvider. "Try again" re-renders the screen; the error text
- * is shown only in development builds.
+ * is shown only in development builds. Each error caught here is reported to client_errors.
  */
 export function AppErrorFallback({ error, retry }: ErrorBoundaryProps) {
   const { t } = useTranslation();
+  useEffect(() => monitoring.reportError(error), [error]);
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>

@@ -37,6 +37,8 @@ describe('feedback rules', () => {
     assert.equal(feedbackErrorKey('FEEDBACK_RATE_LIMIT'), 'rateLimit');
     assert.equal(feedbackErrorKey('FEEDBACK_TOO_SHORT'), 'invalid');
     assert.equal(feedbackErrorKey('AUTH_REQUIRED'), 'auth');
+    assert.equal(feedbackErrorKey('FEEDBACK_UPLOAD_FAILED'), 'upload');
+    assert.equal(feedbackErrorKey('FEEDBACK_SCREENSHOT_INVALID'), 'upload');
     assert.equal(feedbackErrorKey('boom'), null);
   });
 });

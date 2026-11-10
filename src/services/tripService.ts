@@ -1,5 +1,6 @@
 import { mockTrips } from '@/data/mock/trips';
 import { ensureSupabaseConfigured, isSupabaseEnabled, supabase } from '@/lib/supabase';
+import { monitoring } from '@/services/monitoringService';
 import { notificationService } from '@/services/notificationService';
 import { matchFromServer, TripMatch } from '@/services/tripMatching';
 import type { Json } from '@/lib/database.types';
@@ -258,6 +259,7 @@ export const tripService = {
     if (error) throw error;
     // Passengers whose route alert matches this trip are notified by the server.
     notificationService.notify('trip_published', data.id);
+    monitoring.track('publish_trip', { seats: input.totalSeats, route: !!input.route });
     return data;
   },
   /** `dropoff`: where the passenger wants to get off (optional), so the driver can judge the fit. */
@@ -281,6 +283,7 @@ export const tripService = {
       .single();
     if (error) throw error;
     notificationService.notify('request_created', data.id);
+    monitoring.track('request_seat', { dropoff: !!dropoff });
   },
   /**
    * The passenger's own requests, newest first, with the driver's latest change
@@ -481,6 +484,7 @@ export const tripService = {
     });
     if (error) throw error;
     notificationService.notify('request_responded', requestId);
+    if (accept) monitoring.track('accept_request');
   },
   async startTrip(tripId: string) {
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
@@ -528,6 +532,7 @@ export const tripService = {
     ensureSupabaseConfigured();
     const { error } = await supabase.rpc('board_passenger', { p_qr_token: qrToken });
     if (error) throw error;
+    monitoring.track('boarding_qr');
   },
   /** Cancels the trip (even with reserved seats) and tells the affected passengers. */
   async cancelTrip(tripId: string): Promise<Trip | undefined> {
