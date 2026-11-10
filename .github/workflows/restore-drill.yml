@@ -54,7 +54,8 @@ jobs:
           select cron.schedule('drill-must-be-removed', '* * * * *', $$select 1$$);
           select (select count(*) from public.profiles) as profiles, (select count(*) from auth.users) as users;
           SQL
-          npx supabase db query -f "$RUNNER_TEMP/seed.sql"
+          # psql, not `db query`: several statements in one go.
+          docker exec -i supabase_db_convia psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 < "$RUNNER_TEMP/seed.sql"
 
       - name: Synthetic backup (same commands as OPERACION.md §4, local instead of --remote)
         env:
