@@ -11,8 +11,8 @@
  * the version they accepted.
  */
 
-export const LEGAL_VERSION = '1.2';
-export const LEGAL_UPDATED_AT = '6 de noviembre de 2026';
+export const LEGAL_VERSION = '1.3';
+export const LEGAL_UPDATED_AT = '10 de noviembre de 2026';
 
 export const LEGAL_COMPANY = {
   name: 'ConVía',
@@ -233,6 +233,7 @@ export const PRIVACY: LegalDocument = {
             'Ubicación: la posición de tu teléfono cuando usas funciones como "Usar mi ubicación", el mapa o los viajes cercanos.',
             'Datos biométricos: la representación numérica de tu rostro y el resultado de cada verificación (ver sección 4).',
             'Datos técnicos: identificador para notificaciones push y datos básicos del dispositivo necesarios para que la aplicación funcione. En la versión web, tu sesión se guarda en el almacenamiento de tu navegador.',
+            'Diagnóstico y uso: si la app falla, guardamos el error (sin tu nombre, correo ni ubicación), la pantalla, la versión y el sistema; también registramos acciones generales (p. ej. "publicó un viaje") sin su contenido. Si nos escribes desde "Reportar un problema", guardamos tu mensaje y la captura que adjuntes.',
           ],
         },
       ],
@@ -251,6 +252,7 @@ export const PRIVACY: LegalDocument = {
             'Permitir el chat entre participantes de un mismo viaje y enviarte notificaciones sobre tus viajes y solicitudes.',
             'Atender tus consultas y reclamos, hacer cumplir los Términos y Condiciones y colaborar con autoridades cuando la ley lo exija.',
             'Mejorar la seguridad y el funcionamiento de la aplicación.',
+            'Diagnosticar fallas, entender el uso de la app y atender tus reportes.',
           ],
         },
         'No vendemos ni alquilamos tus datos personales, ni los usamos para publicidad de terceros.',
@@ -323,6 +325,7 @@ export const PRIVACY: LegalDocument = {
       body: [
         'Conservamos tus datos mientras tengas una cuenta activa. Cuando eliminas tu cuenta, se borran tu perfil, fotos, vehículos, viajes, solicitudes, mensajes y representaciones faciales, salvo la información que debamos conservar por obligación legal o para atender reclamaciones pendientes.',
         'Videos de recogida: se borran al terminar la verificación y, en cualquier caso, a más tardar 1 hora después de subirlos. Fotos del vehículo para verificarlo: se borran al terminar la verificación. Imágenes del carné: si la verificación va a revisión manual, se guardan para quien revisa y se borran cuando se decide, cuando verificas de nuevo, cuando eliminas tu cuenta o, en cualquier caso, a más tardar 7 días después.',
+        'Errores y registros de uso: 90 días. Reportes: 1 año; sus capturas, 30 días.',
         'Si el proyecto termina, eliminaremos los datos personales de todos los usuarios y te avisaremos con anticipación en la aplicación o por correo.',
         'Los mensajes y datos que otros usuarios ya recibieron durante un viaje pueden permanecer en sus dispositivos (por ejemplo, en capturas de pantalla), fuera del control de ConVía.',
       ],
