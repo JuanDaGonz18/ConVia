@@ -17,11 +17,17 @@
       "environment": "preview",
       "android": {
         "buildType": "apk"
-      }
+      },
+      "buildArtifactPaths": [
+        "android/app/build/outputs/mapping/release/*"
+      ]
     },
     "production": {
       "environment": "production",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "buildArtifactPaths": [
+        "android/app/build/outputs/mapping/release/*"
+      ]
     }
   },
   "submit": {
