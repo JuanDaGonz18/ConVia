@@ -44,7 +44,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ reduceMotion = false }) =
   return (
     <View style={styles.container} pointerEvents="none">
       <BlueCurves />
-      <Image source={require('../assets/splash-icon.png')} style={styles.logo} resizeMode="contain" />
+      <Image source={require('../../assets/splash-icon.png')} style={styles.logo} resizeMode="contain" />
       <View style={styles.carWrapper}>
         <CarIllustration />
       </View>
