@@ -11,7 +11,6 @@
  * Validated against OpenCV's reference SFace implementation (cosine agreement
  * ≈0.98 on LFW). No image or embedding is ever logged.
  */
-import { Asset } from 'expo-asset';
 import { Paths } from 'expo-file-system';
 import { NativeModules } from 'react-native';
 import type { InferenceSession, Tensor } from 'onnxruntime-common';
@@ -31,6 +30,7 @@ import {
   SIZE,
   WORKING_SIZE,
 } from '@/services/faceCore';
+import { downloadVerified } from '@/services/modelDownload';
 import { regionsAroundFace, toBase64 } from '@/services/studentCard';
 
 export { FaceCheckError };
@@ -39,15 +39,24 @@ export type { FaceSource };
 type NitroImages = typeof import('react-native-nitro-image')['Images'];
 type Ort = { InferenceSession: typeof InferenceSession; Tensor: typeof Tensor };
 
-// Metro bundles the model as an asset (see metro.config.js assetExts). Android ships a
-// minimal ONNX Runtime that only reads ORT format, so native uses the converted model
-// (scripts/ort-minimal); the web build keeps the .onnx file.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const MODEL_ASSET = require('../../assets/models/sface_int8.ort');
+// The model (~10 MB) is not bundled in the APK: it is downloaded once, checked against
+// its SHA-256 and kept in the app's documents folder. It is the ORT-format conversion of
+// assets/models/sface_int8.onnx (the minimal Android runtime only reads ORT format; see
+// scripts/ort-minimal). The web build keeps loading the .onnx file.
+const MODEL = {
+  url: 'https://github.com/JuanDaGonz18/ConVia/releases/download/models-v1/sface_int8.ort',
+  sha256: '2c8eb28c3ed5d0a4b17384dd01655743c5c295948934a83f591a8bb8fcebc204',
+};
+const MODEL_DOWNLOAD_ATTEMPTS = 3;
 
 const UNAVAILABLE = new FaceCheckError(
   'model_unavailable',
   'El reconocimiento facial no está disponible en esta instalación. Instala la versión de desarrollo más reciente de ConVía.',
+);
+
+const MODEL_OFFLINE = new FaceCheckError(
+  'network_error',
+  'Para verificar tu rostro, ConVía descarga una sola vez el modelo de reconocimiento (unos 10 MB). Conéctate a internet e inténtalo de nuevo.',
 );
 
 let natives: { images: NitroImages; detectors: Record<FaceSource, ImageFaceDetector>; ort: Ort } | null = null;
@@ -78,19 +87,74 @@ function getNatives() {
   }
 }
 
+/** The cached model file; downloaded (with retries) and verified first when missing. */
+async function modelFile() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Directory, File } = require('expo-file-system') as typeof import('expo-file-system');
+  const dir = new Directory(Paths.document, 'models');
+  const name = `sface_int8-${MODEL.sha256.slice(0, 16)}.ort`;
+  const model = new File(dir, name);
+  if (model.exists) return model;
+
+  dir.create({ intermediates: true, idempotent: true });
+  // Drop models left by older app versions.
+  for (const entry of dir.list()) {
+    if (entry instanceof File && entry.name !== name) {
+      try {
+        entry.delete();
+      } catch {
+        // Not worth failing over.
+      }
+    }
+  }
+  const partial = new File(dir, `${name}.download`);
+  const ok = await downloadVerified(
+    {
+      download: async () => {
+        await File.downloadFileAsync(MODEL.url, partial, { idempotent: true });
+      },
+      sha256: () => partial.digest('SHA-256'),
+      commit: () => partial.moveSync(model),
+      discard: () => {
+        try {
+          if (partial.exists) partial.delete();
+        } catch {
+          // Overwritten by the next download.
+        }
+      },
+    },
+    {
+      expectedSha256: MODEL.sha256,
+      attempts: MODEL_DOWNLOAD_ATTEMPTS,
+      onError: (attempt, error) => {
+        if (__DEV__) console.warn(`[face] model download attempt ${attempt} failed:`, error instanceof Error ? error.message : String(error));
+      },
+    },
+  );
+  if (!ok) throw MODEL_OFFLINE;
+  return model;
+}
+
 async function getSession(): Promise<InferenceSession> {
   if (!sessionPromise) {
     sessionPromise = (async () => {
       const { ort } = getNatives();
-      const asset = Asset.fromModule(MODEL_ASSET);
-      await asset.downloadAsync();
-      const uri = asset.localUri ?? asset.uri;
+      const model = await modelFile();
       try {
-        return await ort.InferenceSession.create(uri);
+        return await ort.InferenceSession.create(model.uri);
       } catch {
         // Some loaders reject file:// URIs; fall back to the raw bytes.
-        const bytes = new Uint8Array(await (await fetch(uri)).arrayBuffer());
-        return ort.InferenceSession.create(bytes);
+        try {
+          return await ort.InferenceSession.create(await model.bytes());
+        } catch (error) {
+          // A file that verified but no longer loads: download it again next time.
+          try {
+            model.delete();
+          } catch {
+            // Ignore: the error below is what matters.
+          }
+          throw error;
+        }
       }
     })();
     sessionPromise.catch(() => {
@@ -99,12 +163,13 @@ async function getSession(): Promise<InferenceSession> {
   }
   try {
     return await sessionPromise;
-  } catch {
+  } catch (error) {
+    if (error instanceof FaceCheckError) throw error;
     throw UNAVAILABLE;
   }
 }
 
-/** Loads the model ahead of time so the first verification is fast. */
+/** Downloads (first time) and loads the model ahead of time so verification is fast. */
 export function preloadFaceModel() {
   void getSession().catch(() => undefined);
 }
@@ -261,7 +326,8 @@ export async function analyzeStudentCard(photoUri: string): Promise<StudentCardA
       const tensor = alignFace(await readPixels(image), landmarkPoints(face, 'document'));
       checkImageQuality(tensor, 'document');
       embedding = await embed(tensor);
-    } catch {
+    } catch (error) {
+      if (error === MODEL_OFFLINE) throw error;
       return { ok: false, reason: 'face_unusable' };
     }
 
@@ -275,6 +341,7 @@ export async function analyzeStudentCard(photoUri: string): Promise<StudentCardA
     }
     return { ok: true, embedding, crops };
   } catch (error) {
+    if (error === MODEL_OFFLINE) throw error;
     if (__DEV__) console.warn('[face] student card error:', error instanceof Error ? error.message : String(error));
     throw new FaceCheckError('model_unavailable', 'No se pudo procesar la foto en este teléfono. Inténtalo de nuevo.');
   } finally {

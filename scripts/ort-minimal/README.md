@@ -5,7 +5,7 @@ that only contains the operators and types this model uses (arm64-v8a only). The
 full runtime from Maven is ~26 MB in the APK; this one is a fraction of that.
 
 The minimal runtime only reads models in ORT format, so the native app uses
-`assets/models/sface_int8.ort`. The web build keeps `assets/models/sface_int8.onnx`
+`assets/models/sface_int8.ort`, downloaded on first use (not bundled). The web build keeps `assets/models/sface_int8.onnx`
 (onnxruntime-web). Both give the same embeddings (cosine 1.0000000 on 20 fixed inputs).
 
 ## Files
@@ -27,6 +27,9 @@ The minimal runtime only reads models in ORT format, so the native app uses
 1. Run `scripts/ort-minimal/convert-model.sh`.
 2. Push: the workflow runs on changes under `scripts/ort-minimal/`. Download the
    `onnxruntime-android-1.24.3-sface` artifact and replace the AAR in `vendor/onnxruntime/`.
-3. Commit the new `.ort` file (Metro bundles it for Android and iOS).
+3. Commit the new `.ort` file, publish it as an asset of a new `models-vN` GitHub release
+   (not marked latest, so the APK link keeps working) and update `MODEL.url` and
+   `MODEL.sha256` in `src/services/faceRecognition.ts`. The app downloads it on first use
+   and checks the SHA-256; the file is not bundled in the APK.
 4. Check the embeddings against the web build before shipping:
    `node scripts/ort-minimal/compare-embeddings.mjs <deps dir>` (see the script header).
