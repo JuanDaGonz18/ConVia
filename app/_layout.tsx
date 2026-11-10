@@ -18,7 +18,10 @@ import { useAppStore } from '@/store/appStore';
 import { SubscriptionSync } from '@/subscription/usePlan';
 import { loadLanguagePreference } from '@/i18n';
 import { preloadIconFonts } from '@/utils/iconFonts';
-import { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import { AccessibilityInfo } from 'react-native';
+import WelcomeScreen from './components/WelcomeScreen';
 
 // Before any screen renders: on the web, icons must not each start a font load that can time out.
 preloadIconFonts();
@@ -31,12 +34,39 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
   return <AppErrorFallback {...props} />;
 }
 
+// Prevent the native splash screen from auto-hiding. We hide it immediately after RN mounts.
+SplashScreen.preventAutoHideAsync();
+
+
+
 export default function RootLayout() {
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
 
+  const [appReady, setAppReady] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  // Initialise resources and hide splash when ready.
+  useEffect(() => {
+    async function prepare() {
+      try {
+        await preloadIconFonts();
+        await loadLanguagePreference();
+        const rm = await AccessibilityInfo.isReduceMotionEnabled?.();
+        setReduceMotion(!!rm);
+      } catch (e) {
+        console.warn('Error during app preparation', e);
+      } finally {
+        // Hide the native splash as soon as RN can render.
+        await SplashScreen.hideAsync();
+        setAppReady(true);
+      }
+    }
+    prepare();
+  }, []);
+
+  // Supabase auth listener – unchanged logic.
   useEffect(() => {
     if (!isSupabaseEnabled) return;
-
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
@@ -44,40 +74,48 @@ export default function RootLayout() {
         return;
       }
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-        // Deferred: Supabase advises against awaiting its calls inside this callback.
         setTimeout(() => void notificationService.register(session.user.id), 0);
       }
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && session)) {
+      if (
+        event === 'SIGNED_IN' ||
+        event === 'TOKEN_REFRESHED' ||
+        event === 'USER_UPDATED' ||
+        (event === 'INITIAL_SESSION' && session)
+      ) {
         void membershipService.refresh().catch(() => undefined);
-        void authService.getCurrentUser().then(setCurrentUser).catch((error) => {
-          console.warn('[Auth] Could not refresh the current profile', error);
-        });
+        void authService
+          .getCurrentUser()
+          .then(setCurrentUser)
+          .catch((error) => {
+            console.warn('[Auth] Could not refresh the current profile', error);
+          });
       }
     });
-
     return () => data.subscription.unsubscribe();
   }, [setCurrentUser]);
 
-  // Open the relevant screen when the user taps a push notification.
-  useEffect(() => notificationService.addTapListener(({ type, kind, tripId }) => {
-    // "Trip finished": straight to the trip, with the driver rating open.
-    if (type === 'trip_updated' && kind === 'finished' && typeof tripId === 'string') {
-      router.push({ pathname: '/trip-summary', params: { tripId, rate: '1' } });
-      return;
-    }
-    // A route alert found a compatible trip; recurring trips were published.
-    if (type === 'trip_alert') {
-      router.push('/saved-routes');
-      return;
-    }
-    if (type === 'recurring_published') {
-      router.push('/recurring-trips');
-      return;
-    }
-    if (type === 'message' && typeof tripId === 'string') router.push({ pathname: '/chat/[tripId]', params: { tripId } });
-    else if (type === 'message') router.navigate('/(tabs)/chats');
-    else if (type === 'trip_updated' || (typeof type === 'string' && type.startsWith('request_'))) router.push('/requests');
-  }), []);
+  // Push notification tap handling – unchanged.
+  useEffect(() =>
+    notificationService.addTapListener(({ type, kind, tripId }) => {
+      if (type === 'trip_updated' && kind === 'finished' && typeof tripId === 'string') {
+        router.push({ pathname: '/trip-summary', params: { tripId, rate: '1' } });
+        return;
+      }
+      if (type === 'trip_alert') {
+        router.push('/saved-routes');
+        return;
+      }
+      if (type === 'recurring_published') {
+        router.push('/recurring-trips');
+        return;
+      }
+      if (type === 'message' && typeof tripId === 'string')
+        router.push({ pathname: '/chat/[tripId]', params: { tripId } });
+      else if (type === 'message') router.navigate('/(tabs)/chats');
+      else if (type === 'trip_updated' || (typeof type === 'string' && type.startsWith('request_')))
+        router.push('/requests');
+    }),
+  []);
 
   return (
     <SafeAreaProvider>
@@ -87,10 +125,8 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: colors.background },
-            // Native slide between screens; fade for the auth entry points.
             animation: 'slide_from_right',
-          }}
-        >
+          }}>
           <Stack.Screen name="index" options={{ animation: 'fade' }} />
           <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
@@ -101,6 +137,8 @@ export default function RootLayout() {
         {/* Last, so it covers the Plus modal: new terms to accept block the app. */}
         <LegalGateHost />
         <ToastHost />
+        {/* Overlay welcome screen – visible until preparation finishes */}
+        {!appReady && <WelcomeScreen reduceMotion={reduceMotion} />}
       </AppFrame>
     </SafeAreaProvider>
   );

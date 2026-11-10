@@ -6,6 +6,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF",
+      "dark": {
+        "image": "./assets/splash-icon.png",
+        "backgroundColor": "#000000"
+      }
+    },
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
@@ -81,7 +90,8 @@
             "extraProguardRules": "# Nitro modules (VisionCamera, face detector, nitro-image): JNI-bound hybrid objects.\n-keep class com.margelo.nitro.** { *; }\n-keep class com.madebyevan.thumbhash.** { *; }\n# ONNX Runtime: the native library looks up Java classes and fields via JNI.\n-keep class ai.onnxruntime.** { *; }\n# MapLibre (native SDK calls back into Java via JNI) and react-native-maps.\n-keep class org.maplibre.** { *; }\n-keep class com.rnmaps.** { *; }\n# Reanimated / Worklets.\n-keep class com.swmansion.reanimated.** { *; }\n-keep class com.swmansion.worklets.** { *; }\n# Expo modules: module definitions and records are read by reflection.\n-keep class * extends expo.modules.kotlin.modules.Module { *; }\n-keep class * implements expo.modules.kotlin.records.Record { *; }\n-keep enum * implements expo.modules.kotlin.types.Enumerable { *; }\n-keepclassmembers class * { @expo.modules.kotlin.records.Field *; }\n# Google ML Kit (barcode + face detection).\n-keep class com.google.mlkit.** { *; }\n-dontwarn com.google.mlkit.**\n# Keep annotations/generics/inner-class metadata that reflection-based libraries read.\n-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod\n# Room: databases are instantiated by name (<Database>_Impl) via reflection.\n-keep class * extends androidx.room.RoomDatabase { <init>(); }\n-keep class * extends androidx.room.RoomDatabase\n# WorkManager (expo-notifications, Firebase): WorkDatabase_Impl and its initializers.\n-keep class androidx.work.impl.WorkDatabase_Impl { *; }\n-keepnames class androidx.work.impl.WorkDatabase\n-keep class androidx.work.** { *; }\n-keep class * extends androidx.work.ListenableWorker { <init>(...); }\n-keep class * extends androidx.work.InputMerger { <init>(); }\n# androidx.startup: InitializationProvider instantiates initializers from manifest metadata.\n-keep class * implements androidx.startup.Initializer { <init>(); }\n-keepnames class * implements androidx.startup.Initializer\n# Firebase / ML Kit: component registrars are discovered from manifest metadata.\n-keep class * implements com.google.firebase.components.ComponentRegistrar { <init>(); }\n-keep class com.google.firebase.** { *; }\n-dontwarn com.google.firebase.**\n-keep class com.google.android.gms.internal.mlkit_vision_** { *; }\n# expo-notifications (FCM service, task/notification handlers).\n-keep class expo.modules.notifications.** { *; }\n# Expo modules core: converters and module registry use Kotlin reflection.\n-keep class expo.modules.kotlin.** { *; }\n-keep class kotlin.Metadata { *; }\n# CameraX (VisionCamera): the camera2 config provider is loaded by reflection.\n-keep class androidx.camera.camera2.Camera2Config$DefaultProvider { *; }\n-keep class androidx.camera.** { *; }\n# React Native / fbjni: classes and members called from native code.\n-keep @com.facebook.proguard.annotations.DoNotStrip class *\n-keepclassmembers class * { @com.facebook.proguard.annotations.DoNotStrip *; }\n-keep @com.facebook.jni.annotations.DoNotStrip class *\n-keepclassmembers class * { @com.facebook.jni.annotations.DoNotStrip *; }\n-keep class com.facebook.jni.** { *; }\n-keep class * extends com.facebook.jni.HybridClassBase { *; }\n# MapLibre networking.\n-dontwarn okhttp3.**\n-dontwarn okio.**"
           }
         }
-      ]
+      ],
+      "expo-splash-screen"
     ],
     "extra": {
       "router": {},
@@ -89,6 +99,12 @@
         "projectId": "2d3f6e2e-77f7-45c5-893f-8c2ce46bbd53"
       }
     },
-    "owner": "juanda1809"
+    "owner": "juanda1809",
+    "sdkVersion": "58.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ]
   }
 }
