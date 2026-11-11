@@ -1,13 +1,13 @@
-import React from 'react';
-import { View, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { StyleSheet, Image, ActivityIndicator, Animated } from 'react-native';
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 
-// Props allow the parent to inform about reduced‑motion preferences.
 interface WelcomeScreenProps {
   reduceMotion?: boolean;
+  onAnimationComplete?: () => void;
 }
 
-// Decorative blue curves (top‑left & bottom‑right) using SVG.
+// Decorative blue curves (top-left & bottom-right) using SVG.
 const BlueCurves = () => (
   <Svg width="100%" height="100%" viewBox="0 0 400 400" style={StyleSheet.absoluteFill}>
     <Defs>
@@ -16,9 +16,9 @@ const BlueCurves = () => (
         <Stop offset="1" stopColor="#00B8FF" />
       </LinearGradient>
     </Defs>
-    {/* Top‑left curve */}
+    {/* Top-left curve */}
     <Path d="M0,120 C80,0 160,0 240,120" stroke="url(#grad)" strokeWidth={30} fill="none" />
-    {/* Bottom‑right curve */}
+    {/* Bottom-right curve */}
     <Path d="M400,280 C320,400 240,400 160,280" stroke="url(#grad)" strokeWidth={30} fill="none" />
   </Svg>
 );
@@ -39,17 +39,124 @@ const CarIllustration = () => (
   </Svg>
 );
 
-const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ reduceMotion = false }) => {
-  // reduceMotion currently unused – reserved for future accessibility handling.
+const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
+  reduceMotion = false,
+  onAnimationComplete,
+}) => {
+  const [containerOpacity] = useState(() => new Animated.Value(1));
+  const [contentOpacity] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  const [carTranslateX] = useState(() => new Animated.Value(reduceMotion ? 0 : -30));
+
+  // Safeguard: keep track of whether completion has already been triggered
+  const completedRef = useRef(false);
+  const onAnimationCompleteRef = useRef(onAnimationComplete);
+
+  useEffect(() => {
+    onAnimationCompleteRef.current = onAnimationComplete;
+  }, [onAnimationComplete]);
+
+  useEffect(() => {
+    const notifyCompletion = () => {
+      if (!completedRef.current) {
+        completedRef.current = true;
+        onAnimationCompleteRef.current?.();
+      }
+    };
+
+    // Hard fallback safety timeout: ensures WelcomeScreen NEVER blocks the app indefinitely
+    const fallbackTimer = setTimeout(() => {
+      notifyCompletion();
+    }, 3000);
+
+    if (reduceMotion) {
+      // Immediate presentation if reduced motion is requested
+      const timer = setTimeout(() => {
+        notifyCompletion();
+      }, 800);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(fallbackTimer);
+      };
+    }
+
+    // Sequence: Fade in logo, curves & car slide in -> hold -> Fade out overlay smoothly
+    const animation = Animated.sequence([
+      // 1. Entrada suave (450ms)
+      Animated.parallel([
+        Animated.timing(contentOpacity, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.timing(carTranslateX, {
+          toValue: 0,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+      ]),
+      // 2. Tiempo de lectura perceptible (650ms)
+      Animated.delay(650),
+      // 3. Salida suave (fade-out) hacia la app (350ms)
+      Animated.timing(containerOpacity, {
+        toValue: 0,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    animation.start(() => {
+      notifyCompletion();
+    });
+
+    return () => {
+      clearTimeout(fallbackTimer);
+      animation.stop();
+    };
+  }, [reduceMotion, containerOpacity, contentOpacity, carTranslateX]);
+
   return (
-    <View style={styles.container} pointerEvents="none">
-      <BlueCurves />
-      <Image source={require('../../assets/splash-icon.png')} style={styles.logo} resizeMode="contain" />
-      <View style={styles.carWrapper}>
-        <CarIllustration />
-      </View>
-      <ActivityIndicator size="large" color="#006FFF" style={styles.loader} />
-    </View>
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          opacity: containerOpacity,
+        },
+      ]}
+      pointerEvents="none">
+      {/* Curvas decorativas de fondo */}
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: contentOpacity }]}>
+        <BlueCurves />
+      </Animated.View>
+
+      {/* Contenido principal: Logotipo grande */}
+      <Animated.View
+        style={[
+          styles.contentWrapper,
+          {
+            opacity: contentOpacity,
+          },
+        ]}>
+        <Image
+          source={require('../../assets/splash-icon.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+
+        {/* Ilustración de automóvil */}
+        <Animated.View
+          style={[
+            styles.carWrapper,
+            {
+              transform: [{ translateX: carTranslateX }],
+            },
+          ]}>
+          <CarIllustration />
+        </Animated.View>
+
+        {/* Indicador de carga activo */}
+        <ActivityIndicator size="large" color="#006FFF" style={styles.loader} />
+      </Animated.View>
+    </Animated.View>
   );
 };
 
@@ -61,16 +168,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 9999,
+  },
+  contentWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 24,
+    width: 220,
+    height: 70,
+    marginBottom: 20,
   },
   carWrapper: {
-    marginTop: 16,
+    marginTop: 12,
   },
   loader: {
-    marginTop: 24,
+    marginTop: 28,
   },
 });

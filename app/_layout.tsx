@@ -43,9 +43,10 @@ export default function RootLayout() {
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
 
   const [appReady, setAppReady] = useState(false);
+  const [welcomeComplete, setWelcomeComplete] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
 
-  // Initialise resources and hide splash when ready.
+  // Initialise resources and hide native splash as soon as React Native mounts.
   useEffect(() => {
     async function prepare() {
       try {
@@ -56,9 +57,9 @@ export default function RootLayout() {
       } catch (e) {
         console.warn('Error during app preparation', e);
       } finally {
-        // Hide the native splash as soon as RN can render.
-        await SplashScreen.hideAsync();
         setAppReady(true);
+        // Hide the native splash immediately so WelcomeScreen is visible without black flash
+        await SplashScreen.hideAsync().catch(() => undefined);
       }
     }
     prepare();
@@ -137,8 +138,13 @@ export default function RootLayout() {
         {/* Last, so it covers the Plus modal: new terms to accept block the app. */}
         <LegalGateHost />
         <ToastHost />
-        {/* Overlay welcome screen – visible until preparation finishes */}
-        {!appReady && <WelcomeScreen reduceMotion={reduceMotion} />}
+        {/* Overlay welcome screen – visible until both preparation and transition animation complete */}
+        {(!appReady || !welcomeComplete) && (
+          <WelcomeScreen
+            reduceMotion={reduceMotion}
+            onAnimationComplete={() => setWelcomeComplete(true)}
+          />
+        )}
       </AppFrame>
     </SafeAreaProvider>
   );
