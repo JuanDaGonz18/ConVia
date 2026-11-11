@@ -240,25 +240,86 @@ desde su tenant autorizado, Supabase agrega la identidad a la misma cuenta.
 El secreto de Microsoft **nunca** va a la app ni al repositorio; solo vive en
 Supabase.
 
-## 6. Prueba de carga (staging, datos sintéticos)
+## 6. Prueba de carga (stack local, datos sintéticos)
 
-Nunca contra producción (el script se niega).
+Nunca contra el proyecto alojado: el workflow levanta Supabase **local** en el
+runner, no usa secretos y `k6-peak.js` se niega a correr contra otra URL.
 
-1. Crear un proyecto Free de staging, aplicar las migraciones
-   (`npx supabase db push --remote=<ref>` con ese proyecto) y una institución de prueba.
-2. Generar cuentas y datos sintéticos: 500 usuarios, 50 conductores
-   aprobados, 300 viajes abiertos con rutas reales de la zona, 2 000
-   solicitudes, 10 000 mensajes.
-3. Escenario 1 — búsqueda (`scripts/loadtest/convia.k6.js`): inicio de
-   sesión, lista de viajes, solicitudes y plan; 20 → 100 → 200 usuarios
-   virtuales. Metas: p95 < 800 ms en `available_trips`, < 1 % de errores.
-4. Escenario 2 — escritura: publicar viajes, pedir cupo y aceptar en paralelo
-   sobre los mismos viajes (comprueba que no se sobrevenden cupos).
-5. Escenario 3 — chat: 200 conexiones Realtime simultáneas a 50 viajes,
-   1 mensaje cada 10 s por persona; medir latencia y mensajes de Realtime.
-6. Registrar CPU y RAM de la base (panel → Reports), egress por usuario y por
-   búsqueda, y extrapolar a MAU con datos reales de uso (búsquedas por usuario
-   al día del reporte mensual), no con supuestos.
+### Procedimiento
+
+1. GitHub → Actions → **Perf** → *Run workflow*, con `vus` = 50, 100, 200 y
+   300. Cada carga tiene su propio grupo de concurrencia, así que se pueden
+   lanzar las cuatro a la vez (~15 min).
+2. El workflow hace `supabase start` + `db reset`, siembra
+   `scripts/perf/seed.sql` (5 instituciones, 2 000 usuarios, 5 000 viajes
+   futuros con ruta de 80 puntos, 20 000 solicitudes, 30 000 mensajes), corre
+   `EXPLAIN (ANALYZE, BUFFERS)` de las rutas calientes y luego
+   `scripts/perf/k6-peak.js`: rampa de 2 min, 7 min sostenidos, 1 min de bajada.
+   Pasajeros y conductores hacen las mismas consultas que la app
+   (buscar → detalle → pedir cupo → mis solicitudes → cancelar → chat → plan).
+3. Metas (umbrales de k6): **p95 < 500 ms** y **< 1 % de errores** en todas las
+   peticiones. Si no se cumplen, la corrida termina en rojo; los números siguen
+   en el artefacto `perf-k6-summary-<vus>` (`k6-summary.json`,
+   `top-queries.txt` de `pg_stat_statements`, EXPLAIN antes/después).
+4. Leer `http_req_duration` p(95) y `http_req_failed` del resumen, y en
+   `top-queries.txt` qué consulta se lleva el tiempo de la base.
+
+Límite del método: base, PostgREST, Kong y k6 comparten un runner de 4 vCPU,
+así que los valores absolutos son pesimistas frente a un proyecto alojado. Sirven
+para comparar cargas y cambios entre sí, no como capacidad de producción.
+
+### Resultados (2026-11-11, `main` en b97f4c1)
+
+| Usuarios virtuales | p95 (todas) | Mediana | Errores | p95 búsqueda | Tiempo de la base en `available_trips` |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 50  | 7,7 s  | 1,0 s  | 0,99 % | 10,4 s | 95 % (3,7 s por llamada) |
+| 100 | 11,1 s | 8,2 s  | 35 %   | 14,6 s | 96 % (6,2 s por llamada) |
+| 200 | 10,4 s | 10,0 s | 78 %   | 15,5 s | 63 % (la mayoría de las peticiones no llegó a la base) |
+| 300 | 10,0 s | 10,0 s | 76 %   | 13,0 s | 95 % (6,2 s por llamada) |
+
+Corridas: [50](https://github.com/JuanDaGonz18/ConVia/actions/runs/43083830667),
+[100](https://github.com/JuanDaGonz18/ConVia/actions/runs/43083836753),
+[200](https://github.com/JuanDaGonz18/ConVia/actions/runs/43083842377),
+[300](https://github.com/JuanDaGonz18/ConVia/actions/runs/43083848444).
+Desde 100 usuarios casi todos los errores son peticiones que se cortan a los
+~10 s (por eso p95 y mediana se quedan en 10 s).
+
+**Ninguna carga cumple las metas.** Con 50 usuarios los errores quedan justo por
+debajo del 1 %, pero el p95 es 15 veces la meta. Incluso sin carga no se
+alcanzaría: en el EXPLAIN, una sola búsqueda en la base ya tarda ~1,0 s.
+
+### Dónde se va el tiempo
+
+La búsqueda: `available_trips` devuelve **todos** los viajes abiertos de la
+institución (~1 000 en el seed) con su ruta completa, en cada búsqueda. Con 50
+usuarios se recibieron 1,9 GB en 10 min, ≈ 2,4 MB por búsqueda (cota
+superior: el resto de respuestas son pequeñas). La app repite esa búsqueda
+entera en Inicio, Viajes y Mapa.
+
+El detalle de un viaje cuesta lo mismo que la lista: la vista envuelve la
+función `private.available_trip_rows()` (SECURITY DEFINER, sin parámetros), así
+que filtros como `id = …` o `driver_id <> …` se aplican **después** de calcular
+todas las filas. En el EXPLAIN, el detalle de un solo viaje tarda 1,08 s, frente
+a 1,02 s de la lista completa. Entre las dos se llevan el 95 % del tiempo de la
+base; la siguiente consulta (`driver_trip_requests`, ~0,9 s) es el 4 %.
+
+### Arreglo previsto (pendiente, no implementado)
+
+1. **Filtrar en el servidor**: RPC de búsqueda con parámetros (zona/destino,
+   franja horaria) que filtre dentro de la función, con índice
+   `(institution_id, estado, salida_at)`, en vez de filtrar después de la vista.
+2. **Paginar**: devolver 20–30 viajes por página, ordenados por `salida_at`, y
+   **sin la ruta** en la lista; la ruta solo se pide al abrir el mapa o el
+   detalle.
+3. **RPC de un solo viaje** (`get_available_trip(p_trip_id)`) para el detalle
+   y las alertas (`getAvailableTripsByIds`), que lea únicamente esa fila.
+4. Después, revisar `driver_trip_requests` (~0,9 s por llamada con 50 usuarios).
+
+Al terminar cada paso: volver a correr las cuatro cargas y reemplazar esta tabla.
+
+Sin medir todavía: escrituras concurrentes sobre los mismos cupos y 200
+conexiones Realtime al chat (`scripts/loadtest/convia.k6.js` cubre parte de esto
+contra un proyecto de staging).
 
 ## 7. Plan de escalamiento (por orden)
 
