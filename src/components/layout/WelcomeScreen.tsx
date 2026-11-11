@@ -137,7 +137,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           },
         ]}>
         <Image
-          source={require('../../assets/splash-icon.png')}
+          source={require('../../../assets/splash-icon.png')}
           style={styles.logo}
           resizeMode="contain"
         />

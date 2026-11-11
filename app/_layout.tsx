@@ -21,7 +21,7 @@ import { preloadIconFonts } from '@/utils/iconFonts';
 import React, { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { AccessibilityInfo } from 'react-native';
-import WelcomeScreen from './components/WelcomeScreen';
+import WelcomeScreen from '@/components/layout/WelcomeScreen';
 
 // Before any screen renders: on the web, icons must not each start a font load that can time out.
 preloadIconFonts();
