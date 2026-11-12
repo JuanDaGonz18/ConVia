@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, type TextInputInstance, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,7 +10,6 @@ import { PasswordField } from '@/components/forms/PasswordField';
 import { TextField } from '@/components/forms/TextField';
 import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
-import { Checkbox } from '@/components/ui/Checkbox';
 import { Notice } from '@/components/ui/Notice';
 import { colors } from '@/constants/colors';
 import { dimensions } from '@/constants/dimensions';
@@ -21,7 +20,6 @@ import { SavedUsersPanel } from '@/dev/SavedUsersPanel';
 import { savedUsers } from '@/dev/savedUsers';
 import i18n from '@/i18n';
 import { authService, isMicrosoftAuthEnabled } from '@/services/authService';
-import { credentialStore } from '@/services/credentialStore';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
 
@@ -41,7 +39,6 @@ export default function LoginScreen() {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,18 +47,6 @@ export default function LoginScreen() {
 
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
-
-  // Fill the form with the account saved with "Recordarme".
-  useEffect(() => {
-    let active = true;
-    void credentialStore.getRemembered().then((saved) => {
-      if (!active || !saved) return;
-      setEmail((current) => current || saved.email);
-      setPassword((current) => current || saved.password);
-      setRememberMe(true);
-    });
-    return () => { active = false; };
-  }, []);
 
   const handleLogin = async () => {
     // Every missing field at once, not one per attempt.
@@ -77,9 +62,7 @@ export default function LoginScreen() {
     try {
       const address = email.trim().toLowerCase();
       const user = await authService.login(address, password);
-      // Only after a successful sign-in: never store credentials that don't work.
-      if (rememberMe) await credentialStore.remember(address, password);
-      else await credentialStore.forget(address);
+      // The password is never stored: the Supabase session (refresh token) keeps the user signed in.
       if (__DEV__) await savedUsers.add({ email: address, name: user.name, role: user.role }); // TEMPORARY (src/dev)
       setCurrentUser(user);
       router.replace('/(tabs)');
@@ -143,9 +126,7 @@ export default function LoginScreen() {
               returnKeyType="go"
               value={password}
             />
-            {/* The web build never stores passwords (no secure keychain in browsers). */}
-            <View style={styles.rememberRow}>
-              {Platform.OS !== 'web' ? <Checkbox checked={rememberMe} label={t('auth.login.remember')} onChange={setRememberMe} /> : <View />}
+            <View style={styles.forgotRow}>
               <Pressable
                 accessibilityRole="link"
                 hitSlop={8}
@@ -177,11 +158,11 @@ export default function LoginScreen() {
           {/* TEMPORARY: development-only account switcher (src/dev); never in release builds. */}
           {__DEV__ ? (
             <SavedUsersPanel
-              onSelect={(savedEmail, savedPassword) => {
+              onSelect={(savedEmail) => {
                 setEmail(savedEmail);
-                setPassword(savedPassword ?? '');
-                setRememberMe(savedPassword !== null);
-                setFieldErrors(savedPassword ? {} : { password: t('auth.login.devSavedNoPassword') });
+                setPassword('');
+                setFieldErrors({});
+                passwordRef.current?.focus();
               }}
             />
           ) : null}
@@ -220,7 +201,7 @@ const styles = StyleSheet.create({
   divider: { alignItems: 'center', flexDirection: 'row', gap: spacing[12] },
   line: { backgroundColor: colors.lightGray, flex: 1, height: 1 },
   dividerText: { ...typography.caption, color: colors.textSecondary },
-  rememberRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8], justifyContent: 'space-between' },
+  forgotRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'flex-end' },
   forgot: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
   demo: { gap: spacing[8] },
   demoTitle: { ...typography.caption, color: colors.textSecondary, textAlign: 'center', textTransform: 'uppercase' },

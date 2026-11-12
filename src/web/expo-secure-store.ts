@@ -3,8 +3,7 @@
  * metro.config.js points `expo-secure-store` here for web builds only.
  *
  * Browsers have no keychain, so values go to localStorage — the same place
- * Supabase keeps its session in any web app. Passwords are never stored on
- * web: see credentialStore.web.ts.
+ * Supabase keeps its session in any web app. Passwords are never stored.
  */
 const PREFIX = 'convia.secure.';
 

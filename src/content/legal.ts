@@ -84,7 +84,7 @@ export const TERMS: LegalDocument = {
       body: [
         'Eres responsable de mantener la confidencialidad de tu contraseña y de toda la actividad realizada desde tu cuenta. Si sospechas un uso no autorizado, cambia tu contraseña de inmediato y avísanos.',
         'Si entras con tu cuenta institucional de Microsoft, la contraseña y la verificación la administra tu institución: ConVía nunca la ve. Si pierdes acceso a esa cuenta (por ejemplo, al terminar tus estudios), puedes perder el acceso a ConVía por esa vía.',
-        'La opción "Recordarme" guarda tus credenciales únicamente en el almacenamiento seguro de tu teléfono. No la uses en dispositivos compartidos.',
+        'ConVía no guarda tu contraseña en el teléfono: tu sesión sigue abierta con un token seguro hasta que cierres sesión. No dejes la sesión abierta en dispositivos compartidos.',
       ],
     },
     {

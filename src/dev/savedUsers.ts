@@ -3,8 +3,7 @@
  *
  * Keeps a list of accounts that signed in on this device so testers can switch
  * accounts quickly. Only emails, names and roles are listed here (in secure
- * storage); passwords live in credentialStore and only when "Recordarme" was
- * checked. Disabled outside development builds.
+ * storage); passwords are never stored. Disabled outside development builds.
  *
  * To remove: delete the src/dev/ folder and the <SavedUsersPanel /> and
  * `savedUsers.add(...)` lines in app/(auth)/login.tsx.
