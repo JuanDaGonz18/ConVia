@@ -523,6 +523,31 @@ export type Database = {
           },
         ]
       }
+      feedback_reports: {
+        Row: {
+          app_version: string | null
+          category: string
+          created_at: string
+          description: string
+          id: string
+          platform: string | null
+          screenshot_path: string | null
+          status: string
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: "feedback_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institution_requests: {
         Row: {
           ciudad: string
@@ -2094,6 +2119,17 @@ export type Database = {
         Args: { p_comment?: string; p_request_id: string; p_score: number }
         Returns: undefined
       }
+      report_client_error: {
+        Args: {
+          p_app_version?: string
+          p_fatal?: boolean
+          p_message: string
+          p_platform?: string
+          p_screen?: string
+          p_stack?: string
+        }
+        Returns: boolean
+      }
       report_pickup_mismatch: {
         Args: { p_verification_id: string }
         Returns: undefined
@@ -2199,6 +2235,10 @@ export type Database = {
         Args: { p_limit?: number; p_older_than?: string }
         Returns: string[]
       }
+      submit_feedback: {
+        Args: { p_app_version?: string; p_category: string; p_description: string; p_platform?: string; p_screenshot?: string }
+        Returns: string
+      }
       set_passenger_payment: {
         Args: { p_paid: boolean; p_request_id: string }
         Returns: undefined
@@ -2291,6 +2331,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      track_app_event: {
+        Args: {
+          p_app_version?: string
+          p_name: string
+          p_platform?: string
+          p_props?: Json
+        }
+        Returns: boolean
       }
       trip_members: { Args: { p_trip_id: string }; Returns: Json }
       update_trip: {

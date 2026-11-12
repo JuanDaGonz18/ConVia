@@ -31,6 +31,7 @@ import { locationService } from '@/services/locationService';
 import { activeFilterCount, applyTripFilters, DEFAULT_FILTERS, TripFilters } from '@/services/tripFilters';
 import { rankTripsForJourney, suggestTrips } from '@/services/tripMatching';
 import { DriverTripRecord, DriverTripStatus, tripService } from '@/services/tripService';
+import { monitoring } from '@/services/monitoringService';
 import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
 import { usePlan } from '@/subscription/usePlan';
@@ -213,6 +214,7 @@ function PassengerHome() {
           onChange={(place) => {
             setTripSearch({ destination: place });
             setExpanded(false);
+            if (place) monitoring.track('search', { saved_route: false });
           }}
           placeholder={t('home.searchPlaceholder')}
           quickPlaces={savedPlaces}
@@ -274,6 +276,7 @@ function PassengerHome() {
                   onPress={() => {
                     setTripSearch({ destination: route.destination, origin: route.origin });
                     setExpanded(false);
+                    monitoring.track('search', { saved_route: true });
                   }}
                   style={[styles.routeChip, active ? styles.routeChipActive : null]}
                 >

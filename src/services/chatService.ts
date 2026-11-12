@@ -1,4 +1,5 @@
 import { ensureSupabaseConfigured, isSupabaseEnabled, supabase } from '@/lib/supabase';
+import { monitoring } from '@/services/monitoringService';
 import { notificationService } from '@/services/notificationService';
 import { ChatConversation, ChatMessage } from '@/types';
 import { formatMessageTime } from '@/utils/format';
@@ -127,6 +128,7 @@ export const chatService = {
       .single();
     if (error) throw error;
     notificationService.notify('message', data.id);
+    monitoring.track('chat_send');
     return mapMessage(data as MessageRow, userId, {});
   },
 

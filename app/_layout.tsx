@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 
-import { type ErrorBoundaryProps, router, Stack } from 'expo-router';
+import { type ErrorBoundaryProps, router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -12,6 +12,7 @@ import { PlusGateHost } from '@/components/subscription/PlusGate';
 import { ToastHost } from '@/components/ui/Toast';
 import { colors, isDarkTheme } from '@/constants/colors';
 import { authService } from '@/services/authService';
+import { monitoring } from '@/services/monitoringService';
 import { notificationService } from '@/services/notificationService';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
@@ -24,6 +25,15 @@ import { useEffect } from 'react';
 preloadIconFonts();
 // The saved language (Español, English or the phone's); until it loads, the phone's language is used.
 void loadLanguagePreference();
+// Uncaught JS errors go to client_errors (no personal data), including a fatal one from the last run.
+monitoring.install();
+
+/** Keeps the current route pattern (e.g. "chat/[tripId]", never the ids) for error reports. */
+function ScreenTracker() {
+  const segments = useSegments();
+  useEffect(() => monitoring.setScreen(segments), [segments]);
+  return null;
+}
 
 // A screen without its own ErrorBoundary that throws while rendering lands here (Expo Router passes
 // the error up to the nearest boundary): a translated message with "Try again" instead of a blank app.
@@ -96,6 +106,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="map" options={{ animation: 'fade_from_bottom' }} />
         </Stack>
+        <ScreenTracker />
         <SubscriptionSync />
         <PlusGateHost />
         {/* Last, so it covers the Plus modal: new terms to accept block the app. */}

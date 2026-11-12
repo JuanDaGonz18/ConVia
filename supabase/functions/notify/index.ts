@@ -164,6 +164,12 @@ async function serverPushes(event: ServerEvent, id: string | null, callerId: str
     for (const row of (reviews ?? []) as { user_id: string; title: string; body: string }[]) {
       pushes.push({ recipients: [row.user_id], title: row.title, body: row.body, data: { type: 'admin_review' } });
     }
+    // A safety report (feedback_reports.category = 'safety'): sent as soon as it arrives, with the count only.
+    const { data: safety, error: safetyError } = await admin.rpc('claim_admin_safety_pushes');
+    if (safetyError) throw safetyError;
+    for (const row of (safety ?? []) as { user_id: string; title: string; body: string }[]) {
+      pushes.push({ recipients: [row.user_id], title: row.title, body: row.body, data: { type: 'admin_safety' } });
+    }
   }
   return pushes;
 }

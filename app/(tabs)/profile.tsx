@@ -175,6 +175,13 @@ export default function ProfileScreen() {
             subtitle={t('profile.legalSubtitle')}
             title={t('profile.legalTitle')}
           />
+          <Divider />
+          <ListItem
+            icon="chatbox-ellipses-outline"
+            onPress={() => router.push('/feedback')}
+            subtitle={t('profile.feedbackSubtitle')}
+            title={t('profile.feedbackTitle')}
+          />
         </View>
 
         <Text style={styles.sectionLabel}>{t('profile.trips')}</Text>

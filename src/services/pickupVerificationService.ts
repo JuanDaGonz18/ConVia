@@ -8,6 +8,7 @@ import { ensureSupabaseConfigured, isSupabaseEnabled, supabase } from '@/lib/sup
 import { capabilityFromError, planLimitFromError } from '@/subscription/plans';
 import { isStorageQuotaError } from '@/utils/format';
 import { handleLegalOutdated } from '@/services/legalGate';
+import { monitoring } from '@/services/monitoringService';
 
 export type PickupStatus = 'verified' | 'mismatch' | 'retry';
 /** Real steps: the app's own upload, then what the server reports as it happens. */
@@ -241,6 +242,7 @@ export const pickupVerificationService = {
     }
     // The server deletes the files whenever it handles the request; if it may not have, don't leave them stored.
     if (!result.verificationId) cleanup();
+    monitoring.track('pickup_verify', { status: result.status });
     return result;
   },
 

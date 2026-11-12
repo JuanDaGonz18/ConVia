@@ -1,5 +1,5 @@
 -- =====================================================================
--- ConVía — versión legal aceptada (migración 040)
+-- ConVía — versión legal aceptada (migraciones 040 y 046: la vigente es 1.3)
 --
 -- Uso local: npx supabase db query -f supabase/tests/legal_acceptance_test.sql
 -- Todo se deshace al final (el bloque termina con RAISE EXCEPTION); el
@@ -7,7 +7,7 @@
 -- =====================================================================
 do $$
 declare
-  uNew uuid := gen_random_uuid();  -- se registra con la app nueva (1.2)
+  uNew uuid := gen_random_uuid();  -- se registra con la app nueva (1.3)
   uOld uuid := gen_random_uuid();  -- se registra con una app vieja (1.1)
   uBad uuid := gen_random_uuid();  -- metadatos con una versión inventada
   uMs  uuid := gen_random_uuid();  -- Microsoft: sin aceptación en el registro
@@ -16,14 +16,14 @@ declare
 begin
   -- ================= Registro =================
   insert into auth.users (id, email, raw_user_meta_data, raw_app_meta_data, aud, role) values
-    (uNew, 'zz.legal.new@gmail.com', '{"nombre":"ZZ New","terms_accepted":true,"terms_version":"1.2"}', '{"provider":"email"}', 'authenticated', 'authenticated'),
+    (uNew, 'zz.legal.new@gmail.com', '{"nombre":"ZZ New","terms_accepted":true,"terms_version":"1.3"}', '{"provider":"email"}', 'authenticated', 'authenticated'),
     (uOld, 'zz.legal.old@gmail.com', '{"nombre":"ZZ Old","terms_accepted":true,"terms_version":"1.1"}', '{"provider":"email"}', 'authenticated', 'authenticated'),
     (uBad, 'zz.legal.bad@gmail.com', '{"nombre":"ZZ Bad","terms_accepted":true,"terms_version":"99.0"}', '{"provider":"email"}', 'authenticated', 'authenticated'),
     (uMs,  'zz.legal.ms@gmail.com',  '{"full_name":"ZZ Ms"}', '{"provider":"email"}', 'authenticated', 'authenticated'),
     (uPre, 'zz.legal.pre@gmail.com', '{"nombre":"ZZ Pre","terms_accepted":true}', '{"provider":"email"}', 'authenticated', 'authenticated');
 
-  r := r || case when (select accepted_legal_version from public.profiles where id = uNew) = '1.2'
-                 then E'\nOK  signup: stores the version the app sent (1.2)' else E'\nBAD signup: 1.2 not stored' end;
+  r := r || case when (select accepted_legal_version from public.profiles where id = uNew) = '1.3'
+                 then E'\nOK  signup: stores the version the app sent (1.3)' else E'\nBAD signup: 1.3 not stored' end;
   r := r || case when (select accepted_legal_version from public.profiles where id = uOld) = '1.1'
                  then E'\nOK  signup: an older app stores 1.1' else E'\nBAD signup: 1.1 not stored' end;
   r := r || case when (select accepted_legal_version from public.profiles where id = uBad) is null
@@ -38,12 +38,14 @@ begin
   r := r || case when n >= 1 and (select accepted_legal_version from public.profiles where id = uPre) = '1.1'
                  then E'\nOK  backfill: accepted without a version → 1.1' else E'\nBAD backfill: uPre not set to 1.1' end;
   r := r || case when (select accepted_legal_version from public.profiles where id = uMs) is null
-                  and (select accepted_legal_version from public.profiles where id = uNew) = '1.2'
+                  and (select accepted_legal_version from public.profiles where id = uNew) = '1.3'
                  then E'\nOK  backfill: leaves users without acceptance and newer versions alone' else E'\nBAD backfill: touched other rows' end;
   r := r || case when not exists (select 1 from public.profiles where terms_accepted_at is not null and accepted_legal_version is null)
                  then E'\nOK  backfill: nobody who accepted is left without a version' else E'\nBAD backfill: rows left' end;
 
   -- ================= Comparación =================
+  r := r || case when private.current_legal_version() = '1.3'
+                 then E'\nOK  current: private.current_legal_version() is 1.3' else E'\nBAD current: ' || private.current_legal_version() end;
   r := r || case when private.legal_version_at_least('1.10', '1.2') and private.legal_version_at_least('1.2', '1.2')
                   and not private.legal_version_at_least('1.1', '1.2') and not private.legal_version_at_least(null, '1.2')
                   and not private.legal_version_at_least('abc', '1.2')
@@ -60,15 +62,21 @@ begin
     r := r || case when sqlerrm = 'LEGAL_VERSION_INVALID' then E'\nOK  accept: only the current version' else E'\nBAD accept: ' || sqlerrm end;
   end;
   begin
+    perform public.accept_legal('1.2');
+    r := r || E'\nBAD accept: accepted the previous version 1.2';
+  exception when others then
+    r := r || case when sqlerrm = 'LEGAL_VERSION_INVALID' then E'\nOK  accept: not the previous version (1.2)' else E'\nBAD accept: ' || sqlerrm end;
+  end;
+  begin
     perform public.accept_legal('99.0');
     r := r || E'\nBAD accept: accepted a future version';
   exception when others then
     r := r || case when sqlerrm = 'LEGAL_VERSION_INVALID' then E'\nOK  accept: not a future version' else E'\nBAD accept: ' || sqlerrm end;
   end;
 
-  v := public.accept_legal('1.2');
-  r := r || case when v = '1.2' and public.my_accepted_legal_version() = '1.2'
-                 then E'\nOK  accept: current user accepts 1.2 and reads it back' else E'\nBAD accept: not stored' end;
+  v := public.accept_legal('1.3');
+  r := r || case when v = '1.3' and public.my_accepted_legal_version() = '1.3'
+                 then E'\nOK  accept: current user accepts 1.3 and reads it back' else E'\nBAD accept: not stored' end;
 
   begin
     update public.profiles set accepted_legal_version = '1.2' where id = uOld;
@@ -89,11 +97,11 @@ begin
   execute 'reset role';
 
   execute 'set local role service_role';
-  r := r || case when public.service_accepted_legal_version(uOld) = '1.1' and public.service_accepted_legal_version(uMs) = '1.2'
+  r := r || case when public.service_accepted_legal_version(uOld) = '1.1' and public.service_accepted_legal_version(uMs) = '1.3'
                  then E'\nOK  service: Edge Functions read any user''s version' else E'\nBAD service: wrong version read' end;
   execute 'reset role';
 
-  r := r || case when (select accepted_legal_version from public.profiles where id = uMs) = '1.2'
+  r := r || case when (select accepted_legal_version from public.profiles where id = uMs) = '1.3'
                   and (select terms_accepted_at from public.profiles where id = uMs) is not null
                   and (select accepted_legal_version from public.profiles where id = uOld) = '1.1'
                  then E'\nOK  accept: only the caller''s row changed, with terms_accepted_at set' else E'\nBAD accept: wrong rows' end;
@@ -102,7 +110,7 @@ begin
   perform set_config('request.jwt.claims', '', true);
   execute 'set local role anon';
   begin
-    perform public.accept_legal('1.2');
+    perform public.accept_legal('1.3');
     r := r || E'\nBAD anon: accept_legal callable without a session';
   exception when insufficient_privilege then r := r || E'\nOK  anon: accept_legal not callable'; end;
   execute 'reset role';

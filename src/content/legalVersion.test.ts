@@ -29,7 +29,7 @@ describe('legal version comparison', () => {
   });
 
   test('the app version is at least what the Edge Functions require', () => {
-    assert.equal(LEGAL_VERSION, '1.2');
+    assert.equal(LEGAL_VERSION, '1.3');
     assert.equal(legalVersionAtLeast(LEGAL_VERSION, MIN_LEGAL_VERSION), true);
   });
 });

@@ -7,6 +7,7 @@ import { FunctionsHttpError } from '@supabase/supabase-js';
 import { ensureSupabaseConfigured, supabase } from '@/lib/supabase';
 import { LEGAL_VERSION } from '@/content/legal';
 import { legalService } from '@/services/legalService';
+import { monitoring } from '@/services/monitoringService';
 import { notificationService } from '@/services/notificationService';
 import { DriverStatus, User, UserRole } from '@/types';
 import { microsoftErrorMessage, parseAuthUrl } from '@/utils/authLink';
@@ -152,6 +153,7 @@ export const authService = {
       if (!data.user) throw new Error('No se pudo iniciar sesión.');
       const user = await getSupabaseUser();
       if (!user) throw new Error('No se encontró el perfil del usuario.');
+      monitoring.track('login', { method: 'password' });
       return user;
     }
 
@@ -199,6 +201,7 @@ export const authService = {
     const user = await getSupabaseUser();
     if (!user) throw new Error('No se encontró el perfil del usuario.');
     await acceptTermsIfNeeded(user.id);
+    monitoring.track('login', { method: 'microsoft' });
     return user;
   },
 
@@ -231,6 +234,7 @@ export const authService = {
         },
       });
       if (error) throw error;
+      monitoring.track('signup', { confirm_email: !data.session });
       if (!data.session) throw new Error('CONFIRMACION_DE_CORREO_REQUERIDA');
 
       const user = await getSupabaseUser();

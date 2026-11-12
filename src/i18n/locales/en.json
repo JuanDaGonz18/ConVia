@@ -951,7 +951,9 @@
     "deleteTitle": "Delete your account?",
     "logoutConfirm": "Yes, log out",
     "logoutMessage": "You'll need to log in again to access your account.",
-    "logoutTitle": "Want to log out?"
+    "logoutTitle": "Want to log out?",
+    "feedbackTitle": "Report a problem",
+    "feedbackSubtitle": "Bugs and suggestions"
   },
   "map": {
     "loadFailed": "Couldn't load trips.",
@@ -1913,5 +1915,46 @@
     "visible_results": "Matching rides shown",
     "saved_routes": "Saved routes",
     "pickup_verifications_month": "Pickup verifications per month"
+  },
+  "feedback": {
+    "kicker": "HELP",
+    "title": "Report a problem",
+    "subtitle": "Tell us what happened or what you would improve. The ConVía team reviews it.",
+    "category": "Report type",
+    "categories": {
+      "bug": "Bug",
+      "suggestion": "Suggestion",
+      "safety": "Safety",
+      "other": "Other"
+    },
+    "description": "Description",
+    "placeholder": "Describe what happened, on which screen and what you expected.",
+    "counter": "{{count}}/{{max}}",
+    "privacy": "Do not include passwords or banking details. Only you and the team can see your report.",
+    "submit": "Send report",
+    "sent": "Report sent. Thanks for helping us improve.",
+    "categoryRequired": "Choose the report type.",
+    "tooShort": "Write at least {{min}} characters.",
+    "tooLong": "The text is too long (maximum {{max}}).",
+    "mine": "Your reports",
+    "empty": "You haven't sent any reports yet.",
+    "status": {
+      "nuevo": "Received",
+      "en_revision": "In review",
+      "resuelto": "Resolved",
+      "descartado": "Dismissed"
+    },
+    "errors": {
+      "generic": "We couldn't send the report. Please try again.",
+      "rateLimit": "You sent several reports in a row. Wait a while before sending another.",
+      "invalid": "Check the report type and text.",
+      "auth": "Your session expired. Sign in again.",
+      "upload": "The screenshot could not be uploaded. Try again or send the report without it."
+    },
+    "screenshot": "Attach a screenshot (optional)",
+    "screenshotChange": "Change screenshot",
+    "screenshotRemove": "Remove screenshot",
+    "screenshotAlt": "Attached screenshot",
+    "attached": "The app version ({{version}}) and system ({{platform}}) are sent too. The screenshot is deleted after 30 days."
   }
 }

@@ -1,7 +1,7 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 /** Longest side of the uploaded photo, by use. Enough for the screens that show them. */
-export const PHOTO_MAX_SIDE = { avatar: 512, vehicle: 1280 } as const;
+export const PHOTO_MAX_SIDE = { avatar: 512, vehicle: 1280, feedback: 1280 } as const;
 
 /**
  * Resizes (never enlarges) and re-encodes a picked photo as JPEG before it is

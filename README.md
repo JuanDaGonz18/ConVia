@@ -1,8 +1,10 @@
 # ConVía
 
-Carpooling app for university communities. Built with Expo (SDK 57) + Expo Router and a Supabase backend.
+Carpooling app for university communities. Built with Expo (SDK 58) + Expo Router and a Supabase backend.
 
 ## Getting started
+
+Requires Node.js 22.6 or newer (`.nvmrc` pins 24, the version CI uses) and npm. The test scripts pass `--experimental-strip-types`, which Node 22.6–22.17 need to run `.ts` files; on Node 22.14 without it `npm test` fails with `ERR_UNKNOWN_FILE_EXTENSION`.
 
 ```bash
 npm install

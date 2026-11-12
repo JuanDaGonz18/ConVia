@@ -951,7 +951,9 @@
     "deleteTitle": "¿Eliminar tu cuenta?",
     "logoutConfirm": "Sí, cerrar sesión",
     "logoutMessage": "Tendrás que volver a ingresar tus credenciales para acceder a tu cuenta.",
-    "logoutTitle": "¿Deseas cerrar sesión?"
+    "logoutTitle": "¿Deseas cerrar sesión?",
+    "feedbackTitle": "Reportar un problema",
+    "feedbackSubtitle": "Errores y sugerencias"
   },
   "map": {
     "loadFailed": "No se pudieron cargar los viajes.",
@@ -1913,5 +1915,46 @@
     "visible_results": "Viajes compatibles visibles",
     "saved_routes": "Rutas guardadas",
     "pickup_verifications_month": "Verificaciones de recogida al mes"
+  },
+  "feedback": {
+    "kicker": "AYUDA",
+    "title": "Reportar un problema",
+    "subtitle": "Cuéntanos qué pasó o qué mejorarías. Lo revisa el equipo de ConVía.",
+    "category": "Tipo de reporte",
+    "categories": {
+      "bug": "Error",
+      "suggestion": "Sugerencia",
+      "safety": "Seguridad",
+      "other": "Otro"
+    },
+    "description": "Descripción",
+    "placeholder": "Describe qué ocurrió, en qué pantalla y qué esperabas.",
+    "counter": "{{count}}/{{max}}",
+    "privacy": "No incluyas contraseñas ni datos bancarios. Solo tú y el equipo pueden ver tu reporte.",
+    "submit": "Enviar reporte",
+    "sent": "Reporte enviado. Gracias por ayudarnos a mejorar.",
+    "categoryRequired": "Elige el tipo de reporte.",
+    "tooShort": "Escribe al menos {{min}} caracteres.",
+    "tooLong": "El texto es demasiado largo (máximo {{max}}).",
+    "mine": "Tus reportes",
+    "empty": "Aún no has enviado reportes.",
+    "status": {
+      "nuevo": "Recibido",
+      "en_revision": "En revisión",
+      "resuelto": "Resuelto",
+      "descartado": "Descartado"
+    },
+    "errors": {
+      "generic": "No pudimos enviar el reporte. Inténtalo de nuevo.",
+      "rateLimit": "Enviaste varios reportes seguidos. Espera un rato antes de enviar otro.",
+      "invalid": "Revisa el tipo y el texto del reporte.",
+      "auth": "Tu sesión expiró. Inicia sesión de nuevo.",
+      "upload": "No se pudo subir la captura. Inténtalo de nuevo o envía el reporte sin ella."
+    },
+    "screenshot": "Adjuntar captura (opcional)",
+    "screenshotChange": "Cambiar captura",
+    "screenshotRemove": "Quitar captura",
+    "screenshotAlt": "Captura adjunta",
+    "attached": "Se envían también la versión de la app ({{version}}) y el sistema ({{platform}}). La captura se borra a los 30 días."
   }
 }
