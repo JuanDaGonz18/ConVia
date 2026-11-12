@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -34,6 +35,9 @@ import i18n from '@/i18n';
 
 /** The driver's approval status in the current language (driverStatus.*). */
 const driverStatusLabel = (status: string) => i18n.t(`driverStatus.${status}`);
+
+// Installed build's versionName (expo.version); null on web, where the app config is used instead.
+const appVersion = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '1.0.0';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
@@ -309,7 +313,7 @@ export default function ProfileScreen() {
 
         <View style={styles.footer}>
           <BrandLogo size="sm" />
-          <Text style={styles.version}>{t('profile.version', { version: Constants.expoConfig?.version ?? '1.0.0' })}</Text>
+          <Text style={styles.version}>{t('profile.version', { version: appVersion })}</Text>
         </View>
       </ScrollView>
 
