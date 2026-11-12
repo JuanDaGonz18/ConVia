@@ -2,11 +2,11 @@ import { Vehicle } from '@/types';
 
 export const mockVehicles: Vehicle[] = [
   {
-    id: 'mock-vehicle-rita',
-    ownerId: 'mock-driver-rita-c',
+    id: 'mock-vehicle-sofia',
+    ownerId: 'mock-driver-sofia',
     brand: 'Toyota',
     model: 'Corolla',
-    plate: 'ABC123',
+    plate: 'DEM001',
     color: 'Azul',
   },
 ];
