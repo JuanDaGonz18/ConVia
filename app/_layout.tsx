@@ -155,6 +155,7 @@ export default function RootLayout() {
         {/* Overlay welcome screen – visible until both preparation and transition animation complete */}
         {(!appReady || !welcomeComplete) && (
           <WelcomeScreen
+            start={appReady}
             reduceMotion={reduceMotion}
             onAnimationComplete={() => setWelcomeComplete(true)}
           />

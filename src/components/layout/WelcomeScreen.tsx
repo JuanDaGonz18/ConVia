@@ -1,161 +1,139 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Image, ActivityIndicator, Animated } from 'react-native';
-import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { colors, isDarkTheme } from '@/constants/colors';
 
 interface WelcomeScreenProps {
+  /** Start the intro once the native splash has been hidden. */
+  start?: boolean;
   reduceMotion?: boolean;
   onAnimationComplete?: () => void;
 }
 
-// Decorative blue curves (top-left & bottom-right) using SVG.
-const BlueCurves = () => (
-  <Svg width="100%" height="100%" viewBox="0 0 400 400" style={StyleSheet.absoluteFill}>
-    <Defs>
-      <LinearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
-        <Stop offset="0" stopColor="#006FFF" />
-        <Stop offset="1" stopColor="#00B8FF" />
-      </LinearGradient>
-    </Defs>
-    {/* Top-left curve */}
-    <Path d="M0,120 C80,0 160,0 240,120" stroke="url(#grad)" strokeWidth={30} fill="none" />
-    {/* Bottom-right curve */}
-    <Path d="M400,280 C320,400 240,400 160,280" stroke="url(#grad)" strokeWidth={30} fill="none" />
-  </Svg>
-);
+// Same image and size as the native splash (app.json → expo-splash-screen, imageWidth 200),
+// so the hand-off from the native splash to this screen has no visible jump.
+const LOGO_SIZE = 200;
+const ROUTE_WIDTH = 132;
+const DOT = 10;
 
-// Minimal car illustration – body, roof, wheels and two passenger circles.
-const CarIllustration = () => (
-  <Svg width={200} height={120} viewBox="0 0 200 120">
-    {/* Body */}
-    <Path d="M20 80 L180 80 L170 50 L30 50 Z" fill="#006FFF" />
-    {/* Roof */}
-    <Path d="M60 50 L80 30 L120 30 L140 50 Z" fill="#006FFF" />
-    {/* Wheels */}
-    <Path d="M50 80 a10 10 0 1 0 0.1 0" fill="#000" />
-    <Path d="M150 80 a10 10 0 1 0 0.1 0" fill="#000" />
-    {/* Passengers */}
-    <Path d="M70 55 a5 5 0 1 0 0.1 0" fill="#FFF" />
-    <Path d="M110 55 a5 5 0 1 0 0.1 0" fill="#FFF" />
-  </Svg>
-);
+const logoLight = require('../../../assets/splash-icon-centered.png');
+const logoDark = require('../../../assets/splash-icon-dark.png');
 
+/**
+ * Short branded intro: the wordmark from the native splash rises slightly while a route
+ * draws between two points (origin → destination) and the tagline fades in, then the
+ * whole overlay fades into the app. About 1.4 s; static with reduce motion.
+ */
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
+  start = true,
   reduceMotion = false,
   onAnimationComplete,
 }) => {
-  const [containerOpacity] = useState(() => new Animated.Value(1));
-  const [contentOpacity] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
-  const [carTranslateX] = useState(() => new Animated.Value(reduceMotion ? 0 : -30));
+  const { t } = useTranslation();
+  const [overlay] = useState(() => new Animated.Value(1));
+  const [lift] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  const [route] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  const [arrive] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  const [tagline] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
 
-  // Safeguard: keep track of whether completion has already been triggered
-  const completedRef = useRef(false);
-  const onAnimationCompleteRef = useRef(onAnimationComplete);
-
+  const doneRef = useRef(false);
+  const onDoneRef = useRef(onAnimationComplete);
   useEffect(() => {
-    onAnimationCompleteRef.current = onAnimationComplete;
+    onDoneRef.current = onAnimationComplete;
   }, [onAnimationComplete]);
 
   useEffect(() => {
-    const notifyCompletion = () => {
-      if (!completedRef.current) {
-        completedRef.current = true;
-        onAnimationCompleteRef.current?.();
-      }
+    if (!start) return;
+    const finish = () => {
+      if (doneRef.current) return;
+      doneRef.current = true;
+      onDoneRef.current?.();
     };
+    // Never block the app if an animation callback is lost.
+    const fallback = setTimeout(finish, 3000);
 
-    // Hard fallback safety timeout: ensures WelcomeScreen NEVER blocks the app indefinitely
-    const fallbackTimer = setTimeout(() => {
-      notifyCompletion();
-    }, 3000);
-
-    if (reduceMotion) {
-      // Immediate presentation if reduced motion is requested
-      const timer = setTimeout(() => {
-        notifyCompletion();
-      }, 800);
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(fallbackTimer);
-      };
-    }
-
-    // Sequence: Fade in logo, curves & car slide in -> hold -> Fade out overlay smoothly
-    const animation = Animated.sequence([
-      // 1. Entrada suave (450ms)
-      Animated.parallel([
-        Animated.timing(contentOpacity, {
-          toValue: 1,
-          duration: 450,
-          useNativeDriver: true,
-        }),
-        Animated.timing(carTranslateX, {
-          toValue: 0,
-          duration: 450,
-          useNativeDriver: true,
-        }),
-      ]),
-      // 2. Tiempo de lectura perceptible (650ms)
-      Animated.delay(650),
-      // 3. Salida suave (fade-out) hacia la app (350ms)
-      Animated.timing(containerOpacity, {
-        toValue: 0,
-        duration: 350,
-        useNativeDriver: true,
-      }),
-    ]);
-
-    animation.start(() => {
-      notifyCompletion();
+    const fadeOut = Animated.timing(overlay, {
+      toValue: 0,
+      duration: 320,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
     });
 
+    const sequence = reduceMotion
+      ? Animated.sequence([Animated.delay(700), fadeOut])
+      : Animated.sequence([
+          Animated.parallel([
+            Animated.timing(lift, {
+              toValue: 1,
+              duration: 520,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+            Animated.sequence([
+              Animated.delay(120),
+              Animated.timing(route, {
+                toValue: 1,
+                duration: 560,
+                easing: Easing.inOut(Easing.cubic),
+                useNativeDriver: false, // animates width
+              }),
+            ]),
+          ]),
+          Animated.parallel([
+            Animated.spring(arrive, { toValue: 1, friction: 6, tension: 140, useNativeDriver: true }),
+            Animated.timing(tagline, {
+              toValue: 1,
+              duration: 300,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.delay(380),
+          fadeOut,
+        ]);
+
+    sequence.start(finish);
     return () => {
-      clearTimeout(fallbackTimer);
-      animation.stop();
+      clearTimeout(fallback);
+      sequence.stop();
     };
-  }, [reduceMotion, containerOpacity, contentOpacity, carTranslateX]);
+  }, [start, reduceMotion, overlay, lift, route, arrive, tagline]);
+
+  const logoTranslate = lift.interpolate({ inputRange: [0, 1], outputRange: [0, -28] });
+  const lineWidth = route.interpolate({ inputRange: [0, 1], outputRange: [0, ROUTE_WIDTH - DOT] });
+  const routeOpacity = route.interpolate({ inputRange: [0, 0.08, 1], outputRange: [0, 1, 1] });
+  const arriveScale = arrive.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] });
+  const taglineTranslate = tagline.interpolate({ inputRange: [0, 1], outputRange: [6, 0] });
 
   return (
     <Animated.View
-      style={[
-        styles.container,
-        {
-          opacity: containerOpacity,
-        },
-      ]}
-      pointerEvents="none">
-      {/* Curvas decorativas de fondo */}
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: contentOpacity }]}>
-        <BlueCurves />
-      </Animated.View>
+      style={[styles.container, { backgroundColor: colors.background, opacity: overlay }]}
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants">
+      <Animated.Image
+        source={isDarkTheme ? logoDark : logoLight}
+        style={[styles.logo, { transform: [{ translateY: logoTranslate }] }]}
+        resizeMode="contain"
+      />
 
-      {/* Contenido principal: Logotipo grande */}
-      <Animated.View
-        style={[
-          styles.contentWrapper,
-          {
-            opacity: contentOpacity,
-          },
-        ]}>
-        <Image
-          source={require('../../../assets/splash-icon.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
-        {/* Ilustración de automóvil */}
-        <Animated.View
-          style={[
-            styles.carWrapper,
-            {
-              transform: [{ translateX: carTranslateX }],
-            },
-          ]}>
-          <CarIllustration />
+      <View style={styles.below}>
+        <Animated.View style={[styles.route, { opacity: routeOpacity }]}>
+          <View style={[styles.dot, styles.origin, { borderColor: colors.primary }]} />
+          <Animated.View style={[styles.line, { width: lineWidth, backgroundColor: colors.primary }]} />
+          <Animated.View
+            style={[
+              styles.dot,
+              styles.destination,
+              { backgroundColor: colors.primary, opacity: arrive, transform: [{ scale: arriveScale }] },
+            ]}
+          />
         </Animated.View>
 
-        {/* Indicador de carga activo */}
-        <ActivityIndicator size="large" color="#006FFF" style={styles.loader} />
-      </Animated.View>
+        <Animated.View style={{ opacity: tagline, transform: [{ translateY: taglineTranslate }] }}>
+          <Text style={[styles.tagline, { color: colors.textSecondary }]}>{t('welcome.tagline')}</Text>
+        </Animated.View>
+      </View>
     </Animated.View>
   );
 };
@@ -165,24 +143,51 @@ export default WelcomeScreen;
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999,
   },
-  contentWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   logo: {
-    width: 220,
-    height: 70,
-    marginBottom: 20,
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
   },
-  carWrapper: {
-    marginTop: 12,
+  // Sits right under the wordmark (the wordmark is ~1/4 of the square's height, centered).
+  below: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: 16,
+    alignItems: 'center',
   },
-  loader: {
-    marginTop: 28,
+  route: {
+    width: ROUTE_WIDTH,
+    height: DOT,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dot: {
+    width: DOT,
+    height: DOT,
+    borderRadius: DOT / 2,
+  },
+  origin: {
+    position: 'absolute',
+    left: 0,
+    borderWidth: 2,
+    backgroundColor: 'transparent',
+  },
+  line: {
+    position: 'absolute',
+    left: DOT / 2,
+    height: 2,
+    borderRadius: 1,
+  },
+  destination: {
+    position: 'absolute',
+    right: 0,
+  },
+  tagline: {
+    marginTop: 18,
+    fontSize: 14,
+    letterSpacing: 0.2,
   },
 });
