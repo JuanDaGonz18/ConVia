@@ -1,16 +1,13 @@
 import * as SecureStore from 'expo-secure-store';
-import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
 import { ensureSupabaseConfigured, supabase } from '@/lib/supabase';
 import { LEGAL_VERSION } from '@/content/legal';
-import { legalService } from '@/services/legalService';
 import { monitoring } from '@/services/monitoringService';
 import { notificationService } from '@/services/notificationService';
 import { DriverStatus, User, UserRole } from '@/types';
-import { microsoftErrorMessage, parseAuthUrl } from '@/utils/authLink';
 
 const SESSION_KEY = 'convia.demo.session';
 const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
@@ -70,36 +67,8 @@ function authCallbackUrl() {
   return 'convia://callback';
 }
 
-/** Microsoft sign-in is shown only once the Azure provider is configured in Supabase. */
-export const isMicrosoftAuthEnabled = process.env.EXPO_PUBLIC_MICROSOFT_AUTH === 'true';
-
-/**
- * Microsoft goes straight to the institution's sign-in page instead of the
- * generic account picker. The server still checks the tenant (migration 27);
- * this is only a shortcut for the person.
- */
-const MICROSOFT_DOMAIN_HINT = process.env.EXPO_PUBLIC_MICROSOFT_DOMAIN_HINT ?? 'unisabana.edu.co';
-
-/** Marks on the callback URL that the person is coming back from Microsoft (web build). */
-export const MICROSOFT_CALLBACK_FLAG = 'microsoft';
-
 /** Marks on the callback URL that a password-reset link was opened: the next screen sets the new password. */
 export const RESET_PASSWORD_NEXT = 'reset-password';
-
-/**
- * The terms are shown next to the Microsoft button: continuing accepts them (first time only),
- * in the current version. Someone who accepted an older version gets the new-terms modal instead.
- */
-export async function acceptTermsIfNeeded(userId: string) {
-  // Never blocks the sign-in: the person already accepted by continuing.
-  const { data } = await supabase
-    .from('profiles')
-    .update({ terms_accepted_at: new Date().toISOString() })
-    .eq('id', userId)
-    .is('terms_accepted_at', null)
-    .select('id');
-  if (data?.length) await legalService.accept().catch(() => undefined);
-}
 
 /** Link types the e-mail templates send (supabase/templates): sign-up, password reset, e-mail change. */
 export const EMAIL_LINK_TYPES = ['email', 'recovery', 'email_change'] as const;
@@ -159,49 +128,6 @@ export const authService = {
 
     const user = buildDemoUser(email, 'client', 'Mateo Ruiz', 'mock-user-current');
     await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({ user }));
-    return user;
-  },
-
-  /**
-   * Institutional Microsoft account (Supabase Auth + Azure provider, PKCE).
-   * The server only accepts allowlisted tenants with the institution's domain
-   * (migration 27). Signs in and also creates the account the first time.
-   *
-   * Phones: opens Microsoft in an in-app browser and returns the user, or
-   * null when the person closes the window.
-   * Web: the whole page goes to Microsoft and comes back to /callback, which
-   * finishes the sign-in; this returns null and the page navigates away.
-   * (Safari blocks a popup opened after an awaited request, so no popup.)
-   */
-  async signInWithMicrosoft(): Promise<User | null> {
-    ensureSupabaseConfigured();
-    const scopes = 'openid email profile offline_access';
-    const queryParams = { domain_hint: MICROSOFT_DOMAIN_HINT, prompt: 'select_account' };
-
-    if (Platform.OS === 'web') {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'azure',
-        options: { redirectTo: `${authCallbackUrl()}?via=${MICROSOFT_CALLBACK_FLAG}`, scopes, queryParams },
-      });
-      if (error) throw error;
-      return null;
-    }
-
-    const redirectTo = authCallbackUrl();
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: { redirectTo, skipBrowserRedirect: true, scopes, queryParams },
-    });
-    if (error) throw error;
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-    if (result.type !== 'success') return null;
-    const link = parseAuthUrl(result.url);
-    if (link.errorCode || !link.code) throw new Error(microsoftErrorMessage(link));
-    await exchangeAuthCode(link.code);
-    const user = await getSupabaseUser();
-    if (!user) throw new Error('No se encontró el perfil del usuario.');
-    await acceptTermsIfNeeded(user.id);
-    monitoring.track('login', { method: 'microsoft' });
     return user;
   },
 

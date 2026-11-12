@@ -86,6 +86,7 @@
     "review": "node --env-file-if-exists=scripts/admin/.env.review.local scripts/admin/review-cli.mjs",
     "feedback": "node --env-file-if-exists=scripts/admin/.env.review.local scripts/admin/feedback-cli.mjs",
     "errors": "node --env-file-if-exists=scripts/admin/.env.review.local scripts/admin/errors-cli.mjs",
+    "plus": "node --env-file-if-exists=scripts/admin/.env.review.local scripts/admin/plus-cli.mjs",
     "test:functions": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"supabase/functions/**/*.test.ts\""
   },
   "private": true,

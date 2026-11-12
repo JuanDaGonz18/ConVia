@@ -135,10 +135,34 @@ on conflict (user_id) do update set tier = 'plus', status = 'active', provider =
 -- Volver a FREE: update public.subscriptions set status = 'canceled' where user_id = '<uuid>';
 ```
 
+## Pago por transferencia (Bre-B, sin pasarela)
+
+Migración 047, **apagado** hasta el lanzamiento (`docs/LANZAR_PLUS.md`).
+
+| Pieza | Dónde |
+| --- | --- |
+| Interruptor, llave Bre-B y titular | `app_config.payments_enabled`, `bre_b_key`, `payee_name` (NULL en el repositorio; se ponen con SQL en producción) |
+| Precios (COP, impuestos incluidos) | `plus_prices`: `monthly` 12 000, `yearly` 108 000. Cambiar: `update public.plus_prices set amount_cop = … where period = 'monthly';` |
+| Solicitudes | `payment_requests`: referencia única `CV-XXXX`; `draft` → `pending` («Ya pagué», máx. 3) → `granted` / `rejected` |
+| Comprobante opcional | bucket privado `payment-receipts`, se borra 30 días después de la decisión |
+| Revisión | `npm run plus -- --list`, `--grant <ref> [--amount N] [--paid-on AAAA-MM-DD]`, `--reject <ref> --reason "…"` |
+| Vencimiento | `plus-payments-daily` (08:05 Bogotá): baja a gratis lo vencido (solo `provider = 'transferencia'`), avisa 3 días antes. Sin renovación automática |
+| Retención | registros decididos 5 años; referencias nunca enviadas 30 días |
+
+Con `payments_enabled = false` la app muestra el aviso de siempre («Muy pronto…»),
+`get_plus_payment_info()` responde `{"enabled": false}` y todas las RPC de pago,
+incluidas las del equipo, responden `PAYMENTS_DISABLED`. Con el interruptor encendido
+pero sin llave o titular, sigue apagado para la app (`PAYMENTS_NOT_CONFIGURED`).
+
+`--grant` extiende desde el fin del periodo vigente (pagar antes de vencer no pierde
+días); si la persona tiene ConVía+ manual sin vencimiento responde `PLUS_NO_EXPIRY`.
+
 ## Pruebas
 
 - `npm test`: catálogo, límites, beta y paridad app ↔ migración (`src/subscription/plans.test.ts`).
 - `npx supabase db query -f supabase/tests/plan_capabilities_test.sql --remote`: beta activa y
   terminada, ConVía+, vencimiento y que nadie se dé ConVía+ ni cambie la configuración.
+- `npx supabase db query -f supabase/tests/plus_payments_test.sql` (local): interruptor apagado, referencias
+  únicas, límite de 3 pendientes, extensión del periodo, vencimiento, retención y RLS.
 - `npx supabase db query -f supabase/tests/planned_features_test.sql --remote`: cada función
   ConVía+ con beta y sin ella (horarios, alertas, rutas, estadísticas).

@@ -216,6 +216,9 @@ Spanish sentence. The app maps both through `errorMessage()`; plan codes become 
 | `save_recurring_trip` | schedule fields (`p_hora`, `p_dias smallint[]`, `p_fecha_inicio/fin`, route, price, seats…) | `jsonb` | ConVía+ `recurring_trips`; max 10 active schedules |
 | `set_recurring_trip_active` | `p_id uuid`, `p_active boolean` | `jsonb` | Pause/resume a schedule (`CAPACIDAD_PLAN:recurring_trips`) |
 | `delete_recurring_trip` | `p_id uuid` | `jsonb` | Delete a schedule |
+| `get_plus_payment_info` | — | `jsonb` | ConVía+ by transfer: `{"enabled": false}` while payments are off; otherwise Bre-B key, payee, prices, `max_pending` ([PLANES.md](PLANES.md)) |
+| `start_plus_payment` | `p_period text` (`monthly`/`yearly`) | `jsonb` | Unique reference `CV-XXXX` with amount, key and payee (`PAYMENTS_DISABLED`, `PAYMENTS_NOT_CONFIGURED`, `PAYMENT_PERIOD_INVALID`, `PAYMENT_PENDING_LIMIT`) |
+| `confirm_plus_payment` | `p_reference text`, `p_receipt text = null` | `jsonb` | "Ya pagué" → `pending`, optional receipt in `payment-receipts` (`PAYMENTS_DISABLED`, `PAYMENT_NOT_FOUND`, `PAYMENT_PENDING_LIMIT`, `PAYMENT_RECEIPT_INVALID`) |
 
 ### Callable without a session (`anon` and `authenticated`)
 
@@ -228,7 +231,9 @@ Spanish sentence. The app maps both through `errorMessage()`; plan codes become 
 `service_check_plan`, `service_accepted_legal_version`, `service_set_membership_status`,
 `service_resolve_institution_request`, `service_expired_card_review_files`,
 `service_stale_pickup_clips`, `claim_alert_pushes`, `claim_recurring_pushes`,
-`claim_admin_review_pushes`, `set_verification_result`. They are not reachable with a user
+`claim_admin_review_pushes`, `claim_admin_payment_pushes`, `claim_plus_pushes`,
+`service_grant_plus_payment`, `service_reject_plus_payment`, `service_expired_payment_receipts`
+(ConVía+ by transfer, `npm run plus`), `set_verification_result`. They are not reachable with a user
 JWT. Trigger functions (`handle_new_user`, `trips_before_insert`, `trip_requests_before_insert`,
 `saved_places_limit`, `refresh_rating`…) can't be called as RPCs. Functions in the `private`
 schema are not exposed by PostgREST.
@@ -255,6 +260,7 @@ All times UTC. Jobs that call a function use `pg_net` with the Vault secrets
 | `cleanup-pickup-clips` | `*/30 * * * *` | `private.dispatch_pickup_clips_cleanup()` | `verify-pickup` (cleanup mode) | 033 |
 | `cleanup-card-review-files` | `41 3 * * *` | `private.dispatch_card_review_cleanup()` | `card-review-cleanup` | 038 |
 | `admin-review-alerts` | `0 12,22 * * *` | `private.enqueue_admin_review_pushes()` (one notice per admin per day at most) | sent by the next `dispatch-pending-pushes` | 041 |
+| `plus-payments-daily` | `5 13 * * *` | `private.plus_payments_daily()`: downgrades expired transfer subscriptions, queues the 3-day expiry push, retention cleanup | sent by `dispatch-pending-pushes` | 047 |
 
 ## Webhooks
 

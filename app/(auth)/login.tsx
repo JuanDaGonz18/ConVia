@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { MicrosoftSignInButton } from '@/components/auth/MicrosoftSignInButton';
 import { BrandLogo } from '@/components/brand/Brand';
 import { PasswordField } from '@/components/forms/PasswordField';
 import { TextField } from '@/components/forms/TextField';
@@ -19,7 +18,7 @@ import { typography } from '@/constants/typography';
 import { SavedUsersPanel } from '@/dev/SavedUsersPanel';
 import { savedUsers } from '@/dev/savedUsers';
 import i18n from '@/i18n';
-import { authService, isMicrosoftAuthEnabled } from '@/services/authService';
+import { authService } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
 
@@ -42,7 +41,6 @@ export default function LoginScreen() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const passwordRef = useRef<TextInputInstance>(null);
 
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
@@ -136,16 +134,10 @@ export default function LoginScreen() {
               </Pressable>
             </View>
 
-            <ButtonPrimary disabled={microsoftLoading} loading={loading} loadingTitle={t('auth.login.submitting')} onPress={() => void handleLogin()} title={t('auth.login.submit')} />
+            <ButtonPrimary loading={loading} loadingTitle={t('auth.login.submitting')} onPress={() => void handleLogin()} title={t('auth.login.submit')} />
 
-            {useSupabase && isMicrosoftAuthEnabled ? (
-              <MicrosoftSignInButton
-                disabled={loading}
-                onBusyChange={setMicrosoftLoading}
-                onError={setError}
-                title={t('auth.login.microsoft')}
-              />
-            ) : null}
+            {/* Microsoft sign-in was removed: those accounts set a password with "¿Olvidaste tu contraseña?". */}
+            {useSupabase ? <Text style={styles.formerMicrosoft}>{t('auth.login.formerMicrosoft')}</Text> : null}
           </View>
 
           <View style={styles.divider}>
@@ -203,6 +195,7 @@ const styles = StyleSheet.create({
   dividerText: { ...typography.caption, color: colors.textSecondary },
   forgotRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'flex-end' },
   forgot: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
+  formerMicrosoft: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
   demo: { gap: spacing[8] },
   demoTitle: { ...typography.caption, color: colors.textSecondary, textAlign: 'center', textTransform: 'uppercase' },
 });
