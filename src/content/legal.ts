@@ -3,16 +3,16 @@
  * linked from the download page (/app/legal?doc=privacy).
  *
  * Written to match what the app actually does (see README > Security notes).
- * ConVía is a non-profit student project, not a company: no personal names,
- * tax ID or street address are published. If a company is ever set up, put
- * its details in LEGAL_COMPANY and section 1 of the privacy policy, and have a
- * lawyer review both documents before going to the app stores.
+ * ConVía is a student project. ConVía+ is sold by the person in
+ * LEGAL_COMPANY.seller: fill [NOMBRE], [CC/NIT] and [CIUDAD] before launch
+ * (docs/LANZAR_PLUS.md) and have a lawyer review both documents before going
+ * to the app stores. No street address is published.
  * When the text changes materially, bump LEGAL_VERSION: new sign-ups store
  * the version they accepted.
  */
 
-export const LEGAL_VERSION = '1.3';
-export const LEGAL_UPDATED_AT = '10 de noviembre de 2026';
+export const LEGAL_VERSION = '1.4';
+export const LEGAL_UPDATED_AT = '11 de noviembre de 2026';
 
 export const LEGAL_COMPANY = {
   name: 'ConVía',
@@ -22,7 +22,19 @@ export const LEGAL_COMPANY = {
   location: 'Cundinamarca, Colombia',
   /** The one contact channel for questions, requests and complaints. */
   email: 'gonzalezjuandavid07@gmail.com',
+  /**
+   * Who sells ConVía+ and receives the transfers (the payee the app shows). Placeholders until
+   * launch: docs/LANZAR_PLUS.md step 1. Never publish a street address here.
+   */
+  seller: {
+    name: '[NOMBRE]',
+    /** "C.C. 123…" for a person or "NIT 900…" for a company. */
+    id: '[CC/NIT]',
+    city: '[CIUDAD]',
+  },
 };
+
+const seller = `${LEGAL_COMPANY.seller.name}, identificado con ${LEGAL_COMPANY.seller.id}, con domicilio en ${LEGAL_COMPANY.seller.city}, Colombia`;
 
 export type LegalBlock = string | { bullets: string[] };
 export type LegalSection = { id: string; title: string; body: LegalBlock[] };
@@ -37,7 +49,8 @@ export const TERMS: LegalDocument = {
     'El aporte que acuerdan pasajero y conductor es solo para compartir gastos del trayecto, no para obtener ganancia.',
     'Cada conductor responde por tener licencia, SOAT, revisión técnico-mecánica y su vehículo en regla.',
     'Debes ser mayor de edad, dar datos reales y tratar a los demás con respeto. Podemos suspender cuentas que incumplan estas reglas.',
-    'ConVía es un proyecto académico de estudiantes, gratuito y sin ánimo de lucro, en fase beta. No es un servicio oficial de ninguna universidad.',
+    'ConVía es un proyecto académico de estudiantes en fase beta. El plan gratis tiene todo lo esencial. No es un servicio oficial de ninguna universidad.',
+    'ConVía+ es opcional y de pago: se paga por transferencia con una referencia, no se renueva solo, puedes cancelarlo cuando quieras y tienes 5 días hábiles para retractarte con reembolso total.',
   ],
   sections: [
     {
@@ -53,13 +66,13 @@ export const TERMS: LegalDocument = {
       title: '2. Qué es ConVía',
       body: [
         'ConVía es una plataforma tecnológica que permite a miembros de una comunidad universitaria publicar trayectos que ya van a realizar en su vehículo particular y a otros miembros solicitar un cupo en ellos (carro compartido).',
-        'ConVía es un proyecto académico desarrollado por estudiantes universitarios. No es una empresa constituida, no tiene ánimo de lucro y no es un servicio oficial ni respaldado por ninguna universidad o institución educativa.',
+        'ConVía es un proyecto académico desarrollado por estudiantes universitarios. No es un servicio oficial ni respaldado por ninguna universidad o institución educativa. El plan opcional ConVía+ lo vende la persona identificada en la sección 9.',
         'Cualquier persona puede crear una cuenta, con cualquier correo. Para ver, pedir o publicar viajes debes verificar que perteneces a una institución habilitada en ConVía (ver sección 3). Mientras no lo hagas, no verás viajes, personas ni chats.',
-        'La aplicación está en fase beta: es gratuita, puede tener errores y puede cambiar, interrumpirse o terminar en cualquier momento. Si ConVía deja de funcionar, eliminaremos los datos personales según la Política de Tratamiento de Datos.',
+        'La aplicación está en fase beta: el plan gratis no tiene costo, puede tener errores y puede cambiar, interrumpirse o terminar en cualquier momento. Si ConVía deja de funcionar, eliminaremos los datos personales según la Política de Tratamiento de Datos.',
         'ConVía no es una empresa de transporte, no presta el servicio de transporte, no es propietaria de los vehículos, no contrata a los conductores y no es parte del acuerdo entre pasajero y conductor. Nuestra función se limita a facilitar el contacto y la coordinación entre usuarios.',
         'La aplicación no debe usarse para prestar servicio público de transporte ni ninguna actividad de transporte con fines comerciales o de lucro.',
         'ConVía+ es un plan opcional con funciones adicionales: el asistente de viajes y el autocompletado de los datos del vehículo con inteligencia artificial, varios vehículos, viajes recurrentes, alertas de viajes, filtros y estadísticas avanzados, más lugares y conductores favoritos, verificaciones de recogida sin el límite mensual del plan gratis, mapas de Google con tráfico, prioridad entre solicitudes igual de compatibles y perfil destacado. El plan gratis conserva todo lo esencial para compartir viajes. El detalle vigente está en la pantalla ConVía+ de la aplicación.',
-        'Mientras dure la beta, ConVía+ es gratuito: algunas de sus funciones están abiertas a todos y las demás se activan sin costo. Nunca te cobraremos por ConVía+ sin mostrarte antes el precio y obtener tu aceptación expresa.',
+        'Mientras dure la beta, algunas funciones de ConVía+ están abiertas a todos sin costo. ConVía+ completo es de pago y opcional; su precio, forma de pago, activación, cancelación y derecho de retracto están en la sección 8. Nunca se te cobra nada sin que tú hagas la transferencia.',
       ],
     },
     {
@@ -69,7 +82,7 @@ export const TERMS: LegalDocument = {
         {
           bullets: [
             'Ser mayor de 18 años.',
-            'Para usar los viajes: pertenecer a una institución habilitada en ConVía y verificarlo con tu correo institucional, con tu cuenta institucional de Microsoft o con tu carné estudiantil. Si tu institución no aparece, puedes pedir que se agregue.',
+            'Para usar los viajes: pertenecer a una institución habilitada en ConVía y verificarlo con tu correo institucional o con tu carné estudiantil. Si tu institución no aparece, puedes pedir que se agregue.',
             'Suministrar información veraz, completa y actualizada, y mantenerla así.',
             'Tener una sola cuenta, personal e intransferible.',
             'Completar la verificación de identidad cuando la aplicación la solicite.',
@@ -83,7 +96,7 @@ export const TERMS: LegalDocument = {
       title: '4. Tu cuenta y tu contraseña',
       body: [
         'Eres responsable de mantener la confidencialidad de tu contraseña y de toda la actividad realizada desde tu cuenta. Si sospechas un uso no autorizado, cambia tu contraseña de inmediato y avísanos.',
-        'Si entras con tu cuenta institucional de Microsoft, la contraseña y la verificación la administra tu institución: ConVía nunca la ve. Si pierdes acceso a esa cuenta (por ejemplo, al terminar tus estudios), puedes perder el acceso a ConVía por esa vía.',
+        'El inicio de sesión con Microsoft ya no está disponible. Si antes entrabas así, toca "¿Olvidaste tu contraseña?" con el mismo correo para crear una contraseña: conservas la misma cuenta y tus datos.',
         'ConVía no guarda tu contraseña en el teléfono: tu sesión sigue abierta con un token seguro hasta que cierres sesión. No dejes la sesión abierta en dispositivos compartidos.',
       ],
     },
@@ -124,12 +137,41 @@ export const TERMS: LegalDocument = {
       title: '7. Aportes y pagos',
       body: [
         'El valor que el conductor indica en un viaje es un aporte voluntario para compartir los gastos del trayecto (combustible, peajes, parqueadero), no una tarifa ni el precio de un servicio de transporte. Los conductores no deben fijar valores que generen ganancia.',
-        'ConVía no procesa pagos ni cobra comisiones. El aporte se entrega directamente entre usuarios, y el registro de "pagado" en la aplicación es solo una ayuda para el conductor. ConVía no responde por pagos no realizados, ni por reclamaciones entre usuarios relacionadas con ellos.',
+        'ConVía no procesa los aportes entre usuarios ni cobra comisiones sobre ellos. El aporte se entrega directamente entre usuarios, y el registro de "pagado" en la aplicación es solo una ayuda para el conductor. ConVía no responde por pagos no realizados, ni por reclamaciones entre usuarios relacionadas con ellos.',
+        'Lo único que se le paga a ConVía es el plan opcional ConVía+ (sección 8).',
+      ],
+    },
+    {
+      id: 'plus',
+      title: '8. ConVía+: precio, pago, cancelación y retracto',
+      body: [
+        'ConVía+ es opcional: no necesitas pagar para buscar, pedir ni publicar viajes. Lo que incluye está en la sección 2 y en la pantalla ConVía+ de la aplicación.',
+        {
+          bullets: [
+            'Precio: $12.000 por 1 mes o $108.000 por 12 meses, en pesos colombianos, con todos los impuestos incluidos. La aplicación muestra el precio vigente antes de pagar; si cambia, el nuevo precio solo aplica a los pagos que hagas después.',
+            'Forma de pago: transferencia directa por Bre-B desde tu banco. La aplicación te muestra la llave, el titular, el valor y una referencia única (por ejemplo, CV-7K3P) que debes escribir en la descripción de la transferencia. No usamos pasarela de pagos ni recibimos datos de tarjetas, contraseñas o claves bancarias.',
+            'Aviso de pago: después de transferir, toca «Ya pagué»; si quieres, adjunta el comprobante. Puedes tener hasta 3 pagos esperando revisión.',
+            'Activación: revisamos que la transferencia haya llegado con la referencia y el valor correctos y activamos ConVía+ en un máximo de 24 horas hábiles desde tu aviso. Te avisamos en la aplicación. Si no encontramos el pago o el valor no coincide, te lo decimos con el motivo; si el dinero sí llegó, lo activamos cuando se aclare o te lo devolvemos.',
+            'Duración: 1 o 12 meses desde la activación. Si pagas antes de que venza tu periodo, el nuevo se suma al final del actual. Te avisamos 3 días antes de que venza.',
+            'Sin renovación automática: nunca se cobra solo. Al vencer vuelves al plan gratis sin perder tus datos; si quieres seguir, pagas de nuevo.',
+            `Cancelación: puedes cancelar en cualquier momento escribiendo a ${LEGAL_COMPANY.email} o, simplemente, no renovando. ConVía+ sigue activo hasta el final del periodo pagado. Fuera del derecho de retracto, cancelar no da lugar a reembolso del periodo en curso, salvo en los casos que prevé la ley.`,
+            `Derecho de retracto: como es una compra a distancia, puedes retractarte dentro de los cinco (5) días hábiles siguientes a la activación, conforme al artículo 47 de la Ley 1480 de 2011 (Estatuto del Consumidor). Escribe a ${LEGAL_COMPANY.email} con tu referencia: desactivamos ConVía+ y te devolvemos el 100 % de lo pagado, sin descuentos ni retenciones, por transferencia a la cuenta que nos indiques, dentro de los treinta (30) días calendario siguientes.`,
+            `Reclamos sobre un pago: escribe a ${LEGAL_COMPANY.email} con tu referencia. Si no estás de acuerdo con la respuesta, puedes acudir a la Superintendencia de Industria y Comercio.`,
+          ],
+        },
+      ],
+    },
+    {
+      id: 'vendedor',
+      title: '9. Quién vende ConVía+',
+      body: [
+        `ConVía+ lo vende ${seller}: es el titular de la llave Bre-B que muestra la aplicación, recibe los pagos de ConVía+ y responde por ellos ante ti.`,
+        `Contacto para pagos, cancelaciones, retractos y reclamos: ${LEGAL_COMPANY.email}.`,
       ],
     },
     {
       id: 'conducta',
-      title: '8. Reglas de convivencia',
+      title: '10. Reglas de convivencia',
       body: [
         'No está permitido:',
         {
@@ -146,7 +188,7 @@ export const TERMS: LegalDocument = {
     },
     {
       id: 'seguridad',
-      title: '9. Seguridad y emergencias',
+      title: '11. Seguridad y emergencias',
       body: [
         'Antes de subir, verifica que el conductor, la placa y el vehículo coincidan con lo que muestra la aplicación. Si algo no coincide o no te sientes seguro, no inicies el viaje.',
         'La verificación del carro que llega (video de recogida) es una ayuda: puede fallar, por ejemplo con poca luz o una placa sucia, y no reemplaza que tú mismo revises la placa, el vehículo y al conductor.',
@@ -156,7 +198,7 @@ export const TERMS: LegalDocument = {
     },
     {
       id: 'responsabilidad',
-      title: '10. Limitación de responsabilidad',
+      title: '12. Limitación de responsabilidad',
       body: [
         'Los viajes se realizan bajo la responsabilidad exclusiva de los usuarios que participan en ellos. En la medida permitida por la ley, ConVía no responde por accidentes, daños, pérdidas, retrasos, cancelaciones ni por la conducta de los usuarios durante o con ocasión de un viaje, ni por la veracidad de la información que ellos suministran.',
         'La aplicación se ofrece "tal como está". Hacemos esfuerzos razonables para que funcione correctamente, pero no garantizamos que esté libre de errores o interrupciones. Las rutas, distancias, direcciones y tiempos son aproximados y provienen de servicios de mapas de terceros.',
@@ -165,7 +207,7 @@ export const TERMS: LegalDocument = {
     },
     {
       id: 'suspension',
-      title: '11. Suspensión y cierre de la cuenta',
+      title: '13. Suspensión y cierre de la cuenta',
       body: [
         'Podemos suspender o cancelar cuentas que incumplan estos términos, que presenten reportes graves de otros usuarios o que representen un riesgo para la comunidad.',
         'Puedes eliminar tu cuenta en cualquier momento desde Perfil > Eliminar mi cuenta, siempre que no tengas un viaje en curso.',
@@ -173,21 +215,21 @@ export const TERMS: LegalDocument = {
     },
     {
       id: 'propiedad',
-      title: '12. Propiedad intelectual',
+      title: '14. Propiedad intelectual',
       body: [
         'El nombre ConVía, el diseño y el software de la aplicación pertenecen a sus autores o a sus licenciantes. Conservas los derechos sobre el contenido que publicas (fotos, mensajes, comentarios) y nos autorizas a usarlo únicamente para operar la aplicación.',
       ],
     },
     {
       id: 'cambios',
-      title: '13. Cambios a estos términos',
+      title: '15. Cambios a estos términos',
       body: [
         'Podemos actualizar estos términos. Si el cambio es importante, te lo informaremos en la aplicación antes de que entre en vigor. Si sigues usando ConVía después de esa fecha, entenderemos que aceptas la nueva versión.',
       ],
     },
     {
       id: 'ley',
-      title: '14. Ley aplicable',
+      title: '16. Ley aplicable',
       body: [
         `Estos términos se rigen por las leyes de la República de Colombia. Las diferencias se intentarán resolver primero de forma directa escribiendo a ${LEGAL_COMPANY.email}.`,
       ],
@@ -203,14 +245,14 @@ export const PRIVACY: LegalDocument = {
     'Para verificar tu identidad convertimos tu rostro en una representación numérica. No guardamos fotos de tu cara ni de tu licencia.',
     'Algunas funciones usan inteligencia artificial de Meta. Los videos de recogida se borran a más tardar en 1 hora y las imágenes del carné que van a revisión, a más tardar en 7 días.',
     'No vendemos tus datos. Puedes consultarlos, corregirlos o eliminar tu cuenta cuando quieras.',
-    'ConVía es un proyecto académico de estudiantes, sin ánimo de lucro y sin empresa detrás.',
+    'Si pagas ConVía+, guardamos el registro del pago (referencia, valor y fechas) 5 años y el comprobante que adjuntes hasta 30 días después de revisarlo.',
   ],
   sections: [
     {
       id: 'responsable',
       title: '1. Responsable del tratamiento',
       body: [
-        `El responsable del tratamiento de tus datos es ${LEGAL_COMPANY.operator}, sin ánimo de lucro y sin constituir una empresa, con domicilio en ${LEGAL_COMPANY.location}. ConVía no es un servicio oficial de ninguna universidad: las instituciones cuyos correos se admiten no reciben ni administran tus datos.`,
+        `El responsable del tratamiento de tus datos es ${seller}, quien opera ConVía junto con ${LEGAL_COMPANY.operator}. ConVía no es un servicio oficial de ninguna universidad: las instituciones cuyos correos se admiten no reciben ni administran tus datos.`,
         `Canal de atención para consultas, reclamos y cualquier asunto sobre tus datos personales: ${LEGAL_COMPANY.email}.`,
         'Esta política se expide en cumplimiento de la Ley 1581 de 2012, el Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015) y demás normas colombianas sobre protección de datos personales.',
       ],
@@ -223,7 +265,8 @@ export const PRIVACY: LegalDocument = {
           bullets: [
             'Identificación y contacto: nombre, correo (institucional o personal), teléfono (opcional) y foto de perfil.',
             'Cuenta: contraseña (la administra nuestro proveedor de autenticación de forma cifrada; ConVía no puede verla), rol (pasajero o conductor), institución y la versión de estos documentos que aceptaste.',
-            'Inicio de sesión con Microsoft (si lo usas): Microsoft nos envía tu nombre, tu correo institucional y el identificador de tu institución, que usamos para confirmar que perteneces a una institución habilitada. Nunca recibimos tu contraseña de Microsoft.',
+            'Inicio de sesión con Microsoft (ya no disponible): si lo usaste, conservamos el nombre, el correo institucional y el identificador de tu institución que Microsoft nos envió. Nunca recibimos tu contraseña de Microsoft.',
+            'Pagos de ConVía+ (solo si compras): el plan elegido, el valor, la referencia del pago, las fechas de aviso, revisión y activación, el resultado de la revisión (y su motivo si no se confirma) y, si lo adjuntas, la imagen del comprobante de la transferencia, que puede mostrar tu nombre, tu banco y parte de tu número de cuenta. No recibimos datos de tarjetas, contraseñas ni claves bancarias.',
             'Institución: la institución que eliges y cómo la verificaste. Si la verificas con tu carné, tu teléfono recorta el carné y quita tu rostro antes de enviarlo; guardamos solo el resultado (sin tu nombre y con los últimos 4 dígitos de tu documento). Si usas un carné sin foto, también envías una captura de tu cuenta institucional con tu nombre y tu correo.',
             'Vehículo (conductores): marca, color, placa, número de cupos y fotos del vehículo. Para verificar el vehículo o autocompletar sus datos, se analiza una foto del carro; esa foto se borra al terminar.',
             'Video de recogida (pasajeros, opcional): un video de hasta 2 segundos del carro que llega, para confirmar que es el del viaje. Puede captar la placa y, de forma incidental, a personas en el entorno; no las identificamos. Guardamos solo el resultado.',
@@ -253,6 +296,7 @@ export const PRIVACY: LegalDocument = {
             'Atender tus consultas y reclamos, hacer cumplir los Términos y Condiciones y colaborar con autoridades cuando la ley lo exija.',
             'Mejorar la seguridad y el funcionamiento de la aplicación.',
             'Diagnosticar fallas, entender el uso de la app y atender tus reportes.',
+            'Verificar y activar tus pagos de ConVía+, avisarte su estado y su vencimiento, atender cancelaciones, retractos, reembolsos y reclamos, y llevar la contabilidad y cumplir las obligaciones tributarias de esas ventas.',
           ],
         },
         'No vendemos ni alquilamos tus datos personales, ni los usamos para publicidad de terceros.',
@@ -284,10 +328,11 @@ export const PRIVACY: LegalDocument = {
         {
           bullets: [
             'Otros usuarios, solo en la medida necesaria para el viaje (por ejemplo, el conductor ve tu nombre, foto y punto de recogida cuando solicitas un cupo).',
-            'Proveedores tecnológicos que actúan como encargados del tratamiento: Supabase (base de datos, autenticación y almacenamiento de archivos), Microsoft (inicio de sesión con tu cuenta institucional, solo si lo usas), Google (Firebase Cloud Messaging para notificaciones en Android y Google Maps en las funciones que lo usan), Expo (envío de notificaciones) y GitHub (aloja esta página, la versión web y el archivo de instalación para Android; como cualquier sitio web, recibe datos técnicos de tu conexión, como la dirección IP).',
+            'Proveedores tecnológicos que actúan como encargados del tratamiento: Supabase (base de datos, autenticación y almacenamiento de archivos, incluidos los comprobantes de pago), Google (Firebase Cloud Messaging para notificaciones en Android y Google Maps en las funciones que lo usan), Expo (envío de notificaciones) y GitHub (aloja esta página, la versión web y el archivo de instalación para Android; como cualquier sitio web, recibe datos técnicos de tu conexión, como la dirección IP).',
             'Meta Platforms (Meta Model API), como encargado del tratamiento para las funciones con inteligencia artificial: recibe las fotos del vehículo, el video de recogida, los recortes del carné (sin tu rostro) o el carné sin foto y la captura de tu cuenta institucional, y, si usas el asistente, tus mensajes, tus lugares guardados y los datos de los viajes disponibles (por ejemplo, origen, destino, horario y nombre de pila del conductor). Nunca recibe tu selfie, la foto de tu licencia ni la representación numérica de tu rostro. Meta procesa estos datos solo para entregarnos el resultado y no los usa para entrenar sus modelos; ConVía no los usa para publicidad.',
             'Servicios de mapas basados en OpenStreetMap (Photon para buscar lugares, OSRM para calcular rutas y OpenStreetMap y OpenFreeMap para dibujar el mapa), a los que se envían las búsquedas y coordenadas necesarias, sin tu nombre ni tu correo.',
-            'Autoridades competentes, cuando exista una orden o una obligación legal.',
+            'Tu banco y el del vendedor tratan los datos de la transferencia de ConVía+ según sus propias políticas. ConVía solo ve lo que aparece en el movimiento recibido y en el comprobante que adjuntes.',
+            'Autoridades competentes, incluidas las tributarias, cuando exista una orden o una obligación legal.',
           ],
         },
         'Algunos de estos proveedores almacenan o procesan información en servidores ubicados fuera de Colombia. Al aceptar esta política autorizas esa transferencia o transmisión internacional, que se realiza con proveedores que ofrecen niveles adecuados de protección.',
@@ -326,6 +371,7 @@ export const PRIVACY: LegalDocument = {
         'Conservamos tus datos mientras tengas una cuenta activa. Cuando eliminas tu cuenta, se borran tu perfil, fotos, vehículos, viajes, solicitudes, mensajes y representaciones faciales, salvo la información que debamos conservar por obligación legal o para atender reclamaciones pendientes.',
         'Videos de recogida: se borran al terminar la verificación y, en cualquier caso, a más tardar 1 hora después de subirlos. Fotos del vehículo para verificarlo: se borran al terminar la verificación. Imágenes del carné: si la verificación va a revisión manual, se guardan para quien revisa y se borran cuando se decide, cuando verificas de nuevo, cuando eliminas tu cuenta o, en cualquier caso, a más tardar 7 días después.',
         'Errores y registros de uso: 90 días. Reportes: 1 año; sus capturas, 30 días.',
+        'Pagos de ConVía+: el registro del pago (referencia, valor, fechas y resultado) se conserva 5 años desde que se revisa, por obligaciones contables y tributarias, también si eliminas tu cuenta (en ese caso queda sin vínculo con tu perfil). El comprobante que adjuntes se borra 30 días después de revisar el pago, o antes si eliminas tu cuenta. Las referencias que generas y nunca envías se borran a los 30 días.',
         'Si el proyecto termina, eliminaremos los datos personales de todos los usuarios y te avisaremos con anticipación en la aplicación o por correo.',
         'Los mensajes y datos que otros usuarios ya recibieron durante un viaje pueden permanecer en sus dispositivos (por ejemplo, en capturas de pantalla), fuera del control de ConVía.',
       ],

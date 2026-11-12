@@ -24,10 +24,13 @@ begin
   insert into public.subscriptions (user_id, tier, status, provider, current_period_end) values (uM, 'plus', 'active', 'manual', null);
   update public.app_config set beta_mode = false;
 
-  -- ================= APAGADO (estado de la migración) =================
-  r := r || case when (select payments_enabled from public.app_config) = false
+  -- Migración 049 (lanzamiento): interruptor encendido; la llave y el titular solo se ponen en producción.
+  r := r || case when (select payments_enabled from public.app_config) = true
                   and (select bre_b_key from public.app_config) is null and (select payee_name from public.app_config) is null
-                 then E'\nOK  flag: migration leaves payments off with no key and no payee' else E'\nBAD flag: not off by default' end;
+                 then E'\nOK  flag: launch migration turns payments on, with no key and no payee in the repo' else E'\nBAD flag: launch state' end;
+  update public.app_config set payments_enabled = false;
+
+  -- ================= APAGADO =================
   r := r || case when (select amount_cop from public.plus_prices where period = 'monthly') = 12000
                   and (select amount_cop from public.plus_prices where period = 'yearly') = 108000
                  then E'\nOK  prices: monthly 12000 and yearly 108000 COP' else E'\nBAD prices' end;
