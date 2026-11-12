@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>ConVía · Comparte tu ruta con tu comunidad</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#0062E0}a:hover{color:#004FB5}
+summary{cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+details[open] .faq-plus{transform:rotate(45deg)}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; color: #1F2024; background: #FFFFFF; width: 100%">
+
+<!-- Navegación -->
+<header style="border-bottom: 1px solid #ECEDF1; background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="#inicio" style="text-decoration: none; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: #1F2024">Con<span style="color: {{accent}}">Vía</span></a>
+<nav aria-label="Secciones" style="display: flex; flex-wrap: wrap; align-items: center; gap: 28px; font-size: 15px; font-weight: 500">
+<a href="#como-funciona" style="color: #3E3F45; text-decoration: none">Cómo funciona</a>
+<a href="#seguridad" style="color: #3E3F45; text-decoration: none">Seguridad</a>
+<a href="#planes" style="color: #3E3F45; text-decoration: none">Planes</a>
+<a href="#preguntas" style="color: #3E3F45; text-decoration: none">Preguntas</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 10px">
+<button type="button" aria-label="Read in English" style="height: 44px; min-width: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid #DADBE1; background: #FFFFFF; font: inherit; font-size: 14px; font-weight: 600; color: #3E3F45; cursor: pointer">EN</button>
+<a href="https://juandagonz18.github.io/ConVia/app/" style="display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 10px; background: {{accent}}; color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 600">Abrir ConVía</a>
+</div>
+</div>
+</header>
+
+<!-- Hero -->
+<section id="inicio" style="background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 88px 24px 96px; display: flex; flex-wrap: wrap; align-items: center; gap: 64px">
+<div style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 28px">
+<p style="margin: 0; display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #EAF2FF; color: #0050B8; font-size: 13px; font-weight: 600; letter-spacing: 0.3px">Beta abierta · Movilidad compartida verificada</p>
+<h1 style="margin: 0; font-size: 60px; line-height: 1.04; letter-spacing: -2px; font-weight: 800">Ya vas para el mismo lado.<br><span style="color: {{accent}}">Vayan juntos.</span></h1>
+<p style="margin: 0; max-width: 520px; font-size: 19px; line-height: 1.55; color: #55565D">ConVía conecta a conductores y pasajeros de tu universidad o empresa que hacen la misma ruta. Cada persona verifica su institución y su identidad, y antes de subirte puedes confirmar que el carro que llegó es el correcto.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<a href="https://github.com/JuanDaGonz18/ConVia/releases/latest/download/convia.apk" style="display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 24px; border-radius: 12px; background: {{accent}}; color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 600">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>
+Descargar para Android
+<span style="font-weight: 400; opacity: 0.85">· 80 MB</span>
+</a>
+<a href="https://juandagonz18.github.io/ConVia/app/" style="display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 22px; border-radius: 12px; border: 1px solid #DADBE1; background: #FFFFFF; color: #1F2024; text-decoration: none; font-size: 16px; font-weight: 600">Usar en iPhone o computador</a>
+</div>
+<p style="margin: 0; font-size: 14px; color: #6B6C73">Gratis y sin anuncios. Entra con tu correo o con tu cuenta de Microsoft.</p>
+</div>
+<div style="flex: 1 1 380px; min-width: 0; display: flex; justify-content: center">
+<div style="position: relative; width: 300px; height: 620px; border-radius: 44px; background: #1F2024; padding: 12px; box-sizing: border-box; box-shadow: 0 30px 60px rgba(17,18,21,0.18)">
+<div style="width: 100%; height: 100%; border-radius: 34px; background: #F4F6FA; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; box-sizing: border-box">
+<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8A8B92" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5-5-9 9"></path></svg>
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #55565D">[CAPTURA REAL: Inicio con viajes compatibles]</p>
+<p style="margin: 0; font-size: 12px; color: #6B6C73">390 × 844, desde la app</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Franja: ruta -->
+<section aria-label="Dónde funciona" style="background: #F6F7FA; border-top: 1px solid #ECEDF1; border-bottom: 1px solid #ECEDF1">
+<div style="max-width: 1200px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px; font-size: 15px; font-weight: 500; color: #3E3F45">
+<span>De tu casa</span>
+<span aria-hidden="true" style="display: inline-flex; align-items: center; gap: 0">
+<span style="width: 9px; height: 9px; border-radius: 50%; border: 2px solid {{accent}}; box-sizing: border-box"></span>
+<span style="width: 72px; height: 2px; background: {{accent}}"></span>
+<span style="width: 9px; height: 9px; border-radius: 50%; background: {{accent}}"></span>
+</span>
+<span>a tu campus o tu trabajo, todos los días</span>
+</div>
+</section>
+
+<!-- Cómo funciona -->
+<section id="como-funciona" style="background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 104px 24px; display: flex; flex-direction: column; gap: 56px">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 640px">
+<p style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #0050B8">Cómo funciona</p>
+<h2 style="margin: 0; font-size: 42px; line-height: 1.1; letter-spacing: -1px; font-weight: 800">Tres pasos y estás compartiendo ruta</h2>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 32px; border-radius: 20px; border: 1px solid #ECEDF1">
+<p style="margin: 0; width: 40px; height: 40px; border-radius: 12px; background: #EAF2FF; color: #0050B8; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800">1</p>
+<h3 style="margin: 0; font-size: 21px; font-weight: 700">Verifica tu institución</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #55565D">Regístrate con cualquier correo y elige tu universidad o empresa. Se verifica con el dominio de tu correo, con tu carné o con una revisión del equipo.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 32px; border-radius: 20px; border: 1px solid #ECEDF1">
+<p style="margin: 0; width: 40px; height: 40px; border-radius: 12px; background: #EAF2FF; color: #0050B8; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800">2</p>
+<h3 style="margin: 0; font-size: 21px; font-weight: 700">Busca o publica tu viaje</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #55565D">Pon tu destino y ve primero los viajes que pasan cerca de ti. Si conduces, publica tu ruta, el horario, los cupos y el aporte por puesto.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 32px; border-radius: 20px; border: 1px solid #ECEDF1">
+<p style="margin: 0; width: 40px; height: 40px; border-radius: 12px; background: #EAF2FF; color: #0050B8; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800">3</p>
+<h3 style="margin: 0; font-size: 21px; font-weight: 700">Coordina y sube</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #55565D">Cuando el conductor acepta, se abre el chat del viaje. Al llegar, confirma el carro y aborda con tu código QR. Después, califiquen el viaje.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Seguridad -->
+<section id="seguridad" style="background: #111215; color: #F2F3F7">
+<div style="max-width: 1200px; margin: 0 auto; padding: 104px 24px; display: flex; flex-direction: column; gap: 56px">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 680px">
+<p style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #7AB4FF">Cómo te protegemos</p>
+<h2 style="margin: 0; font-size: 42px; line-height: 1.1; letter-spacing: -1px; font-weight: 800">Compartes el carro con tu comunidad, no con desconocidos</h2>
+<p style="margin: 0; font-size: 17px; line-height: 1.6; color: #B4B6BF">La confianza no se promete: se verifica en cada paso, desde el registro hasta que te subes.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 28px; border-radius: 18px; background: #1B1D22; border: 1px solid #2A2D34">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"></path><path d="M5 10v9h14v-9"></path><path d="M10 19v-5h4v5"></path></svg>
+<h3 style="margin: 0; font-size: 19px; font-weight: 700">Institución verificada</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #B4B6BF">Solo quien pertenece a tu universidad o empresa ve, pide o publica viajes.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 28px; border-radius: 18px; background: #1B1D22; border: 1px solid #2A2D34">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
+<h3 style="margin: 0; font-size: 19px; font-weight: 700">Tu cara, en tu celular</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #B4B6BF">Al pedir un cupo, la app confirma que eres tú. La comparación ocurre en el dispositivo y no se guarda tu foto.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 28px; border-radius: 18px; background: #1B1D22; border: 1px solid #2A2D34">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16l1.5-5h11L19 16"></path><rect x="3" y="16" width="18" height="4" rx="1"></rect><path d="M9 6l2 2 4-4"></path></svg>
+<h3 style="margin: 0; font-size: 19px; font-weight: 700">¿Es este el carro?</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #B4B6BF">Graba unos segundos del carro que llega y una IA confirma que coincide con el registrado. Si no, lo reportas ahí mismo.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 28px; border-radius: 18px; background: #1B1D22; border: 1px solid #2A2D34">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 14h2v2h-2z"></path><path d="M18 18h2v2h-2z"></path></svg>
+<h3 style="margin: 0; font-size: 19px; font-weight: 700">Abordaje con QR</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #B4B6BF">El conductor escanea tu código al subir, así ambos saben que el viaje empezó con la persona correcta.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 28px; border-radius: 18px; background: #1B1D22; border: 1px solid #2A2D34">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"></path></svg>
+<h3 style="margin: 0; font-size: 19px; font-weight: 700">Chat sin dar tu número</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #B4B6BF">Coordinan el punto de encuentro dentro de la app. Tu correo y tu teléfono no se muestran.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 28px; border-radius: 18px; background: #1B1D22; border: 1px solid #2A2D34">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.6-4.6 4.1 1.4 6L12 16.3 6.5 19.3l1.4-6L3.3 9.2l6.1-.6z"></path></svg>
+<h3 style="margin: 0; font-size: 19px; font-weight: 700">Calificaciones mutuas</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #B4B6BF">Conductor y pasajero se califican después de cada viaje, y el conductor decide a quién acepta.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Video -->
+<section aria-label="Video" style="background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 104px 24px 0; display: flex; flex-direction: column; align-items: center; gap: 28px; text-align: center">
+<h2 style="margin: 0; font-size: 36px; line-height: 1.15; letter-spacing: -0.8px; font-weight: 800">Mira un viaje de principio a fin</h2>
+<div style="width: 100%; max-width: 960px; aspect-ratio: 16 / 9; border-radius: 24px; background: #F4F6FA; border: 1px solid #ECEDF1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px">
+<button type="button" aria-label="Reproducir video" style="width: 72px; height: 72px; border-radius: 50%; border: 0; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+</button>
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #55565D">[VIDEO REAL DE 30–45 s: buscar, pedir cupo, verificar el carro y abordar]</p>
+</div>
+</div>
+</section>
+
+<!-- Conductores y pasajeros -->
+<section aria-label="Para conductores y pasajeros" style="background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 104px 24px; display: flex; flex-wrap: wrap; gap: 24px">
+<div style="flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 18px; padding: 40px; border-radius: 24px; background: #EAF2FF">
+<p style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #0050B8">Si conduces</p>
+<h3 style="margin: 0; font-size: 28px; line-height: 1.2; font-weight: 800">Reparte la gasolina y conserva el control</h3>
+<ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.55; color: #3E3F45">
+<li>Tú decides la ruta, el horario, los cupos y el aporte.</li>
+<li>Aceptas o rechazas cada solicitud y ves el punto de recogida antes.</li>
+<li>Repite tus viajes de la semana sin publicarlos uno por uno.</li>
+</ul>
+</div>
+<div style="flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 18px; padding: 40px; border-radius: 24px; background: #F6F7FA">
+<p style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #55565D">Si vas de pasajero</p>
+<h3 style="margin: 0; font-size: 28px; line-height: 1.2; font-weight: 800">Llega a tiempo, con gente de tu comunidad</h3>
+<ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.55; color: #3E3F45">
+<li>Ve la ruta, la hora, el carro y el aporte antes de pedir el cupo.</li>
+<li>Guarda tus rutas y recibe un aviso cuando aparezca un viaje que te sirve.</li>
+<li>Sabes quién te recoge: perfil verificado, calificación y carro.</li>
+</ul>
+</div>
+</div>
+</section>
+
+<!-- Planes -->
+<section id="planes" style="background: #F6F7FA; border-top: 1px solid #ECEDF1; border-bottom: 1px solid #ECEDF1">
+<div style="max-width: 1200px; margin: 0 auto; padding: 104px 24px; display: flex; flex-direction: column; gap: 48px">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 640px">
+<p style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #0050B8">Planes</p>
+<h2 style="margin: 0; font-size: 42px; line-height: 1.1; letter-spacing: -1px; font-weight: 800">Todo lo esencial es gratis</h2>
+<p style="margin: 0; font-size: 17px; line-height: 1.6; color: #55565D">Durante la beta, las funciones marcadas como beta también son gratis para todos.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 24px">
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 20px; padding: 36px; border-radius: 22px; background: #FFFFFF; border: 1px solid #ECEDF1">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+<h3 style="margin: 0; font-size: 24px; font-weight: 800">Gratis</h3>
+<p style="margin: 0; font-size: 15px; font-weight: 600; color: #55565D">$0</p>
+</div>
+<ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.5; color: #3E3F45">
+<li>Buscar, pedir y publicar viajes</li>
+<li>Chat, código QR y verificación de identidad</li>
+<li>Verificación de recogida con un cupo mensual</li>
+<li>Carné estudiantil y app en español e inglés</li>
+</ul>
+</div>
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 20px; padding: 36px; border-radius: 22px; background: #FFFFFF; border: 2px solid {{accent}}">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+<h3 style="margin: 0; font-size: 24px; font-weight: 800">Con<span style="color: {{accent}}">Vía</span>+</h3>
+<p style="margin: 0; font-size: 15px; font-weight: 600; color: #55565D">[PRECIO] · pronto</p>
+</div>
+<ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.5; color: #3E3F45">
+<li>Asistente que busca y te propone el viaje</li>
+<li>Autollenado de tu vehículo con una foto</li>
+<li>Verificación de recogida sin límite</li>
+<li>Google Maps con tráfico y prioridad en solicitudes</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Preguntas -->
+<section id="preguntas" style="background: #FFFFFF">
+<div style="max-width: 860px; margin: 0 auto; padding: 104px 24px; display: flex; flex-direction: column; gap: 32px">
+<h2 style="margin: 0; font-size: 42px; line-height: 1.1; letter-spacing: -1px; font-weight: 800">Preguntas frecuentes</h2>
+<div style="display: flex; flex-direction: column; border-top: 1px solid #ECEDF1">
+<details style="border-bottom: 1px solid #ECEDF1; padding: 22px 0">
+<summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 18px; font-weight: 600; min-height: 44px">¿Por qué no está en Play Store?<span class="faq-plus" aria-hidden="true" style="font-size: 26px; font-weight: 400; color: #6B6C73; transition: transform 0.2s">+</span></summary>
+<p style="margin: 12px 0 0; font-size: 16px; line-height: 1.6; color: #55565D">Estamos en beta abierta y distribuimos la app de Android directamente desde esta página. Llegará a las tiendas cuando termine el piloto.</p>
+</details>
+<details style="border-bottom: 1px solid #ECEDF1; padding: 22px 0">
+<summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 18px; font-weight: 600; min-height: 44px">Android dice que el archivo puede ser peligroso. ¿Es seguro?<span class="faq-plus" aria-hidden="true" style="font-size: 26px; font-weight: 400; color: #6B6C73; transition: transform 0.2s">+</span></summary>
+<p style="margin: 12px 0 0; font-size: 16px; line-height: 1.6; color: #55565D">Android muestra ese aviso con cualquier app que no viene de Play Store. El archivo se publica desde el repositorio oficial de ConVía.</p>
+</details>
+<details style="border-bottom: 1px solid #ECEDF1; padding: 22px 0">
+<summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 18px; font-weight: 600; min-height: 44px">¿Tengo iPhone, puedo usarla?<span class="faq-plus" aria-hidden="true" style="font-size: 26px; font-weight: 400; color: #6B6C73; transition: transform 0.2s">+</span></summary>
+<p style="margin: 12px 0 0; font-size: 16px; line-height: 1.6; color: #55565D">Sí, desde el navegador con la versión web. La verificación de recogida con video, por ahora, solo está en la app de Android.</p>
+</details>
+<details style="border-bottom: 1px solid #ECEDF1; padding: 22px 0">
+<summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 18px; font-weight: 600; min-height: 44px">¿Cuánto cuesta un viaje?<span class="faq-plus" aria-hidden="true" style="font-size: 26px; font-weight: 400; color: #6B6C73; transition: transform 0.2s">+</span></summary>
+<p style="margin: 12px 0 0; font-size: 16px; line-height: 1.6; color: #55565D">El conductor fija un aporte por puesto para repartir los gastos del trayecto, no para obtener ganancia. El pago lo acuerdan entre ustedes, fuera de la app.</p>
+</details>
+<details style="border-bottom: 1px solid #ECEDF1; padding: 22px 0">
+<summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 18px; font-weight: 600; min-height: 44px">¿Qué pasa con mis datos?<span class="faq-plus" aria-hidden="true" style="font-size: 26px; font-weight: 400; color: #6B6C73; transition: transform 0.2s">+</span></summary>
+<p style="margin: 12px 0 0; font-size: 16px; line-height: 1.6; color: #55565D">Tu correo y tu teléfono no se muestran a otros usuarios. Las imágenes del carné se borran al revisarse y los videos de recogida en menos de una hora. Todo está en la <a href="https://juandagonz18.github.io/ConVia/app/legal">política de tratamiento de datos</a>.</p>
+</details>
+</div>
+</div>
+</section>
+
+<!-- Llamado final -->
+<section aria-label="Descargar" style="background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 0 24px 104px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 28px; padding: 56px; border-radius: 28px; background: {{accent}}; color: #FFFFFF">
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 36px; line-height: 1.15; letter-spacing: -0.8px; font-weight: 800">Tu próximo viaje ya va para tu lado</h2>
+<p style="margin: 0; font-size: 17px; line-height: 1.55; color: #E6EFFF">Descárgala gratis y verifica tu institución en minutos.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<a href="https://github.com/JuanDaGonz18/ConVia/releases/latest/download/convia.apk" style="display: inline-flex; align-items: center; height: 56px; padding: 0 24px; border-radius: 12px; background: #FFFFFF; color: #0050B8; text-decoration: none; font-size: 16px; font-weight: 700">Descargar para Android</a>
+<a href="https://juandagonz18.github.io/ConVia/app/" style="display: inline-flex; align-items: center; height: 56px; padding: 0 22px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.55); color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 600">Usar en la web</a>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Pie -->
+<footer style="border-top: 1px solid #ECEDF1; background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 36px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; font-size: 14px; color: #6B6C73">
+<p style="margin: 0; font-size: 18px; font-weight: 800; color: #1F2024">Con<span style="color: {{accent}}">Vía</span></p>
+<nav aria-label="Legal y contacto" style="display: flex; flex-wrap: wrap; gap: 24px">
+<a href="https://juandagonz18.github.io/ConVia/app/legal" style="color: #55565D">Términos y privacidad</a>
+<a href="mailto:gonzalezjuandavid07@gmail.com" style="color: #55565D">Contacto</a>
+</nav>
+<p style="margin: 0">Proyecto académico en beta. Sin ánimo de lucro.</p>
+</div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#0062E0","options":["#0062E0","#006FFD","#1F2024"]},"$preview":{"width":1440,"height":5200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#0062E0' };
+  }
+}
+</script>
+</body>
+</html>
