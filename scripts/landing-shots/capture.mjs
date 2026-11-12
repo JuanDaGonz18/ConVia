@@ -1,0 +1,22 @@
+// Screenshots for the landing: real app build against a fake, local backend (fixtures.mjs).
+import { chromium } from 'playwright'; import { install } from './fake.mjs'; import { fixtures, NOW } from './fixtures.mjs';
+const OUT = process.argv[2];
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:3, locale:'es-CO', timezoneId:'America/Bogota', colorScheme:'light', geolocation:{latitude:4.7569,longitude:-74.0447}, permissions:['geolocation'] });
+const p = await ctx.newPage();
+await p.clock.install({ time: NOW }); await p.clock.resume();
+await p.routeWebSocket(/demo\.localhost/, (ws) => {});
+await install(p, fixtures);
+await p.goto('http://localhost:8093/', { waitUntil:'networkidle' }); await p.waitForTimeout(1500);
+await p.getByLabel(/correo/i).first().fill('laura.demo@example.com');
+await p.locator('input[type=password]').fill('demo-password');
+await p.getByText('Iniciar sesión', {exact:true}).last().click(); await p.waitForTimeout(4000);
+const go = async (u) => { await p.evaluate((u)=>{ history.pushState({},'',u); dispatchEvent(new PopStateEvent('popstate')); }, u); await p.waitForTimeout(3500); };
+const shot = (n) => p.screenshot({ path: `${OUT}/${n}.png` });
+await shot('inicio');
+await p.getByText('Sofía Pérez').first().click(); await p.waitForLoadState('networkidle'); await p.waitForTimeout(4000); await shot('viaje');
+await go('/requests'); await shot('solicitudes');
+await go('/boarding-qr?requestId=req-demo-1'); await shot('qr');
+await go('/chat/trip-demo-1'); await shot('chat');
+await go('/profile'); await shot('perfil');
+await b.close(); console.log('done');

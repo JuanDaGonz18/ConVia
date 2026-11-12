@@ -3,582 +3,619 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ConVía Beta</title>
-<meta name="description" content="ConVía: comparte el carro con personas verificadas de tu institución. Verificación del carro que te recoge, carné estudiantil, español e inglés. Gratis para Android y en la web.">
+<title>ConVía · Comparte tu ruta con tu comunidad</title>
+<meta name="description" content="ConVía conecta a conductores y pasajeros de tu universidad o empresa que hacen la misma ruta. Personas verificadas, chat sin dar tu número y abordaje con QR. Gratis para Android y en la web.">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0F12" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://convia-app.pages.dev/">
+<link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta property="og:title" content="ConVía · Carpooling verificado">
-<meta property="og:description" content="Comparte el carro con personas verificadas de tu institución. Gratis para Android y en la web.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<!-- Open Graph / Twitter -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ConVía">
+<meta property="og:locale" content="es_CO">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:url" content="https://convia-app.pages.dev/">
+<meta property="og:title" content="ConVía · Comparte tu ruta con tu comunidad">
+<meta property="og:description" content="Ya vas para el mismo lado. Vayan juntos. Carpooling verificado con tu universidad o empresa. Gratis para Android y en la web.">
+<meta property="og:image" content="https://convia-app.pages.dev/img/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ConVía: la pantalla de Inicio con viajes compatibles hacia la universidad">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ConVía · Comparte tu ruta con tu comunidad">
+<meta name="twitter:description" content="Ya vas para el mismo lado. Vayan juntos. Carpooling verificado con tu universidad o empresa.">
+<meta name="twitter:image" content="https://convia-app.pages.dev/img/og-image.jpg">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>
-/* Saved theme (light/dark) before first paint; without one, the page follows the system. */
-try { const l = localStorage.getItem("convia-lang"); if (l === "es" || l === "en") document.documentElement.lang = l; else if (!/^es/i.test(navigator.language || "es")) document.documentElement.lang = "en"; } catch (e) {}
-try { const t = localStorage.getItem("convia-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+/* Saved language and theme before first paint; without them, the page follows the browser. */
+try { var l = localStorage.getItem("convia-lang"); if (l === "es" || l === "en") document.documentElement.lang = l; else if (!/^es/i.test(navigator.language || "es")) document.documentElement.lang = "en"; } catch (e) {}
+try { var t = localStorage.getItem("convia-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-/* Layout: split hero (copy + phone trip card), then a road-sign strip of findings, steps, install tabs, FAQ. */
+/* Inter (SIL Open Font License 1.1), self-hosted: Latin subset, variable weight. */
+@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
 :root{
-  --bg:#F6F8FC; --surface:#FFFFFF; --ink:#1F2024; --muted:#5B5F6E; --line:#D9DCE6;
-  --accent:#006FFD; --accent-ink:#FFFFFF; --accent-soft:#EAF2FF; --sign:#FFC531; --sign-ink:#1F2024;
-  --road:#2A2D36; --map-road:#C5C6CC;
-  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
-  --f-body:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
-  --r:14px;
+  --accent:#0062E0; --accent-hover:#004FB5; --accent-ink:#FFFFFF; --btn:#0062E0; --btn-hover:#004FB5;
+  --bg:#FFFFFF; --bg-alt:#F6F7FA; --ink:#1F2024; --ink-2:#3E3F45; --muted:#55565D; --faint:#6B6C73;
+  --line:#ECEDF1; --line-2:#DADBE1; --soft:#EAF2FF; --soft-ink:#0050B8; --frame-screen:#F4F6FA;
+  --dark-bg:#111215; --dark-card:#1B1D22; --dark-line:#2A2D34; --dark-ink:#F2F3F7; --dark-muted:#B4B6BF; --dark-accent:#7AB4FF;
+  --cta-bg:#0062E0; --cta-sub:#E6EFFF; --cta-btn-ink:#0050B8;
+  color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0E1117; --surface:#171B24; --ink:#EEF0F6; --muted:#A3A8B8; --line:#2A3040;
-  --accent:#3D8DFF; --accent-ink:#FFFFFF; --accent-soft:#16233A; --sign:#FFC531; --sign-ink:#1F2024; --road:#0A0C11; --map-road:#3A4255;
+  --accent:#3D8BFF; --accent-hover:#6AA6FF; --accent-ink:#FFFFFF; --btn:#1F6FE5; --btn-hover:#0F5FD0;
+  --bg:#0E0F12; --bg-alt:#15171B; --ink:#F2F3F7; --ink-2:#D4D6DD; --muted:#B4B6BF; --faint:#9A9CA5;
+  --line:#24262C; --line-2:#33363E; --soft:#132541; --soft-ink:#9CC6FF; --frame-screen:#1B1D22;
+  --dark-bg:#08090B; --dark-card:#15171B; --dark-line:#262930;
+  --cta-bg:#0052BD; --cta-sub:#DCE8FF; --cta-btn-ink:#0047A3;
   color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0E1117; --surface:#171B24; --ink:#EEF0F6; --muted:#A3A8B8; --line:#2A3040;
-  --accent:#3D8DFF; --accent-ink:#FFFFFF; --accent-soft:#16233A; --sign:#FFC531; --sign-ink:#1F2024; --road:#0A0C11; --map-road:#3A4255;
+  --accent:#3D8BFF; --accent-hover:#6AA6FF; --accent-ink:#FFFFFF; --btn:#1F6FE5; --btn-hover:#0F5FD0;
+  --bg:#0E0F12; --bg-alt:#15171B; --ink:#F2F3F7; --ink-2:#D4D6DD; --muted:#B4B6BF; --faint:#9A9CA5;
+  --line:#24262C; --line-2:#33363E; --soft:#132541; --soft-ink:#9CC6FF; --frame-screen:#1B1D22;
+  --dark-bg:#08090B; --dark-card:#15171B; --dark-line:#262930;
+  --cta-bg:#0052BD; --cta-sub:#DCE8FF; --cta-btn-ink:#0047A3;
   color-scheme:dark}
 
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;padding-inline:16px;padding-block:0}
-.wrap{max-width:1080px;margin-inline:auto}
-a{color:var(--accent)}
-h1,h2,h3{font-family:var(--f-display);line-height:1.1;text-wrap:balance;margin:0}
-p{margin:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+img{display:block;max-width:100%;height:auto}
+h1,h2,h3,p,ul,ol{margin:0}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:6px}
+.skip{position:absolute;left:-9999px;top:8px;z-index:10;background:var(--accent);color:#fff;padding:10px 14px;border-radius:8px}
+.skip:focus{left:8px}
+.wrap{max-width:1200px;margin:0 auto;padding-left:24px;padding-right:24px}
+.c-accent{color:var(--accent)}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--soft-ink)}
+.h2{font-size:42px;line-height:1.1;letter-spacing:-1px;font-weight:800}
+.sec-head{display:flex;flex-direction:column;gap:14px;max-width:640px}
+.sec{padding-top:104px;padding-bottom:104px}
 
-/* nav */
-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:20px}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:-.01em;color:var(--ink);text-decoration:none}
-.mark{width:34px;height:34px;border-radius:10px;background:var(--accent);display:grid;place-items:center}
-.mark svg{width:22px;height:22px}
-.chip{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;background:var(--sign);color:var(--sign-ink);padding:4px 10px;border-radius:999px}
-.nav-end{display:flex;align-items:center;gap:10px}
-.theme-btn{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;transition:border-color .15s ease}
-.theme-btn:hover{border-color:var(--accent)}
-.theme-btn svg{width:20px;height:20px}
+/* Navegación */
+.top{border-bottom:1px solid var(--line);background:var(--bg)}
+.top .wrap{padding-top:18px;padding-bottom:18px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+.brand{text-decoration:none;font-size:24px;font-weight:800;letter-spacing:-.5px;color:var(--ink)}
+.brand:hover{color:var(--ink)}
+.nav{display:flex;flex-wrap:wrap;align-items:center;gap:28px;font-size:15px;font-weight:500}
+.nav a{color:var(--ink-2);text-decoration:none}
+.nav a:hover{color:var(--accent)}
+.actions{display:flex;align-items:center;gap:10px}
+.icon-btn{height:44px;min-width:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--bg);font:inherit;font-size:14px;font-weight:600;color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.icon-btn:hover{border-color:var(--accent)}
+.icon-btn svg{width:18px;height:18px}
+.theme-btn{padding:0}
 .theme-btn .sun{display:none}
 :root[data-theme="dark"] .theme-btn .sun{display:block}
 :root[data-theme="dark"] .theme-btn .moon{display:none}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .theme-btn .sun{display:block}:root:not([data-theme="light"]) .theme-btn .moon{display:none}}
+.btn-open{display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:10px;background:var(--btn);color:var(--accent-ink);text-decoration:none;font-size:15px;font-weight:600;white-space:nowrap}
+.btn-open:hover{background:var(--btn-hover);color:var(--accent-ink)}
 
-/* hero */
-.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center;padding-block:32px 56px}
-.hero > *{min-width:0}
-.eyebrow{font-family:var(--f-mono);font-size:13px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px}
-.hero h1{font-size:clamp(38px,6vw,64px);font-weight:800;letter-spacing:-.025em}
-.hero h1 em{font-style:normal;color:var(--accent)}
-.lead{font-size:18px;color:var(--muted);max-width:52ch;margin-top:18px}
-.ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
-.btn{display:inline-flex;align-items:center;gap:12px;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:600;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);transition:transform .15s ease, border-color .15s ease}
-.btn:hover{transform:translateY(-2px);border-color:var(--accent)}
-.btn small{display:block;font-weight:500;font-size:12px;color:var(--muted);line-height:1.2}
-.btn span{line-height:1.25}
-.btn svg{width:26px;height:26px;flex:none}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn.primary small{color:var(--accent-ink);opacity:.85}
-.btn[aria-disabled="true"]{opacity:.55;pointer-events:none}
-.detected{margin-top:14px;font-size:14px;color:var(--muted)}
+/* Hero */
+.hero .wrap{padding-top:88px;padding-bottom:96px;display:flex;flex-wrap:wrap;align-items:center;gap:64px}
+.hero-copy{flex:1 1 520px;min-width:0;display:flex;flex-direction:column;gap:28px}
+.pill{display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--soft);color:var(--soft-ink);font-size:13px;font-weight:600;letter-spacing:.3px}
+.hero h1{font-size:60px;line-height:1.04;letter-spacing:-2px;font-weight:800}
+.lead{max-width:520px;font-size:19px;line-height:1.55;color:var(--muted)}
+.ctas{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:10px;height:56px;padding:0 24px;border-radius:12px;text-decoration:none;font-size:16px;font-weight:600}
+.btn-primary{background:var(--btn);color:var(--accent-ink)}
+.btn-primary:hover{background:var(--btn-hover);color:var(--accent-ink)}
+.btn-primary .size{font-weight:400}
+.btn-ghost{padding:0 22px;border:1px solid var(--line-2);background:var(--bg);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--ink)}
+.fineprint{font-size:14px;color:var(--faint)}
+.hero-media{flex:1 1 380px;min-width:0;display:flex;justify-content:center}
+.phone{position:relative;width:300px;height:620px;border-radius:44px;background:#1F2024;padding:12px;box-shadow:0 30px 60px rgba(17,18,21,.18)}
+.phone img{width:100%;height:100%;border-radius:34px;object-fit:cover;object-position:top;background:var(--frame-screen)}
 
-/* phone */
-.phone{justify-self:center;width:min(300px,100%);aspect-ratio:300/600;max-width:100%;border-radius:40px;background:var(--road);padding:12px;box-shadow:0 30px 60px -30px rgba(0,40,120,.45)}
-.screen{height:100%;border-radius:30px;background:var(--surface);overflow:hidden;display:flex;flex-direction:column}
-.map{flex:1;position:relative;background:var(--accent-soft);overflow:hidden}
-.map svg{position:absolute;inset:0;width:100%;height:100%}
-.map .road{stroke:var(--map-road)}
-.sample{position:absolute;top:12px;left:12px;font-family:var(--f-mono);font-size:10px;background:var(--surface);color:var(--muted);padding:3px 8px;border-radius:6px;letter-spacing:.05em}
-.trip{padding:16px;display:grid;gap:10px;border-top:1px solid var(--line)}
-.trip-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px}
-.trip-row b{font-family:var(--f-display);font-size:16px}
-.verified{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:999px}
-.seats{display:flex;gap:4px}
-.seat{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--accent)}
-.seat.on{background:var(--accent)}
-.fake-btn{background:var(--accent);color:var(--accent-ink);text-align:center;padding:10px;border-radius:10px;font-weight:600;font-size:14px}
+/* Franja */
+.strip{background:var(--bg-alt);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.strip .wrap{padding-top:28px;padding-bottom:28px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:18px;font-size:15px;font-weight:500;color:var(--ink-2);text-align:center}
+.route{display:inline-flex;align-items:center}
+.route i{display:block}
+.route .a{width:9px;height:9px;border-radius:50%;border:2px solid var(--accent)}
+.route .l{width:72px;height:2px;background:var(--accent)}
+.route .b{width:9px;height:9px;border-radius:50%;background:var(--accent)}
 
-/* findings strip */
-.strip{background:var(--road);color:#F2F3F7;border-radius:20px;padding:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;position:relative}
-.strip > div{min-width:0}
-.strip .num{font-family:var(--f-display);font-size:44px;font-weight:800;color:var(--sign);font-variant-numeric:tabular-nums;line-height:1}
-.strip p{margin-top:8px;font-size:15px;color:#C9CCD6}
-.strip .src{grid-column:1/-1;font-family:var(--f-mono);font-size:11px;color:#8B90A0;letter-spacing:.04em}
+/* Cómo funciona */
+.how .wrap{display:flex;flex-direction:column;gap:56px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;list-style:none;padding:0}
+.step{display:flex;flex-direction:column;gap:14px;padding:32px;border-radius:20px;border:1px solid var(--line)}
+.step .n{width:40px;height:40px;border-radius:12px;background:var(--soft);color:var(--soft-ink);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800}
+.step h3{font-size:21px;font-weight:700}
+.step p{font-size:16px;line-height:1.6;color:var(--muted)}
 
-section{padding-block:64px 0}
-.sec-h{display:grid;gap:10px;margin-bottom:28px;max-width:640px}
-.sec-h h2{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.02em}
-.sec-h p{color:var(--muted)}
+/* Así se ve */
+.gallery .wrap{padding-bottom:104px;display:flex;flex-direction:column;gap:40px}
+.shots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;list-style:none;padding:0}
+.shots figure{margin:0;display:flex;flex-direction:column;gap:14px}
+.shots img{width:100%;aspect-ratio:390/844;border-radius:24px;border:1px solid var(--line);background:var(--frame-screen);box-shadow:0 12px 30px rgba(17,18,21,.08)}
+.shots figcaption{font-size:15px;line-height:1.5;color:var(--muted)}
+.shots figcaption b{display:block;color:var(--ink);font-size:16px;font-weight:700}
 
-/* steps */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;list-style:none;padding:0;margin:0;counter-reset:s}
-.steps li{counter-increment:s;min-width:0;display:grid;gap:8px;align-content:start}
-.steps li::before{content:counter(s);font-family:var(--f-mono);font-weight:500;width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:var(--sign);color:var(--sign-ink);font-size:14px}
-.steps h3{font-size:20px;font-weight:600}
-.steps p{color:var(--muted);font-size:15px}
+/* Seguridad */
+.safety{background:var(--dark-bg);color:var(--dark-ink)}
+.safety .wrap{display:flex;flex-direction:column;gap:56px}
+.safety .sec-head{max-width:680px}
+.safety .eyebrow{color:var(--dark-accent)}
+.safety .sec-head p{font-size:17px;line-height:1.6;color:var(--dark-muted)}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;list-style:none;padding:0}
+.feature{display:flex;flex-direction:column;gap:12px;padding:28px;border-radius:18px;background:var(--dark-card);border:1px solid var(--dark-line)}
+.feature svg{width:28px;height:28px}
+.feature h3{font-size:19px;font-weight:700}
+.feature p{font-size:15px;line-height:1.6;color:var(--dark-muted)}
 
-/* roles */
-.roles{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.role{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;min-width:0}
-.role h3{font-size:22px;font-weight:600;display:flex;align-items:center;gap:10px}
-.role ul{margin:12px 0 0;padding-left:20px;color:var(--muted);display:grid;gap:6px}
+/* Video (hidden until CONFIG.videoUrl is set) */
+.video .wrap{padding-top:104px;display:flex;flex-direction:column;align-items:center;gap:28px;text-align:center}
+.video h2{font-size:36px;line-height:1.15;letter-spacing:-.8px;font-weight:800}
+.player{position:relative;width:100%;max-width:960px;aspect-ratio:16/9;border-radius:24px;background:var(--frame-screen);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.player button{width:72px;height:72px;border-radius:50%;border:0;background:var(--btn);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.player iframe,.player video{position:absolute;inset:0;width:100%;height:100%;border:0}
 
-/* install */
-.install{display:grid;grid-template-columns:1fr 260px;gap:32px;align-items:start}
-.install > *{min-width:0}
-.tabs{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;margin-bottom:20px}
-.tabs button{font:inherit;font-weight:600;font-size:15px;border:0;background:transparent;color:var(--muted);padding:8px 16px;border-radius:9px;cursor:pointer}
-.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
-.how{list-style:none;padding:0;margin:0;display:grid;gap:14px;counter-reset:h}
-.how li{counter-increment:h;display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:start}
-.how li::before{content:counter(h);font-family:var(--f-mono);font-size:13px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;border:1.5px solid var(--accent);color:var(--accent)}
-.how .note{display:block;font-size:14px;color:var(--muted);margin-top:2px}
-.qr-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:grid;gap:12px;justify-items:center;text-align:center}
-#qr{background:#fff;padding:10px;border-radius:10px;line-height:0}
-#qr img,#qr canvas{width:180px;height:180px}
-.qr-card p{font-size:14px;color:var(--muted)}
+/* Conductores y pasajeros */
+.roles .wrap{display:flex;flex-wrap:wrap;gap:24px}
+.role{flex:1 1 460px;min-width:0;display:flex;flex-direction:column;gap:18px;padding:40px;border-radius:24px;background:var(--soft)}
+.role.alt{background:var(--bg-alt)}
+.role.alt .eyebrow{color:var(--muted)}
+.role h3{font-size:28px;line-height:1.2;font-weight:800}
+.role ul,.plan ul{padding-left:20px;display:flex;flex-direction:column;gap:10px;font-size:16px;line-height:1.55;color:var(--ink-2)}
 
-/* faq */
-.faq{display:grid;gap:10px;max-width:760px}
-details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 20px}
-summary{cursor:pointer;font-weight:600}
-details p{margin-top:10px;color:var(--muted)}
+/* Planes */
+.plans{background:var(--bg-alt);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.plans .wrap{display:flex;flex-direction:column;gap:48px}
+.plans .sec-head p{font-size:17px;line-height:1.6;color:var(--muted)}
+.plan-row{display:flex;flex-wrap:wrap;gap:24px}
+.plan{flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:20px;padding:36px;border-radius:22px;background:var(--bg);border:1px solid var(--line)}
+.plan.plus{border:2px solid var(--accent)}
+.plan-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.plan h3{font-size:24px;font-weight:800}
+.plan-head p{font-size:15px;font-weight:600;color:var(--muted)}
+.plan ul{line-height:1.5}
 
-footer{margin-top:72px;border-top:1px solid var(--line);padding-block:28px 40px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;font-size:14px;color:var(--muted)}
+/* Preguntas */
+.faq .wrap{max-width:860px;display:flex;flex-direction:column;gap:32px}
+.faq-list{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.faq details{border-bottom:1px solid var(--line);padding:22px 0}
+.faq summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:18px;font-weight:600;min-height:44px}
+.faq summary::-webkit-details-marker{display:none}
+.faq-plus{font-size:26px;font-weight:400;color:var(--faint);transition:transform .2s;flex:none}
+.faq details[open] .faq-plus{transform:rotate(45deg)}
+.faq details p{margin-top:12px;font-size:16px;line-height:1.6;color:var(--muted)}
 
-@media (max-width:820px){
-  .hero{grid-template-columns:1fr;gap:36px;padding-block:16px 40px}
-  .phone{width:min(260px,100%)}
-  .strip,.steps,.roles{grid-template-columns:1fr}
-  .install{grid-template-columns:1fr}
-  .qr-card{display:none}
+/* Llamado final */
+.final .wrap{padding-bottom:104px}
+.final-box{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:28px;padding:56px;border-radius:28px;background:var(--cta-bg);color:#fff}
+.final-copy{flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.final h2{font-size:36px;line-height:1.15;letter-spacing:-.8px;font-weight:800}
+.final-copy p{font-size:17px;line-height:1.55;color:var(--cta-sub)}
+.final .btn-white{background:#fff;color:var(--cta-btn-ink);font-weight:700}
+.final .btn-white:hover{background:#EEF4FF;color:var(--cta-btn-ink)}
+.final .btn-outline{padding:0 22px;border:1px solid rgba(255,255,255,.55);color:#fff}
+.final .btn-outline:hover{border-color:#fff;color:#fff}
+
+/* Pie */
+.foot{border-top:1px solid var(--line);background:var(--bg)}
+.foot .wrap{padding-top:36px;padding-bottom:36px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;font-size:14px;color:var(--faint)}
+.foot .brand{font-size:18px}
+.foot nav{display:flex;flex-wrap:wrap;gap:24px}
+.foot nav a{color:var(--muted);display:inline-block;padding:12px 0}
+
+/* Tablet / phone */
+@media (max-width:960px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:720px){
+  .wrap{padding-left:16px;padding-right:16px}
+  .sec{padding-top:72px;padding-bottom:72px}
+  .top .wrap{gap:12px;padding-top:12px;padding-bottom:0}
+  .nav{order:3;width:100%;flex-wrap:nowrap;gap:22px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav a{white-space:nowrap;padding:10px 0}
+  .actions{gap:8px}
+  .btn-open{padding:0 14px}
+  .hero .wrap{padding-top:44px;padding-bottom:64px;gap:48px}
+  .hero-copy{gap:22px}
+  .hero h1{font-size:clamp(36px,10.4vw,60px);letter-spacing:-1.2px}
+  .lead{font-size:17px}
+  .ctas .btn{width:100%;justify-content:center}
+  .h2{font-size:clamp(30px,8.2vw,42px)}
+  .how .wrap,.safety .wrap{gap:36px}
+  .step,.feature{padding:24px}
+  .gallery .wrap{padding-bottom:72px}
+  .shots{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:16px;margin:0 -16px;padding:0 16px 8px}
+  .shots li{flex:0 0 72%;scroll-snap-align:start}
+  .video .wrap{padding-top:72px}
+  .video h2,.final h2{font-size:clamp(26px,7.2vw,36px)}
+  .role{padding:28px}
+  .role h3{font-size:24px}
+  .plan{padding:28px}
+  .final .wrap{padding-bottom:72px}
+  .final-box{padding:32px 24px}
+  .final .btn{width:100%;justify-content:center}
+  .faq summary{font-size:17px}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-.route{stroke-dasharray:6 8;animation:drive 2.4s linear infinite}
-@keyframes drive{to{stroke-dashoffset:-28}}
-
-/* language toggle */
-.lang-btn{height:40px;min-width:48px;padding:0 10px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px var(--f-mono);letter-spacing:.06em;cursor:pointer;transition:border-color .15s ease}
-.lang-btn:hover{border-color:var(--accent)}
-
-/* features */
-.features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.feature{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;min-width:0;display:grid;gap:10px;align-content:start}
-.feature .ico{width:40px;height:40px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
-.feature .ico svg{width:22px;height:22px}
-.feature h3{font-size:19px;font-weight:600}
-.feature p{color:var(--muted);font-size:15px}
-.plus{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.plus .feature{border-color:var(--accent)}
-.badge{justify-self:start;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);padding:3px 9px;border-radius:999px}
-.bubble{font-size:14px;background:var(--accent-soft);color:var(--ink);border-radius:12px 12px 12px 4px;padding:10px 12px;font-style:italic}
-@media (max-width:820px){.features,.plus{grid-template-columns:1fr}}
+@media (max-width:380px){.brand{font-size:22px}.btn-open{font-size:14px;padding:0 12px}}
 </style>
 </head>
 <body>
+<a class="skip" href="#main" data-i18n="skip">Saltar al contenido</a>
 
-
-<div class="wrap">
-  <nav>
-    <a class="brand" href="#">
-      <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17a2 2 0 1 0 4 0 2 2 0 1 0-4 0M15 17a2 2 0 1 0 4 0 2 2 0 1 0-4 0"/><path d="M3 17V12l2-5h11l3 5h2v5M9 17h6M3 12h18"/></svg></span>
-      ConVía
-    </a>
-    <div class="nav-end">
-      <span class="chip" data-i18n="chip">Beta gratuita</span>
-      <button class="lang-btn" id="lang-btn" type="button" aria-label="Read in English" title="Read in English">EN</button>
-      <button class="theme-btn" id="theme-btn" type="button" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#inicio" aria-label="ConVía">Con<span class="c-accent">Vía</span></a>
+    <nav class="nav" aria-label="Secciones" data-i18n-aria="navLabel">
+      <a href="#como-funciona" data-i18n="navHow">Cómo funciona</a>
+      <a href="#seguridad" data-i18n="navSafety">Seguridad</a>
+      <a href="#planes" data-i18n="navPlans">Planes</a>
+      <a href="#preguntas" data-i18n="navFaq">Preguntas</a>
+    </nav>
+    <div class="actions">
+      <button class="icon-btn" id="lang-btn" type="button" aria-label="Read in English" lang="en">EN</button>
+      <button class="icon-btn theme-btn" id="theme-btn" type="button" aria-label="Cambiar a modo oscuro">
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="btn-open" href="https://juandagonz18.github.io/ConVia/app/" data-i18n="open">Abrir ConVía</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<!-- Hero -->
+<section id="inicio" class="hero">
+  <div class="wrap">
+    <div class="hero-copy">
+      <p class="pill" data-i18n="pill">Beta abierta · Movilidad compartida verificada</p>
+      <h1 data-i18n-html="h1">Ya vas para el mismo lado.<br><span class="c-accent">Vayan juntos.</span></h1>
+      <p class="lead" data-i18n="lead">ConVía conecta a conductores y pasajeros de tu universidad o empresa que hacen la misma ruta. Cada persona verifica su institución y su identidad, y antes de subirte puedes confirmar que el carro que llegó es el correcto.</p>
+      <div class="ctas">
+        <a class="btn btn-primary apk-link" id="btn-android" href="https://github.com/JuanDaGonz18/ConVia/releases/latest/download/convia.apk">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          <span id="android-label" data-i18n="android">Descargar para Android</span>
+          <span class="size" id="apk-size">· 80 MB</span>
+        </a>
+        <a class="btn btn-ghost" href="https://juandagonz18.github.io/ConVia/app/" data-i18n="web">Usar en iPhone o computador</a>
+      </div>
+      <p class="fineprint" data-i18n="fineprint">Gratis y sin anuncios. Entra con tu correo o con tu cuenta de Microsoft.</p>
+    </div>
+    <div class="hero-media">
+      <div class="phone">
+        <img src="img/inicio-828.webp" srcset="img/inicio-400.webp 400w, img/inicio-828.webp 828w" sizes="276px" width="276" height="596" fetchpriority="high" decoding="async"
+             alt="Pantalla de Inicio de ConVía con tres viajes compatibles hacia la universidad" data-i18n-alt="altInicio">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Franja: ruta -->
+<section class="strip" aria-label="Dónde funciona" data-i18n-aria="stripLabel">
+  <div class="wrap">
+    <span data-i18n="strip1">De tu casa</span>
+    <span class="route" aria-hidden="true"><i class="a"></i><i class="l"></i><i class="b"></i></span>
+    <span data-i18n="strip2">a tu campus o tu trabajo, todos los días</span>
+  </div>
+</section>
+
+<!-- Cómo funciona -->
+<section id="como-funciona" class="how sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow" data-i18n="howEyebrow">Cómo funciona</p>
+      <h2 class="h2" data-i18n="howTitle">Tres pasos y estás compartiendo ruta</h2>
+    </div>
+    <ol class="steps">
+      <li class="step"><p class="n" aria-hidden="true">1</p><h3 data-i18n="step1t">Verifica tu institución</h3><p data-i18n="step1">Regístrate con cualquier correo y elige tu universidad o empresa. Se verifica con el dominio de tu correo, con tu carné o con una revisión del equipo.</p></li>
+      <li class="step"><p class="n" aria-hidden="true">2</p><h3 data-i18n="step2t">Busca o publica tu viaje</h3><p data-i18n="step2">Pon tu destino y ve primero los viajes que pasan cerca de ti. Si conduces, publica tu ruta, el horario, los cupos y el aporte por puesto.</p></li>
+      <li class="step"><p class="n" aria-hidden="true">3</p><h3 data-i18n="step3t">Coordina y sube</h3><p data-i18n="step3">Cuando el conductor acepta, se abre el chat del viaje. Al llegar, confirma el carro y aborda con tu código QR. Después, califiquen el viaje.</p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- Así se ve -->
+<section class="gallery" aria-labelledby="gallery-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow" data-i18n="galEyebrow">Así se ve</p>
+      <h2 class="h2" id="gallery-title" data-i18n="galTitle">La app, tal como la vas a usar</h2>
+    </div>
+    <ul class="shots">
+      <li><figure><img src="img/viaje-400.webp" srcset="img/viaje-400.webp 400w, img/viaje-828.webp 828w" sizes="(max-width:720px) 72vw, 270px" width="390" height="844" loading="lazy" decoding="async" alt="Detalle de un viaje con la ruta en el mapa, el conductor y el carro" data-i18n-alt="altViaje"><figcaption><b data-i18n="cap1t">Detalle del viaje</b><span data-i18n="cap1">La ruta en el mapa, quién conduce y qué carro esperar.</span></figcaption></figure></li>
+      <li><figure><img src="img/qr-400.webp" srcset="img/qr-400.webp 400w, img/qr-828.webp 828w" sizes="(max-width:720px) 72vw, 270px" width="390" height="844" loading="lazy" decoding="async" alt="Código QR de abordaje de una solicitud aceptada" data-i18n-alt="altQr"><figcaption><b data-i18n="cap2t">Tu código de abordaje</b><span data-i18n="cap2">Cuando te aceptan, el conductor lo escanea al subir.</span></figcaption></figure></li>
+      <li><figure><img src="img/chat-400.webp" srcset="img/chat-400.webp 400w, img/chat-828.webp 828w" sizes="(max-width:720px) 72vw, 270px" width="390" height="844" loading="lazy" decoding="async" alt="Chat del viaje entre la pasajera y la conductora" data-i18n-alt="altChat"><figcaption><b data-i18n="cap3t">Chat del viaje</b><span data-i18n="cap3">Coordinan el punto de encuentro sin dar su número.</span></figcaption></figure></li>
+      <li><figure><img src="img/perfil-400.webp" srcset="img/perfil-400.webp 400w, img/perfil-828.webp 828w" sizes="(max-width:720px) 72vw, 270px" width="390" height="844" loading="lazy" decoding="async" alt="Perfil con identidad verificada, plan y lugares guardados" data-i18n-alt="altPerfil"><figcaption><b data-i18n="cap4t">Tu perfil</b><span data-i18n="cap4">Identidad verificada, tus lugares y tus rutas guardadas.</span></figcaption></figure></li>
+    </ul>
+  </div>
+</section>
+
+<!-- Seguridad -->
+<section id="seguridad" class="safety sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow" data-i18n="safeEyebrow">Cómo te protegemos</p>
+      <h2 class="h2" data-i18n="safeTitle">Compartes el carro con tu comunidad, no con desconocidos</h2>
+      <p data-i18n="safeLead">La confianza no se promete: se verifica en cada paso, desde el registro hasta que te subes.</p>
+    </div>
+    <ul class="features">
+      <li class="feature"><svg viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v9h14v-9"/><path d="M10 19v-5h4v5"/></svg><h3 data-i18n="f1t">Institución verificada</h3><p data-i18n="f1">Solo quien pertenece a tu universidad o empresa ve, pide o publica viajes.</p></li>
+      <li class="feature"><svg viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><h3 data-i18n="f2t">Tu cara, en tu celular</h3><p data-i18n="f2">Al pedir un cupo, la app confirma que eres tú. La comparación ocurre en el dispositivo y no se guarda tu foto.</p></li>
+      <li class="feature"><svg viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16l1.5-5h11L19 16"/><rect x="3" y="16" width="18" height="4" rx="1"/><path d="M9 6l2 2 4-4"/></svg><h3 data-i18n="f3t">¿Es este el carro?</h3><p data-i18n="f3">Graba unos segundos del carro que llega y una IA confirma que coincide con el registrado. Si no, lo reportas ahí mismo.</p></li>
+      <li class="feature"><svg viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2z"/><path d="M18 18h2v2h-2z"/></svg><h3 data-i18n="f4t">Abordaje con QR</h3><p data-i18n="f4">El conductor escanea tu código al subir, así ambos saben que el viaje empezó con la persona correcta.</p></li>
+      <li class="feature"><svg viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg><h3 data-i18n="f5t">Chat sin dar tu número</h3><p data-i18n="f5">Coordinan el punto de encuentro dentro de la app. Tu correo y tu teléfono no se muestran.</p></li>
+      <li class="feature"><svg viewBox="0 0 24 24" fill="none" stroke="#7AB4FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.6-4.6 4.1 1.4 6L12 16.3 6.5 19.3l1.4-6L3.3 9.2l6.1-.6z"/></svg><h3 data-i18n="f6t">Calificaciones mutuas</h3><p data-i18n="f6">Conductor y pasajero se califican después de cada viaje, y el conductor decide a quién acepta.</p></li>
+    </ul>
+  </div>
+</section>
+
+<!-- Video: hidden until CONFIG.videoUrl is set -->
+<section class="video" id="video" aria-labelledby="video-title" hidden>
+  <div class="wrap">
+    <h2 id="video-title" data-i18n="videoTitle">Mira un viaje de principio a fin</h2>
+    <div class="player" id="player">
+      <button type="button" id="play-btn" aria-label="Reproducir video" data-i18n-aria="play">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
       </button>
     </div>
-  </nav>
-
-  <header class="hero">
-    <div>
-      <p class="eyebrow" data-i18n="eyebrow">Carpooling verificado · Para tu comunidad</p>
-      <h1 data-i18n-html="h1">Ya vas para el mismo lado. <em>Vayan juntos.</em></h1>
-      <p class="lead" data-i18n="lead">ConVía conecta a conductores y pasajeros de tu universidad o institución que hacen la misma ruta. Cada persona verifica su cara y su institución, y antes de subirte puedes comprobar que el carro que llegó es el correcto.</p>
-      <div class="ctas">
-        <a class="btn primary" id="btn-android" href="#instalar" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22A11.4 11.4 0 0 0 12 8.2c-1.77 0-3.43.38-4.92 1.04L5.22 6.02a.38.38 0 1 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
-          <span><small id="android-small" data-i18n="androidSmall">Descargar para</small><span id="android-label">Android (APK)</span></span>
-        </a>
-        <a class="btn" id="btn-ios" href="#instalar" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.6 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.24 2.73 2.2 1.1-.04 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.41 1.2-2.47-.03-.01-2.3-.88-2.28-3.52zM14.19 6.13c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.54 1.31-.56.64-1.05 1.68-.92 2.67.97.08 1.96-.49 2.56-1.22z"/></svg>
-          <span><small id="ios-small" data-i18n="iosSmall">Usar en</small><span id="ios-label" data-i18n="iosLabel">iPhone (web)</span></span>
-        </a>
-      </div>
-      <p class="detected" id="detected" data-i18n="detected">Gratis. Sin publicidad. Regístrate con tu correo o con tu cuenta Microsoft.</p>
-    </div>
-
-    <div class="phone" aria-label="Vista de ejemplo de un viaje en ConVía" data-i18n-aria="phoneAria" role="img">
-      <div class="screen">
-        <div class="map">
-          <svg viewBox="0 0 276 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-            <path class="road" d="M-10 230 C60 210 90 170 130 150 S220 90 290 60" stroke-width="22" fill="none" stroke-linecap="round"/>
-            <path class="road" d="M40 -10 C60 80 80 140 130 150" stroke-width="12" fill="none"/>
-            <path class="route" d="M30 222 C80 200 100 165 130 150 S205 100 240 78" stroke="#006FFD" stroke-width="5" fill="none" stroke-linecap="round"/>
-            <circle cx="30" cy="222" r="9" fill="#fff" stroke="#006FFD" stroke-width="4"/>
-            <circle cx="240" cy="78" r="9" fill="#006FFD"/>
-          </svg>
-          <span class="sample" data-i18n="sample">VISTA DE EJEMPLO</span>
-        </div>
-        <div class="trip">
-          <div class="trip-row"><b data-i18n="sampleRoute">Calle 3 → Campus</b><span class="verified" data-i18n="sampleVerified">✓ Verificado</span></div>
-          <div class="trip-row"><span style="color:var(--muted)" data-i18n="sampleTime">Sale 6:40 a. m. · 2 cupos</span><span class="seats"><i class="seat on"></i><i class="seat on"></i><i class="seat"></i><i class="seat"></i></span></div>
-          <div class="fake-btn" data-i18n="sampleButton">Pedir cupo</div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <div class="strip">
-    <div><div class="num">72,7%</div><p data-i18n="stat1">de los encuestados va en su propio carro.</p></div>
-    <div><div class="num">+70%</div><p data-i18n="stat2">viaja con dos o más puestos vacíos.</p></div>
-    <div><div class="num">#1</div><p data-i18n="stat3">La desconfianza es la principal barrera para compartir el carro. Por eso verificamos a todos.</p></div>
-    <p class="src" data-i18n="statSource">Fuente: encuesta de ConVía, datos preliminares 2026.</p>
   </div>
+</section>
 
-  <section id="como">
-    <div class="sec-h"><h2 data-i18n="howTitle">Cómo funciona</h2><p data-i18n="howLead">Tres pasos para tu primer viaje compartido.</p></div>
-    <ol class="steps">
-      <li><h3 data-i18n="step1Title">Crea tu cuenta y verifícate</h3><p data-i18n="step1">Regístrate con tu correo o con Microsoft, confirma tu cara y une tu cuenta a tu institución.</p></li>
-      <li><h3 data-i18n="step2Title">Encuentra tu ruta</h3><p data-i18n="step2">Busca viajes que pasen por tu zona y lleguen a tu destino con horarios parecidos a los tuyos.</p></li>
-      <li><h3 data-i18n="step3Title">Viaja y califica</h3><p data-i18n="step3">Comprueba el carro cuando llegue, sube con tranquilidad y califica la experiencia al llegar.</p></li>
-    </ol>
-  </section>
+<!-- Conductores y pasajeros -->
+<section class="roles sec" aria-label="Para conductores y pasajeros" data-i18n-aria="rolesLabel">
+  <div class="wrap">
+    <div class="role">
+      <p class="eyebrow" data-i18n="driverEyebrow">Si conduces</p>
+      <h3 data-i18n="driverTitle">Reparte la gasolina y conserva el control</h3>
+      <ul>
+        <li data-i18n="d1">Tú decides la ruta, el horario, los cupos y el aporte.</li>
+        <li data-i18n="d2">Aceptas o rechazas cada solicitud y ves el punto de recogida antes.</li>
+        <li data-i18n="d3">Repite tus viajes de la semana sin publicarlos uno por uno.</li>
+      </ul>
+    </div>
+    <div class="role alt">
+      <p class="eyebrow" data-i18n="paxEyebrow">Si vas de pasajero</p>
+      <h3 data-i18n="paxTitle">Llega a tiempo, con gente de tu comunidad</h3>
+      <ul>
+        <li data-i18n="p1">Ve la ruta, la hora, el carro y el aporte antes de pedir el cupo.</li>
+        <li data-i18n="p2">Guarda tus rutas y recibe un aviso cuando aparezca un viaje que te sirve.</li>
+        <li data-i18n="p3">Sabes quién te recoge: perfil verificado, calificación y carro.</li>
+      </ul>
+    </div>
+  </div>
+</section>
 
-  <section id="seguridad">
-    <div class="sec-h"><h2 data-i18n="safetyTitle">Confianza en cada viaje</h2><p data-i18n="safetyLead">Verificamos a las personas, a los carros y el momento en que te recogen.</p></div>
-    <div class="features">
-      <div class="feature">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>
-        <h3 data-i18n="pickupTitle">Verifica el carro que te recoge</h3>
-        <p data-i18n="pickup">Graba un video de dos segundos cuando llegue el carro. ConVía comprueba con IA que el modelo y la placa coinciden con los del viaje. El video se borra apenas termina.</p>
+<!-- Planes -->
+<section id="planes" class="plans sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow" data-i18n="plansEyebrow">Planes</p>
+      <h2 class="h2" data-i18n="plansTitle">Todo lo esencial es gratis</h2>
+      <p data-i18n="plansLead">Durante la beta, las funciones marcadas como beta también son gratis para todos.</p>
+    </div>
+    <div class="plan-row">
+      <div class="plan">
+        <div class="plan-head"><h3 data-i18n="freeName">Gratis</h3><p>$0</p></div>
+        <ul>
+          <li data-i18n="fr1">Buscar, pedir y publicar viajes</li>
+          <li data-i18n="fr2">Chat, código QR y verificación de identidad</li>
+          <li data-i18n="fr3">Verificación de recogida con un cupo mensual</li>
+          <li data-i18n="fr4">Carné estudiantil y app en español e inglés</li>
+        </ul>
       </div>
-      <div class="feature">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><path d="M14 10h4M14 14h4"/></svg></span>
-        <h3 data-i18n="cardTitle">Tu carné estudiantil cuenta</h3>
-        <p data-i18n="card">¿Tu correo no es de la institución? Verifícate con una foto de tu carné vigente, sin costo. Si hace falta, una persona del equipo lo revisa.</p>
-      </div>
-      <div class="feature">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg></span>
-        <h3 data-i18n="peopleTitle">Personas y vehículos verificados</h3>
-        <p data-i18n="people">Cada persona confirma su cara. Los conductores verifican su licencia y la placa de su vehículo. Solo compartes viaje con gente de tu misma institución.</p>
-      </div>
-      <div class="feature">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg></span>
-        <h3 data-i18n="langTitle">En español y en inglés</h3>
-        <p data-i18n="lang">La app está completa en los dos idiomas. Usa el de tu teléfono o elige otro desde tu perfil, junto con el tema claro u oscuro.</p>
-      </div>
-      <div class="feature">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-        <h3 data-i18n="chatTitle">Chat del viaje</h3>
-        <p data-i18n="chat">Coordina el punto de encuentro con tu conductor o tus pasajeros sin compartir tu número.</p>
-      </div>
-      <div class="feature">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg></span>
-        <h3 data-i18n="qrTitle">Abordaje con QR</h3>
-        <p data-i18n="qr">El conductor escanea tu código al subir, así los dos saben que el viaje empezó con las personas correctas.</p>
+      <div class="plan plus">
+        <div class="plan-head"><h3>Con<span class="c-accent">Vía</span>+</h3><p id="plus-price">Pronto</p></div>
+        <ul>
+          <li data-i18n="pl1">Asistente que busca y te propone el viaje</li>
+          <li data-i18n="pl2">Autollenado de tu vehículo con una foto</li>
+          <li data-i18n="pl3">Verificación de recogida sin límite</li>
+          <li data-i18n="pl4">Google Maps con tráfico y prioridad en solicitudes</li>
+        </ul>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section id="plus">
-    <div class="sec-h"><h2 data-i18n="plusTitle">ConVía+</h2><p data-i18n="plusLead">Funciones con IA para ahorrar tiempo. Todo lo de seguridad sigue siendo gratis.</p></div>
-    <div class="plus">
-      <div class="feature">
-        <span class="badge">ConVía+</span>
-        <h3 data-i18n="assistantTitle">Asistente de viajes</h3>
-        <p data-i18n="assistant">Escribe de dónde sales, a dónde vas y a qué hora. El asistente busca, revisa que el conductor esté verificado y te propone un viaje; tú decides si pides el cupo.</p>
-        <p class="bubble" data-i18n="assistantExample">«Necesito llegar al campus mañana a las 7 desde el centro»</p>
-      </div>
-      <div class="feature">
-        <span class="badge">ConVía+</span>
-        <h3 data-i18n="autofillTitle">Autocompletar tu vehículo</h3>
-        <p data-i18n="autofill">Toma una foto de tu carro y ConVía llena la marca, el modelo, el color y la placa por ti. Solo revisas y guardas.</p>
-      </div>
+<!-- Preguntas -->
+<section id="preguntas" class="faq sec">
+  <div class="wrap">
+    <h2 class="h2" data-i18n="faqTitle">Preguntas frecuentes</h2>
+    <div class="faq-list">
+      <details><summary><span data-i18n="q1">¿Por qué no está en Play Store?</span><span class="faq-plus" aria-hidden="true">+</span></summary><p data-i18n="a1">Estamos en beta abierta y distribuimos la app de Android directamente desde esta página. Llegará a las tiendas cuando termine el piloto.</p></details>
+      <details><summary><span data-i18n="q2">Android dice que el archivo puede ser peligroso. ¿Es seguro?</span><span class="faq-plus" aria-hidden="true">+</span></summary><p data-i18n="a2">Android muestra ese aviso con cualquier app que no viene de Play Store. El archivo se publica desde el repositorio oficial de ConVía.</p></details>
+      <details><summary><span data-i18n="q3">¿Tengo iPhone, puedo usarla?</span><span class="faq-plus" aria-hidden="true">+</span></summary><p data-i18n="a3">Sí, desde el navegador con la versión web. La verificación de recogida con video, por ahora, solo está en la app de Android.</p></details>
+      <details><summary><span data-i18n="q4">¿Cuánto cuesta un viaje?</span><span class="faq-plus" aria-hidden="true">+</span></summary><p data-i18n="a4">El conductor fija un aporte por puesto para repartir los gastos del trayecto, no para obtener ganancia. El pago lo acuerdan entre ustedes, fuera de la app.</p></details>
+      <details><summary><span data-i18n="q5">¿Qué pasa con mis datos?</span><span class="faq-plus" aria-hidden="true">+</span></summary><p data-i18n-html="a5">Tu correo y tu teléfono no se muestran a otros usuarios. Las imágenes del carné se borran al revisarse y los videos de recogida en menos de una hora. Todo está en la <a href="https://juandagonz18.github.io/ConVia/app/legal">política de tratamiento de datos</a>.</p></details>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
-    <div class="sec-h"><h2 data-i18n="modesTitle">Una app, dos modos</h2><p data-i18n="modesLead">Cambia entre pasajero y conductor cuando quieras desde tu perfil.</p></div>
-    <div class="roles">
-      <div class="role"><h3 data-i18n="passengerTitle">Pasajero</h3><ul><li data-i18n="passenger1">Pide cupo en viajes que ya van para tu destino.</li><li data-i18n="passenger2">Ve el perfil y las calificaciones del conductor antes de subirte.</li><li data-i18n="passenger3">Comprueba que el carro que llegó es el del viaje.</li></ul></div>
-      <div class="role"><h3 data-i18n="driverTitle">Conductor</h3><ul><li data-i18n="driver1">Publica tu ruta y cuántos puestos tienes libres.</li><li data-i18n="driver2">Acepta solo a pasajeros verificados.</li><li data-i18n="driver3">Aprovecha los puestos que hoy van vacíos.</li></ul></div>
-    </div>
-  </section>
-
-  <section id="instalar">
-    <div class="sec-h"><h2 data-i18n="installTitle">Instálala en tu celular</h2><p data-i18n="installLead">Elige tu sistema. La versión beta es gratuita.</p></div>
-    <div class="install">
-      <div>
-        <div class="tabs" role="tablist" aria-label="Sistema operativo" data-i18n-aria="tabsAria">
-          <button role="tab" id="tab-android" aria-selected="true" aria-controls="panel-android">Android</button>
-          <button role="tab" id="tab-ios" aria-selected="false" aria-controls="panel-ios">iPhone</button>
-        </div>
-        <div id="panel-android" role="tabpanel" aria-labelledby="tab-android">
-          <ol class="how">
-            <li><span data-i18n-html="android1">Toca <b>Descargar para Android</b> y espera a que la descarga termine.<span class="note">Pesa unos 80 MB. Si lo abres antes de que termine, Android dirá que el paquete no es válido.</span></span></li>
-            <li><span data-i18n-html="android2">Abre el archivo <b>convia.apk</b> desde la notificación o desde la app Archivos.</span></li>
-            <li><span data-i18n-html="android3">Si aparece "Instalar apps desconocidas", toca <b>Configuración</b> y permite instalar desde tu navegador.<span class="note">Android muestra este aviso con cualquier app que no viene de Play Store.</span></span></li>
-            <li><span data-i18n-html="android4">Toca <b>Instalar</b>. Si Play Protect pregunta, elige <b>Instalar de todas formas</b>.<span class="note">Funciona en Android 8.0 o superior.</span></span></li>
-          </ol>
-        </div>
-        <div id="panel-ios" role="tabpanel" aria-labelledby="tab-ios" hidden>
-          <ol class="how">
-            <li><span data-i18n-html="ios1">Abre esta página en <b>Safari</b> y toca <b>Usar en iPhone</b>. Se abre ConVía en el navegador.</span></li>
-            <li><span data-i18n-html="ios2">Toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</span></li>
-            <li><span data-i18n-html="ios3">Elige <b>Agregar a pantalla de inicio</b> y luego <b>Agregar</b>.<span class="note">ConVía queda con su ícono, como cualquier otra app.</span></span></li>
-            <li><span data-i18n-html="ios4">Ábrela desde tu pantalla de inicio e inicia sesión.<span class="note">Para la verificación facial y la del carro, permite el acceso a la cámara cuando Safari lo pida.</span></span></li>
-          </ol>
-        </div>
+<!-- Llamado final -->
+<section class="final" aria-label="Descargar" data-i18n-aria="finalLabel">
+  <div class="wrap">
+    <div class="final-box">
+      <div class="final-copy">
+        <h2 data-i18n="finalTitle">Tu próximo viaje ya va para tu lado</h2>
+        <p data-i18n="finalLead">Descárgala gratis y verifica tu institución en minutos.</p>
       </div>
-      <div class="qr-card">
-        <div id="qr" aria-label="Código QR para abrir esta página en el celular" data-i18n-aria="qrAria"></div>
-        <p data-i18n="qrHint">¿Estás en el computador? Escanea con la cámara de tu celular para abrir esta página allí.</p>
+      <div class="ctas">
+        <a class="btn btn-white apk-link" href="https://github.com/JuanDaGonz18/ConVia/releases/latest/download/convia.apk" data-i18n="android">Descargar para Android</a>
+        <a class="btn btn-outline" href="https://juandagonz18.github.io/ConVia/app/" data-i18n="webShort">Usar en la web</a>
       </div>
     </div>
-  </section>
+  </div>
+</section>
+</main>
 
-  <section>
-    <div class="sec-h"><h2 data-i18n="faqTitle">Preguntas frecuentes</h2></div>
-    <div class="faq">
-      <details><summary data-i18n="faq1q">¿Cuánto cuesta?</summary><p data-i18n="faq1a">Usar ConVía es gratis para pasajeros y conductores, incluida la verificación del carro que te recoge y la del carné. ConVía+ agrega el asistente de viajes y el autocompletado del vehículo.</p></details>
-      <details><summary data-i18n="faq2q">¿Necesito un correo de mi institución?</summary><p data-i18n="faq2a">No. Puedes registrarte con cualquier correo o con tu cuenta Microsoft. Para viajar, une tu cuenta a tu institución: con un correo de la institución, con tu carné o enviando una solicitud si tu institución aún no está en ConVía.</p></details>
-      <details><summary data-i18n="faq3q">¿Qué pasa con el video y las fotos?</summary><p data-i18n="faq3a">El video del carro que te recoge se borra apenas termina la verificación. Si tu carné pasa a revisión manual, su imagen se borra a los 7 días.</p></details>
-      <details><summary data-i18n="faq4q">¿Por qué no está en Play Store?</summary><p data-i18n="faq4a">Estamos en beta abierta y distribuimos la app de Android directamente desde aquí. Cuando salga en Play Store, te avisaremos dentro de la app. En iPhone, ConVía se usa desde el navegador.</p></details>
-      <details><summary data-i18n="faq5q">Android dice que el archivo puede ser peligroso. ¿Es seguro?</summary><p data-i18n="faq5a">Android muestra esa advertencia con toda app instalada fuera de Play Store. Descarga el APK solo desde esta página para asegurarte de tener la versión oficial.</p></details>
-      <details><summary data-i18n="faq6q">¿Quién puede ver mis datos?</summary><p><span data-i18n="faq6a">Solo usamos tus datos para verificar tu cuenta y coordinar viajes. Los detalles están en nuestra</span> <a id="privacy-link" href="#" target="_blank" rel="noopener" data-i18n="privacyLink">política de privacidad</a>.</p></details>
-      <details id="faq-bug"><summary data-i18n="faq7q">Encontré un error. ¿Cómo lo reporto?</summary><p><span data-i18n="faq7a">Escríbenos a</span> <span id="contact" style="user-select:all;font-family:var(--f-mono);font-size:14px"></span>. <span data-i18n="faq7b">Cuéntanos qué celular usas y qué estabas haciendo.</span></p></details>
-    </div>
-  </section>
-
-  <footer>
-    <span data-i18n="footer">© 2026 ConVía · Hecho en Colombia</span>
-    <span id="version"></span>
-  </footer>
-</div>
+<!-- Pie -->
+<footer class="foot">
+  <div class="wrap">
+    <p class="brand">Con<span class="c-accent">Vía</span></p>
+    <nav aria-label="Legal y contacto" data-i18n-aria="footNav">
+      <a href="https://juandagonz18.github.io/ConVia/app/legal" data-i18n="legal">Términos y privacidad</a>
+      <a href="mailto:gonzalezjuandavid07@gmail.com" data-i18n="contact">Contacto</a>
+    </nav>
+    <p data-i18n="footer">Proyecto académico en beta. Sin ánimo de lucro.</p>
+  </div>
+</footer>
 
 <script>
-/* ===== CONFIGURA AQUÍ TUS ENLACES ===== */
-const CONFIG = {
-  apkUrl: "https://github.com/JuanDaGonz18/ConVia/releases/latest/download/convia.apk",  // siempre apunta al APK del release más reciente
-  iosWebUrl: "https://juandagonz18.github.io/ConVia/app/",  // versión web de la app (GitHub Pages)
-  testflightUrl: "",   // si algún día tienes TestFlight, ponlo aquí y tendrá prioridad sobre la web
-  privacyUrl: "https://juandagonz18.github.io/ConVia/app/legal?doc=privacy",      // URL pública de tu política de privacidad
-  contactEmail: "gonzalezjuandavid07@gmail.com",    // ej: tu correo de soporte; vacío = se oculta esa pregunta,
-  version: "Beta 1.0.0",
-  releasesApi: "https://api.github.com/repos/JuanDaGonz18/ConVia/releases/latest",  // para saber si ya hay APK publicado
-  pageUrl: "https://juandagonz18.github.io/ConVia/"          // URL pública de esta página (para el QR). Vacío = la URL actual.
+/* ===== CONFIGURA AQUÍ ===== */
+var CONFIG = {
+  // Link to the 30–45 s walkthrough (YouTube/Vimeo link or a .mp4/.webm file). Empty = the video block stays hidden.
+  videoUrl: "",
+  // ConVía+ price, e.g. "$9.900/mes". Empty = only "Pronto".
+  plusPrice: "",
+  apkUrl: "https://github.com/JuanDaGonz18/ConVia/releases/latest/download/convia.apk",
+  releasesApi: "https://api.github.com/repos/JuanDaGonz18/ConVia/releases/latest"
 };
-/* ====================================== */
+/* ========================== */
 
 /* English copy; the Spanish text is the HTML itself. */
-const EN = {
-  chip: "Free beta",
-  eyebrow: "Verified carpooling · For your community",
-  h1: "You're already going the same way. <em>Go together.</em>",
-  lead: "ConVía connects drivers and passengers from your university or institution who share the same route. Everyone verifies their face and their institution, and before you get in you can check that the car that arrived is the right one.",
-  androidSmall: "Download for",
-  iosSmall: "Use on",
-  iosLabel: "iPhone (web)",
-  detected: "Free. No ads. Sign up with your e-mail or your Microsoft account.",
-  phoneAria: "Sample view of a ConVía trip",
-  sample: "SAMPLE VIEW",
-  sampleRoute: "Main St → Campus",
-  sampleVerified: "✓ Verified",
-  sampleTime: "Leaves 6:40 a.m. · 2 seats",
-  sampleButton: "Request a seat",
-  stat1: "of respondents drive their own car.",
-  stat2: "drive with two or more empty seats.",
-  stat3: "Distrust is the main barrier to sharing a car. That's why we verify everyone.",
-  statSource: "Source: ConVía survey, preliminary data 2026.",
-  howTitle: "How it works",
-  howLead: "Three steps to your first shared ride.",
-  step1Title: "Sign up and get verified",
-  step1: "Sign up with your e-mail or Microsoft, confirm your face and link your account to your institution.",
-  step2Title: "Find your route",
-  step2: "Look for rides that pass near you and reach your destination at times close to yours.",
-  step3Title: "Ride and rate",
-  step3: "Check the car when it arrives, get in with peace of mind and rate the ride when you get there.",
-  safetyTitle: "Trust on every ride",
-  safetyLead: "We verify the people, the cars and the moment you're picked up.",
-  pickupTitle: "Check the car that picks you up",
-  pickup: "Record a two-second video when the car arrives. ConVía uses AI to check that the model and plate match the trip. The video is deleted as soon as the check ends.",
-  cardTitle: "Your student ID counts",
-  card: "E-mail not from your institution? Verify with a photo of your current student ID, at no cost. If needed, someone from our team reviews it.",
-  peopleTitle: "Verified people and vehicles",
-  people: "Everyone confirms their face. Drivers verify their license and their vehicle's plate. You only share rides with people from your own institution.",
-  langTitle: "In Spanish and English",
-  lang: "The whole app is available in both languages. It follows your phone, or pick another one in your profile, along with the light or dark theme.",
-  chatTitle: "Trip chat",
-  chat: "Agree on the meeting point with your driver or passengers without sharing your number.",
-  qrTitle: "QR boarding",
-  qr: "The driver scans your code when you get in, so both of you know the ride started with the right people.",
-  plusTitle: "ConVía+",
-  plusLead: "AI features that save you time. Everything about safety stays free.",
-  assistantTitle: "Trip assistant",
-  assistant: "Type where you're leaving from, where you're going and when. The assistant searches, checks that the driver is verified and suggests a ride; you decide whether to request the seat.",
-  assistantExample: "“I need to get to campus tomorrow at 7 from downtown”",
-  autofillTitle: "Vehicle autofill",
-  autofill: "Take a photo of your car and ConVía fills in the make, model, color and plate for you. Just review and save.",
-  modesTitle: "One app, two modes",
-  modesLead: "Switch between passenger and driver whenever you want from your profile.",
-  passengerTitle: "Passenger",
-  passenger1: "Request a seat on rides already headed your way.",
-  passenger2: "See the driver's profile and ratings before you get in.",
-  passenger3: "Check that the car that arrived is the one on the trip.",
-  driverTitle: "Driver",
-  driver1: "Post your route and how many seats you have free.",
-  driver2: "Accept only verified passengers.",
-  driver3: "Put today's empty seats to use.",
-  installTitle: "Install it on your phone",
-  installLead: "Pick your system. The beta is free.",
-  tabsAria: "Operating system",
-  android1: "Tap <b>Download for Android</b> and wait for the download to finish.<span class=\"note\">It's about 80 MB. If you open it before it finishes, Android will say the package is invalid.</span>",
-  android2: "Open <b>convia.apk</b> from the notification or from the Files app.",
-  android3: "If you see \"Install unknown apps\", tap <b>Settings</b> and allow installs from your browser.<span class=\"note\">Android shows this for any app that doesn't come from the Play Store.</span>",
-  android4: "Tap <b>Install</b>. If Play Protect asks, choose <b>Install anyway</b>.<span class=\"note\">Works on Android 8.0 or later.</span>",
-  ios1: "Open this page in <b>Safari</b> and tap <b>Use on iPhone</b>. ConVía opens in the browser.",
-  ios2: "Tap the <b>Share</b> button (the square with the arrow pointing up).",
-  ios3: "Choose <b>Add to Home Screen</b> and then <b>Add</b>.<span class=\"note\">ConVía gets its own icon, like any other app.</span>",
-  ios4: "Open it from your home screen and sign in.<span class=\"note\">For face and car checks, allow camera access when Safari asks.</span>",
-  qrAria: "QR code to open this page on your phone",
-  qrHint: "On a computer? Scan with your phone's camera to open this page there.",
+var EN = {
+  skip: "Skip to content", navLabel: "Sections", navHow: "How it works", navSafety: "Safety", navPlans: "Plans", navFaq: "FAQ",
+  open: "Open ConVía",
+  pill: "Open beta · Verified shared rides",
+  h1: 'You’re already going the same way.<br><span class="c-accent">Go together.</span>',
+  lead: "ConVía connects drivers and passengers from your university or company who travel the same route. Everyone verifies their institution and their identity, and before you get in you can confirm that the car that arrived is the right one.",
+  android: "Download for Android", web: "Use on iPhone or computer", webShort: "Use on the web",
+  fineprint: "Free and ad-free. Sign in with your email or your Microsoft account.",
+  altInicio: "ConVía home screen showing three compatible trips to the university",
+  stripLabel: "Where it works", strip1: "From your home", strip2: "to your campus or your job, every day",
+  howEyebrow: "How it works", howTitle: "Three steps and you’re sharing the ride",
+  step1t: "Verify your institution", step1: "Sign up with any email and choose your university or company. It’s verified through your email domain, your student ID or a review by our team.",
+  step2t: "Find or post a trip", step2: "Enter your destination and see the trips that pass near you first. If you drive, post your route, time, seats and the contribution per seat.",
+  step3t: "Coordinate and get in", step3: "When the driver accepts, the trip chat opens. When they arrive, confirm the car and board with your QR code. Afterwards, rate each other.",
+  galEyebrow: "See it", galTitle: "The app, just as you’ll use it",
+  cap1t: "Trip details", cap1: "The route on the map, who’s driving and which car to expect.",
+  cap2t: "Your boarding code", cap2: "Once you’re accepted, the driver scans it when you get in.",
+  cap3t: "Trip chat", cap3: "Agree on the meeting point without sharing your number.",
+  cap4t: "Your profile", cap4: "Verified identity, your places and your saved routes.",
+  altViaje: "Trip details with the route on the map, the driver and the car",
+  altQr: "Boarding QR code for an accepted request",
+  altChat: "Trip chat between the passenger and the driver",
+  altPerfil: "Profile with verified identity, plan and saved places",
+  safeEyebrow: "How we protect you", safeTitle: "You share the car with your community, not with strangers",
+  safeLead: "Trust isn’t promised: it’s verified at every step, from sign-up until you get in.",
+  f1t: "Verified institution", f1: "Only people who belong to your university or company can see, request or post trips.",
+  f2t: "Your face, on your phone", f2: "When you request a seat, the app confirms it’s you. The comparison happens on the device and your photo isn’t stored.",
+  f3t: "Is this the car?", f3: "Record a few seconds of the arriving car and an AI confirms it matches the registered one. If it doesn’t, report it right there.",
+  f4t: "QR boarding", f4: "The driver scans your code when you get in, so you both know the trip started with the right person.",
+  f5t: "Chat without your number", f5: "Agree on the meeting point inside the app. Your email and phone number are never shown.",
+  f6t: "Two-way ratings", f6: "Driver and passenger rate each other after every trip, and the driver decides who to accept.",
+  videoTitle: "Watch a trip from start to finish", play: "Play video",
+  rolesLabel: "For drivers and passengers",
+  driverEyebrow: "If you drive", driverTitle: "Split the gas and stay in control",
+  d1: "You choose the route, the time, the seats and the contribution.", d2: "Accept or decline each request and see the pickup point first.", d3: "Repeat your weekly trips without posting them one by one.",
+  paxEyebrow: "If you ride", paxTitle: "Get there on time, with people from your community",
+  p1: "See the route, time, car and contribution before requesting a seat.", p2: "Save your routes and get an alert when a trip that works for you shows up.", p3: "Know who’s picking you up: verified profile, rating and car.",
+  plansEyebrow: "Plans", plansTitle: "Everything essential is free", plansLead: "During the beta, features marked as beta are free for everyone too.",
+  freeName: "Free",
+  fr1: "Find, request and post trips", fr2: "Chat, QR code and identity verification", fr3: "Pickup verification with a monthly allowance", fr4: "Student ID and the app in Spanish and English",
+  pl1: "An assistant that searches and suggests the trip for you", pl2: "Fill in your vehicle from a photo", pl3: "Unlimited pickup verification", pl4: "Google Maps with traffic and priority on requests",
   faqTitle: "Frequently asked questions",
-  faq1q: "How much does it cost?",
-  faq1a: "ConVía is free for passengers and drivers, including the pickup check and the student ID check. ConVía+ adds the trip assistant and vehicle autofill.",
-  faq2q: "Do I need an e-mail from my institution?",
-  faq2a: "No. You can sign up with any e-mail or with your Microsoft account. To ride, link your account to your institution: with an institutional e-mail, with your student ID, or by sending a request if your institution isn't on ConVía yet.",
-  faq3q: "What happens to the video and photos?",
-  faq3a: "The video of the car that picks you up is deleted as soon as the check ends. If your student ID goes to manual review, its image is deleted after 7 days.",
-  faq4q: "Why isn't it on the Play Store?",
-  faq4a: "We're in open beta, so we distribute the Android app directly from here. When it's on the Play Store, we'll let you know in the app. On iPhone, ConVía runs in the browser.",
-  faq5q: "Android says the file may be harmful. Is it safe?",
-  faq5a: "Android shows that warning for every app installed outside the Play Store. Only download the APK from this page to be sure you have the official version.",
-  faq6q: "Who can see my data?",
-  faq6a: "We only use your data to verify your account and coordinate rides. The details are in our",
-  privacyLink: "privacy policy",
-  faq7q: "I found a bug. How do I report it?",
-  faq7a: "Write to us at",
-  faq7b: "Tell us which phone you use and what you were doing.",
-  footer: "© 2026 ConVía · Made in Colombia",
+  q1: "Why isn’t it on the Play Store?", a1: "We’re in open beta and distribute the Android app directly from this page. It will reach the stores when the pilot ends.",
+  q2: "Android says the file may be harmful. Is it safe?", a2: "Android shows that warning for any app that doesn’t come from the Play Store. The file is published from ConVía’s official repository.",
+  q3: "I have an iPhone. Can I use it?", a3: "Yes, in your browser with the web version. Pickup verification with video is, for now, only in the Android app.",
+  q4: "How much does a trip cost?", a4: "The driver sets a contribution per seat to split the trip’s costs, not to make a profit. You settle the payment between yourselves, outside the app.",
+  q5: "What happens to my data?", a5: 'Your email and phone number aren’t shown to other users. Student ID images are deleted once reviewed and pickup videos in less than an hour. It’s all in the <a href="https://juandagonz18.github.io/ConVia/app/legal">data processing policy</a>.',
+  finalLabel: "Download", finalTitle: "Your next trip is already heading your way", finalLead: "Download it for free and verify your institution in minutes.",
+  footNav: "Legal and contact", legal: "Terms and privacy", contact: "Contact", footer: "Academic project in beta. Non-profit."
+};
+var UI = {
+  es: { title: "ConVía · Comparte tu ruta con tu comunidad", desc: "ConVía conecta a conductores y pasajeros de tu universidad o empresa que hacen la misma ruta. Personas verificadas, chat sin dar tu número y abordaje con QR. Gratis para Android y en la web.", switchLang: "Read in English", toLight: "Cambiar a modo claro", toDark: "Cambiar a modo oscuro", soon: "Pronto", soonAndroid: "Muy pronto en Android" },
+  en: { title: "ConVía · Share your route with your community", desc: "ConVía connects drivers and passengers from your university or company who travel the same route. Verified people, chat without sharing your number and QR boarding. Free on Android and the web.", switchLang: "Leer en español", toLight: "Switch to light mode", toDark: "Switch to dark mode", soon: "Coming soon", soonAndroid: "Coming soon to Android" }
 };
 
-/* Strings set from the script, in both languages. */
-const UI = {
-  es: { soon: "Muy pronto en", soonTitle: "Disponible muy pronto", download: "Descargar para", version: "Versión", toLight: "Cambiar a modo claro", toDark: "Cambiar a modo oscuro", switchLang: "Read in English", iphoneDetected: "Detectamos un iPhone. Sigue los pasos de abajo para agregar ConVía a tu pantalla de inicio.", androidDetected: "Detectamos un celular Android. Toca el botón azul para descargar.", tflight: "iPhone (TestFlight)" },
-  en: { soon: "Coming soon to", soonTitle: "Available soon", download: "Download for", version: "Version", toLight: "Switch to light mode", toDark: "Switch to dark mode", switchLang: "Leer en español", iphoneDetected: "We detected an iPhone. Follow the steps below to add ConVía to your home screen.", androidDetected: "We detected an Android phone. Tap the blue button to download.", tflight: "iPhone (TestFlight)" },
-};
+var $ = function (id) { return document.getElementById(id); };
+var root = document.documentElement;
+var lang = root.lang === "en" ? "en" : "es";
+var state = { apk: null };
+var ES = {};
+function each(attr, fn) { document.querySelectorAll("[" + attr + "]").forEach(fn); }
+// Remember the Spanish copy (the HTML) so the toggle can go back to it.
+each("data-i18n", function (el) { ES[el.dataset.i18n] = el.textContent; });
+each("data-i18n-html", function (el) { ES[el.dataset.i18nHtml] = el.innerHTML; });
+each("data-i18n-alt", function (el) { ES[el.dataset.i18nAlt] = el.alt; });
+each("data-i18n-aria", function (el) { ES[el.dataset.i18nAria] = el.getAttribute("aria-label"); });
+var ui = function (k) { return UI[lang][k]; };
 
-const $ = (id) => document.getElementById(id);
-const ua = navigator.userAgent || "";
-const isAndroid = /Android/i.test(ua);
-const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-// Idioma: el HTML trae el español; el inglés sale de EN. Se recuerda en este navegador.
-const ES = {};
-document.querySelectorAll("[data-i18n]").forEach((el) => { ES[el.dataset.i18n] = el.textContent; });
-document.querySelectorAll("[data-i18n-html]").forEach((el) => { ES[el.dataset.i18nHtml] = el.innerHTML; });
-document.querySelectorAll("[data-i18n-aria]").forEach((el) => { ES[el.dataset.i18nAria] = el.getAttribute("aria-label"); });
-let lang = document.documentElement.lang === "en" ? "en" : "es";
-const ui = (key) => UI[lang][key];
-const state = { apk: null, release: null, detected: null };
-
-function applyLanguage(){
-  const dict = lang === "en" ? EN : ES;
-  document.documentElement.lang = lang;
-  document.querySelectorAll("[data-i18n]").forEach((el) => { const v = dict[el.dataset.i18n]; if (v != null) el.textContent = v; });
-  document.querySelectorAll("[data-i18n-html]").forEach((el) => { const v = dict[el.dataset.i18nHtml]; if (v != null) el.innerHTML = v; });
-  document.querySelectorAll("[data-i18n-aria]").forEach((el) => { const v = dict[el.dataset.i18nAria]; if (v != null) el.setAttribute("aria-label", v); });
-  $("lang-btn").textContent = lang === "en" ? "ES" : "EN";
-  $("lang-btn").setAttribute("aria-label", ui("switchLang")); $("lang-btn").title = ui("switchLang");
-  renderAndroid(); renderDetected(); labelThemeButton();
-  if (CONFIG.testflightUrl) { $("ios-small").textContent = ui("download"); $("ios-label").textContent = ui("tflight"); }
-  $("version").textContent = state.release ? `${ui("version")} ${state.release}` : CONFIG.version;
+function applyLanguage() {
+  var d = lang === "en" ? EN : ES;
+  root.lang = lang;
+  each("data-i18n", function (el) { var v = d[el.dataset.i18n]; if (v != null) el.textContent = v; });
+  each("data-i18n-html", function (el) { var v = d[el.dataset.i18nHtml]; if (v != null) el.innerHTML = v; });
+  each("data-i18n-alt", function (el) { var v = d[el.dataset.i18nAlt]; if (v != null) el.alt = v; });
+  each("data-i18n-aria", function (el) { var v = d[el.dataset.i18nAria]; if (v != null) el.setAttribute("aria-label", v); });
+  document.title = ui("title");
+  document.querySelector('meta[name="description"]').content = ui("desc");
+  var btn = $("lang-btn");
+  btn.textContent = lang === "en" ? "ES" : "EN";
+  btn.setAttribute("lang", lang === "en" ? "es" : "en");
+  btn.setAttribute("aria-label", ui("switchLang"));
+  $("plus-price").textContent = CONFIG.plusPrice ? CONFIG.plusPrice + " · " + ui("soon").toLowerCase() : ui("soon");
+  renderAndroid(); labelThemeButton();
 }
-$("lang-btn").addEventListener("click", () => {
+$("lang-btn").addEventListener("click", function () {
   lang = lang === "en" ? "es" : "en";
   try { localStorage.setItem("convia-lang", lang); } catch (e) {}
   applyLanguage();
 });
 
-function wire(btn, url){
-  if (url) { btn.href = url; }
-  else { btn.href = "#instalar"; btn.removeAttribute("target"); btn.title = ui("soonTitle"); }
-}
-wire($("btn-android"), CONFIG.apkUrl);
-
-function renderAndroid(){
+/* APK: size from the latest GitHub Release; "coming soon" while there is none. */
+function renderAndroid() {
   if (state.apk === false) {
-    $("android-small").textContent = ui("soon");
-    $("android-label").textContent = "Android";
+    $("android-label").textContent = ui("soonAndroid");
+    $("apk-size").textContent = "";
   } else if (state.apk) {
-    $("android-small").textContent = ui("download");
-    $("android-label").textContent = `Android (${(state.apk.size / 1048576).toFixed(0)} MB)`;
+    $("apk-size").textContent = "· " + Math.round(state.apk.size / 1048576) + " MB";
   }
 }
-
-// Until the first APK is published as a GitHub Release, show "Muy pronto" instead of a broken link.
-if (CONFIG.apkUrl && CONFIG.releasesApi) {
+if (CONFIG.releasesApi) {
   fetch(CONFIG.releasesApi, { headers: { Accept: "application/vnd.github+json" } })
-    .then((r) => (r.ok ? r.json() : null))
-    .then((release) => {
-      const apk = release?.assets?.find((a) => a.name.endsWith(".apk"));
-      if (apk) {
-        state.apk = apk;
-        if (release.tag_name) state.release = release.tag_name.replace(/^v/, "");
-      } else {
-        state.apk = false;
-        const btn = $("btn-android");
-        btn.href = "#instalar"; btn.removeAttribute("target");
-      }
-      applyLanguage();
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (release) {
+      if (!release) return;
+      var apk = (release.assets || []).find(function (a) { return /\.apk$/i.test(a.name); });
+      state.apk = apk || false;
+      if (!apk) document.querySelectorAll(".apk-link").forEach(function (a) { a.href = "#preguntas"; });
+      renderAndroid();
     })
-    .catch(() => {});
+    .catch(function () {});
 }
-wire($("btn-ios"), CONFIG.testflightUrl || CONFIG.iosWebUrl);
-if (CONFIG.privacyUrl) $("privacy-link").href = CONFIG.privacyUrl;
-if (CONFIG.contactEmail) $("contact").textContent = CONFIG.contactEmail; else $("faq-bug").hidden = true;
 
-// Modo claro / oscuro (se recuerda en este navegador)
-const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
-const isDark = () => (document.documentElement.dataset.theme || (darkQuery.matches ? "dark" : "light")) === "dark";
-function labelThemeButton(){
-  const text = isDark() ? ui("toLight") : ui("toDark");
-  $("theme-btn").setAttribute("aria-label", text); $("theme-btn").title = text;
-}
-$("theme-btn").addEventListener("click", () => {
-  const next = isDark() ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
+/* Theme */
+var darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+function isDark() { return (root.dataset.theme || (darkQuery.matches ? "dark" : "light")) === "dark"; }
+function labelThemeButton() { $("theme-btn").setAttribute("aria-label", isDark() ? ui("toLight") : ui("toDark")); }
+$("theme-btn").addEventListener("click", function () {
+  var next = isDark() ? "light" : "dark";
+  root.dataset.theme = next;
   try { localStorage.setItem("convia-theme", next); } catch (e) {}
   labelThemeButton();
 });
-darkQuery.addEventListener?.("change", labelThemeButton);
+if (darkQuery.addEventListener) darkQuery.addEventListener("change", labelThemeButton);
 
-// Destaca el botón del sistema detectado
-if (isIOS) { $("btn-android").classList.remove("primary"); $("btn-ios").classList.add("primary"); state.detected = "iphoneDetected"; }
-else if (isAndroid) state.detected = "androidDetected";
-function renderDetected(){ if (state.detected) $("detected").textContent = ui(state.detected); }
-
-// Pestañas
-function selectTab(which){
-  ["android","ios"].forEach(k=>{
-    const on = k === which;
-    $("tab-"+k).setAttribute("aria-selected", on);
-    $("panel-"+k).hidden = !on;
+/* Video: shown only when CONFIG.videoUrl is set; loads on demand. */
+function embedUrl(url) {
+  var m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/);
+  if (m) return "https://www.youtube-nocookie.com/embed/" + m[1] + "?autoplay=1&rel=0";
+  m = url.match(/vimeo\.com\/(\d+)/);
+  if (m) return "https://player.vimeo.com/video/" + m[1] + "?autoplay=1";
+  return null;
+}
+if (CONFIG.videoUrl) {
+  $("video").hidden = false;
+  $("play-btn").addEventListener("click", function () {
+    var player = $("player"), src = embedUrl(CONFIG.videoUrl), el;
+    if (src) { el = document.createElement("iframe"); el.src = src; el.allow = "autoplay; fullscreen; picture-in-picture"; el.allowFullscreen = true; el.title = $("video-title").textContent; }
+    else { el = document.createElement("video"); el.src = CONFIG.videoUrl; el.controls = true; el.autoplay = true; el.playsInline = true; }
+    player.replaceChildren(el);
   });
 }
-$("tab-android").addEventListener("click", ()=>selectTab("android"));
-$("tab-ios").addEventListener("click", ()=>selectTab("ios"));
-if (isIOS) selectTab("ios");
 
 applyLanguage();
-
-// QR
-try {
-  const target = CONFIG.pageUrl || location.href.split("#")[0];
-  if (window.QRCode) new QRCode($("qr"), { text: target, width: 360, height: 360, colorDark: "#1F2024", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
-} catch (e) { $("qr").closest(".qr-card").hidden = true; }
 </script>
-
 </body>
 </html>
