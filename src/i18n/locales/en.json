@@ -76,10 +76,6 @@
       "passwordLabel": "Password",
       "passwordPlaceholder": "Your password",
       "passwordRequired": "Enter your password.",
-      "remember": "Remember me on this phone",
-      "rememberOn": "You'll stay logged in even if you close the app.",
-      "rememberOffWeb": "You'll be logged out when you close this tab.",
-      "rememberOffApp": "You'll be logged out when you close the app.",
       "forgot": "Forgot your password?",
       "submit": "Log in",
       "submitting": "Logging in…",
@@ -89,7 +85,6 @@
       "demoTitle": "Demo mode",
       "demoPassenger": "Continue as passenger",
       "demoDriver": "Continue as driver",
-      "devSavedNoPassword": "Enter this account's password (it wasn't saved with \"Remember me\").",
       "errors": {
         "invalidCredentials": "That email and password don't match. Check them and try again.",
         "emailNotConfirmed": "You haven't confirmed your email yet. Open the link we sent when you signed up.",

@@ -14,6 +14,7 @@ import { colors, isDarkTheme } from '@/constants/colors';
 import { authService } from '@/services/authService';
 import { monitoring } from '@/services/monitoringService';
 import { notificationService } from '@/services/notificationService';
+import { purgeLegacyCredentials } from '@/services/legacyCredentialPurge';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
 import { SubscriptionSync } from '@/subscription/usePlan';
@@ -30,6 +31,8 @@ preloadIconFonts();
 void loadLanguagePreference();
 // Uncaught JS errors go to client_errors (no personal data), including a fatal one from the last run.
 monitoring.install();
+// Passwords saved by the old "Recordarme" option are deleted; the Supabase session alone keeps users signed in.
+void purgeLegacyCredentials();
 
 /** Keeps the current route pattern (e.g. "chat/[tripId]", never the ids) for error reports. */
 function ScreenTracker() {

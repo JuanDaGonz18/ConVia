@@ -151,7 +151,7 @@ Rules live in `src/utils/password.ts` (`PASSWORD_RULES`: at least 8 characters, 
 
 Currently used in registration and in Profile → Edit profile → Change password. There is no password recovery by email (it needs custom SMTP in Supabase); if you add it, follow the same three steps.
 
-"Recordarme" stores credentials only in the device's secure storage (`expo-secure-store`); never in plain text or in Supabase.
+Passwords are never stored on the device. Staying signed in relies only on the Supabase session (refresh token, kept in `expo-secure-store`). Builds before this change had a "Recordarme" option that saved the password; `src/services/legacyCredentialPurge.ts` deletes any such leftover on the first launch after updating.
 
 ## Security notes
 

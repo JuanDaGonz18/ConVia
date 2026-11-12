@@ -10,26 +10,21 @@ import { colors } from '@/constants/colors';
 import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
-import { credentialStore } from '@/services/credentialStore';
 import { SAVED_USERS_ENABLED, SavedUser, savedUsers } from '@/dev/savedUsers';
 
 type SavedUsersPanelProps = Readonly<{
-  /** Fills the login form; `password` is null when it was not saved with "Recordarme". */
-  onSelect: (email: string, password: string | null) => void;
+  /** Fills the login form's email; passwords are never stored. */
+  onSelect: (email: string) => void;
 }>;
 
 export function SavedUsersPanel({ onSelect }: SavedUsersPanelProps) {
   const [users, setUsers] = useState<SavedUser[]>([]);
-  const [withPassword, setWithPassword] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!SAVED_USERS_ENABLED) return;
     let active = true;
-    void savedUsers.list().then(async (list) => {
-      const saved = await Promise.all(list.map(async (user) => [user.email, !!(await credentialStore.getPassword(user.email))] as const));
-      if (!active) return;
-      setUsers(list);
-      setWithPassword(Object.fromEntries(saved));
+    void savedUsers.list().then((list) => {
+      if (active) setUsers(list);
     });
     return () => { active = false; };
   }, []);
@@ -38,7 +33,6 @@ export function SavedUsersPanel({ onSelect }: SavedUsersPanelProps) {
 
   const remove = async (email: string) => {
     await savedUsers.remove(email);
-    await credentialStore.forget(email);
     setUsers((items) => items.filter((item) => item.email !== email));
   };
 
@@ -54,7 +48,7 @@ export function SavedUsersPanel({ onSelect }: SavedUsersPanelProps) {
         <View key={user.email} style={styles.row}>
           <Pressable
             accessibilityLabel={`Usar la cuenta ${user.email}`}
-            onPress={() => void credentialStore.getPassword(user.email).then((password) => onSelect(user.email, password))}
+            onPress={() => onSelect(user.email)}
             style={({ pressed }) => [styles.user, pressed ? styles.userPressed : null]}
           >
             <Avatar name={user.name || user.email} size={36} />
@@ -64,12 +58,6 @@ export function SavedUsersPanel({ onSelect }: SavedUsersPanelProps) {
                 {user.email} · {user.role === 'driver' ? 'Conductor' : 'Pasajero'}
               </Text>
             </View>
-            <Ionicons
-              accessibilityLabel={withPassword[user.email] ? 'Contraseña guardada' : 'Sin contraseña guardada'}
-              color={withPassword[user.email] ? colors.success : colors.textSecondary}
-              name={withPassword[user.email] ? 'key' : 'key-outline'}
-              size={16}
-            />
           </Pressable>
           <Pressable accessibilityLabel={`Olvidar ${user.email}`} hitSlop={8} onPress={() => void remove(user.email)} style={styles.remove}>
             <Ionicons color={colors.textSecondary} name="close" size={18} />
