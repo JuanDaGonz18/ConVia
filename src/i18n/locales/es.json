@@ -1951,5 +1951,8 @@
     "screenshotRemove": "Quitar captura",
     "screenshotAlt": "Captura adjunta",
     "attached": "Se envían también la versión de la app ({{version}}) y el sistema ({{platform}}). La captura se borra a los 30 días."
+  },
+  "welcome": {
+    "tagline": "Comparte tu ruta con tu comunidad"
   }
 }

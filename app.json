@@ -90,8 +90,8 @@
           "backgroundColor": "#FFFFFF",
           "imageWidth": 200,
           "dark": {
-            "image": "./assets/splash-icon-centered.png",
-            "backgroundColor": "#FFFFFF"
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#111215"
           }
         }
       ]
