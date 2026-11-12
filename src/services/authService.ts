@@ -157,7 +157,7 @@ export const authService = {
       return user;
     }
 
-    const user = buildDemoUser(email, 'client', 'Merchito', 'mock-user-current');
+    const user = buildDemoUser(email, 'client', 'Mateo Ruiz', 'mock-user-current');
     await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({ user }));
     return user;
   },

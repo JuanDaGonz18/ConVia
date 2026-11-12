@@ -75,9 +75,9 @@ export default function LoginScreen() {
 
   const handleQuickLogin = (role: 'client' | 'driver') => {
     setCurrentUser({
-      id: role === 'driver' ? 'mock-driver-rita-c' : 'mock-user-current',
-      name: role === 'driver' ? 'Rita Conductora' : 'Merchito Pasajero',
-      email: role === 'driver' ? 'rita@convia.app' : 'merchito@convia.app',
+      id: role === 'driver' ? 'mock-driver-sofia' : 'mock-user-current',
+      name: role === 'driver' ? 'Sofía Conductora (demo)' : 'Laura Pasajera (demo)',
+      email: role === 'driver' ? 'sofia.demo@example.com' : 'laura.demo@example.com',
       role,
     });
     router.replace('/(tabs)');
