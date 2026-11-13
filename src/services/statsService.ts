@@ -38,6 +38,9 @@ export type TripStats = { passenger: PassengerStats | null; driver: DriverStats 
 
 const number = (value: unknown) => Number(value ?? 0) || 0;
 
+/** A comment the user received. The rater is deliberately not included. */
+export type ReceivedComment = { score: number; comentario: string; createdAt: string };
+
 export const statsService = {
   async getMyStats(): Promise<TripStats> {
     if (!isSupabaseEnabled) return { passenger: null, driver: null };
@@ -79,5 +82,27 @@ export const statsService = {
           }
         : null,
     };
+  },
+
+  /** Ratings with a comment that the current user received, newest first. */
+  async getMyReceivedComments(): Promise<ReceivedComment[]> {
+    if (!isSupabaseEnabled) return [];
+    ensureSupabaseConfigured();
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
+    if (!auth.user) throw new Error('AUTH_REQUIRED');
+    const { data, error } = await supabase
+      .from('ratings')
+      // Inner join on the trip: only ratings received as that trip's driver (not as a passenger).
+      .select('score, comentario, created_at, trips!inner(driver_id)')
+      .eq('rated_id', auth.user.id)
+      .eq('trips.driver_id', auth.user.id)
+      .not('comentario', 'is', null)
+      .neq('comentario', '')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return ((data ?? []) as { score: unknown; comentario: string | null; created_at: string }[])
+      .filter((row) => row.comentario?.trim())
+      .map((row) => ({ score: number(row.score), comentario: row.comentario!.trim(), createdAt: row.created_at }));
   },
 };

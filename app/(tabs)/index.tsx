@@ -32,6 +32,7 @@ import { activeFilterCount, applyTripFilters, DEFAULT_FILTERS, TripFilters } fro
 import { rankTripsForJourney, suggestTrips } from '@/services/tripMatching';
 import { DriverTripRecord, DriverTripStatus, tripService } from '@/services/tripService';
 import { monitoring } from '@/services/monitoringService';
+import { DEFAULT_PREFERENCES } from '@/services/personalizationService';
 import { useAppStore } from '@/store/appStore';
 import { Location, Trip } from '@/types';
 import { usePlan } from '@/subscription/usePlan';
@@ -178,13 +179,36 @@ function PassengerHome() {
       : suggestTrips(trips, { origin, places: savedPlaces, favoriteDriverIds: favorites, time, viewerId })),
     [destination, favorites, origin, savedPlaces, time, trips, viewerId],
   );
-  // Advanced filters narrow the compatible results (never add incompatible ones).
-  const filtered = useMemo(
-    () => (filtersEnabled ? applyTripFilters(results, filters, favorites) : results),
-    [favorites, filters, filtersEnabled, results],
+  // Advanced filters narrow and reorder the compatible results (never add incompatible ones).
+  // Without them, saved preferences still set the order inside each level and the walking limits.
+  const activeFilters = useMemo<TripFilters | null>(
+    () => (filtersEnabled
+      ? filters
+      : preferences
+        ? { ...DEFAULT_FILTERS, sort: preferences.sort, maxPickupKm: preferences.maxPickupKm, maxDropoffKm: preferences.maxDropoffKm }
+        : null),
+    [filters, filtersEnabled, preferences],
   );
+  const filtered = useMemo(
+    () => (activeFilters ? applyTripFilters(results, activeFilters, favorites) : results),
+    [activeFilters, favorites, results],
+  );
+  // One line naming the saved preferences that differ from the defaults (none → no line).
+  const preferenceSummary = useMemo(() => {
+    if (!preferences) return null;
+    const differs = (key: keyof typeof DEFAULT_PREFERENCES) => preferences[key] !== DEFAULT_PREFERENCES[key];
+    const distance = (km: number) => (km < 1 ? `${km * 1000} m` : `${km} km`);
+    const parts: string[] = [];
+    if (differs('sort')) parts.push(t(`preferences.sorts.${preferences.sort}`));
+    if (differs('time')) parts.push(t(`preferences.times.${preferences.time}`));
+    if (differs('maxPickupKm') && preferences.maxPickupKm !== null) parts.push(t('home.preferencePickup', { distance: distance(preferences.maxPickupKm) }));
+    if (differs('maxDropoffKm') && preferences.maxDropoffKm !== null) parts.push(t('home.preferenceDropoff', { distance: distance(preferences.maxDropoffKm) }));
+    if (differs('pickupPlaceId') && preferredPickup) parts.push(t('home.preferenceFrom', { place: preferredPickup.label }));
+    return parts.length ? parts.join(' · ') : null;
+  }, [preferences, preferredPickup, t]);
   const filterCount = filtersEnabled ? activeFilterCount(filters) : 0;
-  const hiddenByFilters = results.length - filtered.length;
+  // Only filters the passenger can clear here; preference limits are named in the summary line.
+  const hiddenByFilters = filtersEnabled ? results.length - filtered.length : 0;
   const maxResults = limit('visible_results');
   const allowed = maxResults === null ? filtered : filtered.slice(0, maxResults);
   const shown = expanded ? allowed : allowed.slice(0, INITIAL_RESULTS);
@@ -311,6 +335,15 @@ function PassengerHome() {
           </Text>
         ) : null}
       </View>
+
+      {!loading && preferenceSummary ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push('/preferences')} style={styles.filterNote}>
+          <Ionicons color={colors.textSecondary} name="person-circle-outline" size={14} />
+          <Text numberOfLines={1} style={[styles.filterNoteText, styles.flex]}>
+            {t('home.preferencesSummary', { summary: preferenceSummary })}
+          </Text>
+        </Pressable>
+      ) : null}
 
       {loading ? <TripListSkeleton count={2} /> : null}
       {error ? <Notice action={{ label: t('common.retry'), onPress: () => void refresh() }} tone="error">{error}</Notice> : null}
