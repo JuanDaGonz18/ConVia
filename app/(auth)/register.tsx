@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 
-import { MicrosoftSignInButton } from '@/components/auth/MicrosoftSignInButton';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
 import { FieldError } from '@/components/forms/FieldError';
 import { PasswordChecklist, PasswordField } from '@/components/forms/PasswordField';
@@ -25,7 +24,7 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import i18n from '@/i18n';
-import { authService, isMicrosoftAuthEnabled } from '@/services/authService';
+import { authService } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
 import { UserRole } from '@/types';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
@@ -71,12 +70,10 @@ export default function RegisterScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const [showFaceVerification, setShowFaceVerification] = useState(false);
   const [registeredUserId, setRegisteredUserId] = useState<string | null>(null);
 
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
-  const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
   const markFaceVerified = useAppStore((state) => state.markFaceVerified);
 
   // After a first attempt, keep the list of problems in sync as the person fixes them.
@@ -161,23 +158,6 @@ export default function RegisterScreen() {
               </View>
             ) : (
               <>
-                {useSupabase && isMicrosoftAuthEnabled ? (
-                  <View style={styles.microsoft}>
-                    <Text style={styles.microsoftTitle}>{t('auth.register.microsoftTitle')}</Text>
-                    <MicrosoftSignInButton
-                      disabled={loading}
-                      dividerText={t('auth.register.microsoftDivider')}
-                      onBusyChange={setMicrosoftLoading}
-                      onError={setError}
-                      title={t('auth.register.microsoftButton')}
-                    />
-                    <View style={styles.orDivider}>
-                      <View style={styles.orLine} />
-                      <Text style={styles.orText}>{t('auth.register.orEmail')}</Text>
-                      <View style={styles.orLine} />
-                    </View>
-                  </View>
-                ) : null}
 
                 {missing.length ? (
                   <Notice title={missing.length === 1 ? t('auth.register.missingOne') : t('auth.register.missingMany', { count: missing.length })} tone="warning">
@@ -298,7 +278,6 @@ export default function RegisterScreen() {
             )}
 
             <ButtonPrimary
-              disabled={microsoftLoading}
               icon={registeredUserId ? 'scan-outline' : undefined}
               loading={loading}
               loadingTitle={t('auth.register.submitting')}
@@ -333,11 +312,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 16,
   },
-  microsoft: { gap: spacing[12] },
-  microsoftTitle: { ...typography.label, color: colors.text, textAlign: 'center' },
-  orDivider: { alignItems: 'center', flexDirection: 'row', gap: spacing[12], marginTop: spacing[4] },
-  orLine: { backgroundColor: colors.lightGray, flex: 1, height: 1 },
-  orText: { ...typography.caption, color: colors.textSecondary },
   missingList: { gap: 2 },
   missingItem: { ...typography.bodySmall, color: colors.warningText },
   roleSection: { gap: spacing[8] },

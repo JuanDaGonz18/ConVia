@@ -79,7 +79,7 @@
       "forgot": "Forgot your password?",
       "submit": "Log in",
       "submitting": "Logging in…",
-      "microsoft": "Continue with Microsoft",
+      "formerMicrosoft": "Used to sign in with Microsoft? Tap \"Forgot your password?\" with the same email to create a password.",
       "firstTime": "New to ConVía?",
       "createAccount": "Create an account",
       "demoTitle": "Demo mode",
@@ -101,10 +101,6 @@
       "verifySubtitle": "One last step to ride with peace of mind.",
       "readyTitle": "Your account is ready!",
       "readyText": "Take a selfie to register your face. We use it to confirm it's you before each ride, so everyone rides safer. It's analyzed on your phone and never stored.",
-      "microsoftTitle": "The fastest, safest way",
-      "microsoftDivider": "With your university account",
-      "microsoftButton": "Create account with Microsoft",
-      "orEmail": "or with email and password",
       "missingOne": "One field left to fill",
       "missingMany": "{{count}} fields left to fill",
       "nameLabel": "Full name",
@@ -185,9 +181,6 @@
       "invalidLink": "The confirmation link isn't valid or was already used.",
       "invalidOrUsed": "The link isn't valid or was already used.",
       "noProfile": "We couldn't find your profile after confirming your email.",
-      "noProfileMicrosoft": "We couldn't find your profile after logging in with Microsoft.",
-      "microsoftFailed": "We couldn't log you in with Microsoft. Try again.",
-      "retryMicrosoft": "Try again with your institutional account.",
       "retryLogin": "Log in to continue; if your account was already confirmed, you'll get right in.",
       "goToLogin": "Go to log in",
       "askAgain": "Request another link",
@@ -208,11 +201,6 @@
           "button": "Confirm"
         }
       }
-    },
-    "microsoft": {
-      "terms": "By continuing you accept the terms and the data processing policy.",
-      "readMore": "Read more",
-      "failed": "We couldn't sign you in with Microsoft. Please try again."
     }
   },
   "pickup": {

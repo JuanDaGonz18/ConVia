@@ -10,7 +10,7 @@ Las herramientas (Playwright, sharp) no son dependencias del proyecto; instálal
 ```bash
 # 1. App web apuntando al backend falso
 EXPO_PUBLIC_USE_SUPABASE=true EXPO_PUBLIC_SUPABASE_URL=http://demo.localhost:8092 \
-EXPO_PUBLIC_SUPABASE_ANON_KEY=demo-anon-key EXPO_PUBLIC_MICROSOFT_AUTH=false \
+EXPO_PUBLIC_SUPABASE_ANON_KEY=demo-anon-key \
   npx expo export --platform web --output-dir ../fake-dist
 
 # 2. Herramientas en una carpeta aparte

@@ -79,7 +79,7 @@
       "forgot": "¿Olvidaste tu contraseña?",
       "submit": "Iniciar sesión",
       "submitting": "Entrando…",
-      "microsoft": "Continuar con Microsoft",
+      "formerMicrosoft": "¿Antes entrabas con Microsoft? Toca «¿Olvidaste tu contraseña?» con el mismo correo para crear una contraseña.",
       "firstTime": "¿Primera vez en ConVía?",
       "createAccount": "Crear una cuenta",
       "demoTitle": "Modo demostración",
@@ -101,10 +101,6 @@
       "verifySubtitle": "Un último paso para viajar con tranquilidad.",
       "readyTitle": "¡Tu cuenta está lista!",
       "readyText": "Tómate una selfie para registrar tu rostro. La usamos para confirmar que eres tú antes de cada viaje, así todos viajan más seguros. La foto se analiza en tu teléfono y no se guarda.",
-      "microsoftTitle": "La forma más rápida y segura",
-      "microsoftDivider": "Con tu cuenta de la universidad",
-      "microsoftButton": "Crear cuenta con Microsoft",
-      "orEmail": "o con correo y contraseña",
       "missingOne": "Te falta completar un dato",
       "missingMany": "Te falta completar {{count}} datos",
       "nameLabel": "Nombre completo",
@@ -185,9 +181,6 @@
       "invalidLink": "El enlace de confirmación no es válido o ya fue usado.",
       "invalidOrUsed": "El enlace no es válido o ya fue usado.",
       "noProfile": "No se encontró el perfil después de confirmar el correo.",
-      "noProfileMicrosoft": "No se encontró tu perfil después de entrar con Microsoft.",
-      "microsoftFailed": "No pudimos iniciar sesión con Microsoft. Inténtalo de nuevo.",
-      "retryMicrosoft": "Vuelve a intentarlo con tu cuenta institucional.",
       "retryLogin": "Inicia sesión para continuar; si tu cuenta ya estaba confirmada, entrarás sin problema.",
       "goToLogin": "Ir a iniciar sesión",
       "askAgain": "Pedir otro enlace",
@@ -208,11 +201,6 @@
           "button": "Confirmar"
         }
       }
-    },
-    "microsoft": {
-      "terms": "Al continuar aceptas los términos y la política de tratamiento de datos.",
-      "readMore": "Leer más",
-      "failed": "No pudimos iniciar sesión con Microsoft. Inténtalo de nuevo."
     }
   },
   "pickup": {

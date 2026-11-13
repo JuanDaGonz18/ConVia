@@ -198,18 +198,27 @@ export type Database = {
       app_config: {
         Row: {
           beta_mode: boolean
+          bre_b_key: string | null
           id: boolean
+          payee_name: string | null
+          payments_enabled: boolean
           updated_at: string
         }
         ComputedFields: never
         Insert: {
           beta_mode?: boolean
+          bre_b_key?: string | null
           id?: boolean
+          payee_name?: string | null
+          payments_enabled?: boolean
           updated_at?: string
         }
         Update: {
           beta_mode?: boolean
+          bre_b_key?: string | null
           id?: boolean
+          payee_name?: string | null
+          payments_enabled?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -841,6 +850,89 @@ export type Database = {
           limits?: NonNullable<Json>
           name?: string
           tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payment_requests: {
+        Row: {
+          amount_cop: number
+          created_at: string
+          decided_at: string | null
+          id: string
+          months: number
+          paid_amount_cop: number | null
+          paid_on: string | null
+          period: string
+          period_end: string | null
+          period_start: string | null
+          receipt_path: string | null
+          reference: string
+          reject_reason: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          amount_cop: number
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          months: number
+          paid_amount_cop?: number | null
+          paid_on?: string | null
+          period: string
+          period_end?: string | null
+          period_start?: string | null
+          receipt_path?: string | null
+          reference: string
+          reject_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_cop?: number
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          months?: number
+          paid_amount_cop?: number | null
+          paid_on?: string | null
+          period?: string
+          period_end?: string | null
+          period_start?: string | null
+          receipt_path?: string | null
+          reference?: string
+          reject_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      plus_prices: {
+        Row: {
+          amount_cop: number
+          months: number
+          period: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          amount_cop: number
+          months: number
+          period: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cop?: number
+          months?: number
+          period?: string
           updated_at?: string
         }
         Relationships: []
@@ -2234,6 +2326,38 @@ export type Database = {
       service_stale_pickup_clips: {
         Args: { p_limit?: number; p_older_than?: string }
         Returns: string[]
+      }
+      claim_admin_payment_pushes: {
+        Args: Record<PropertyKey, never>
+        Returns: { body: string; title: string; user_id: string }[]
+      }
+      claim_plus_pushes: {
+        Args: Record<PropertyKey, never>
+        Returns: { body: string; kind: string; title: string; user_id: string }[]
+      }
+      confirm_plus_payment: {
+        Args: { p_receipt?: string; p_reference: string }
+        Returns: Json
+      }
+      get_plus_payment_info: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      service_expired_payment_receipts: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      service_grant_plus_payment: {
+        Args: { p_amount?: number; p_paid_on?: string; p_reference: string }
+        Returns: Json
+      }
+      service_reject_plus_payment: {
+        Args: { p_reason: string; p_reference: string }
+        Returns: Json
+      }
+      start_plus_payment: {
+        Args: { p_period: string }
+        Returns: Json
       }
       submit_feedback: {
         Args: { p_app_version?: string; p_category: string; p_description: string; p_platform?: string; p_screenshot?: string }

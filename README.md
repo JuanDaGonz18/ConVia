@@ -69,7 +69,7 @@ See **[docs/PLANES.md](docs/PLANES.md)**: where capabilities and limits are defi
 
 ## Operations (Supabase Free plan)
 
-See **[docs/OPERACION.md](docs/OPERACION.md)**: Free-plan limits and current usage, the monthly usage review (`supabase/admin/usage_report.sql`) with 50/70/85 % thresholds, manual backups and restore tests, Microsoft Entra setup (the "Continuar con Microsoft" button is hidden until `EXPO_PUBLIC_MICROSOFT_AUTH=true`), load testing in staging and the scaling plan.
+See **[docs/OPERACION.md](docs/OPERACION.md)**: Free-plan limits and current usage, the monthly usage review (`supabase/admin/usage_report.sql`) with 50/70/85 % thresholds, manual backups and restore tests, what is left of the retired Microsoft sign-in (former Microsoft users set a password with "¿Olvidaste tu contraseña?"), load testing in staging and the scaling plan.
 
 ## Maps
 

@@ -170,6 +170,19 @@ async function serverPushes(event: ServerEvent, id: string | null, callerId: str
     for (const row of (safety ?? []) as { user_id: string; title: string; body: string }[]) {
       pushes.push({ recipients: [row.user_id], title: row.title, body: row.body, data: { type: 'admin_safety' } });
     }
+    // ConVía+ paid by transfer (migration 047): the admins get the pending count only; the person gets
+    // "ConVía+ activo hasta …", a rejection with its reason or the expiry warning. Not fatal: an older
+    // database without these functions must not stop the pushes above.
+    const { data: payments, error: paymentsError } = await admin.rpc('claim_admin_payment_pushes');
+    if (paymentsError) console.error('[notify] claim_admin_payment_pushes', paymentsError.message);
+    for (const row of (payments ?? []) as { user_id: string; title: string; body: string }[]) {
+      pushes.push({ recipients: [row.user_id], title: row.title, body: row.body, data: { type: 'admin_payment' } });
+    }
+    const { data: plus, error: plusError } = await admin.rpc('claim_plus_pushes');
+    if (plusError) console.error('[notify] claim_plus_pushes', plusError.message);
+    for (const row of (plus ?? []) as { user_id: string; title: string; body: string; kind: string }[]) {
+      pushes.push({ recipients: [row.user_id], title: row.title, body: row.body, data: { type: 'plus_payment', kind: row.kind } });
+    }
   }
   return pushes;
 }
