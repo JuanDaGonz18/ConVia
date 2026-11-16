@@ -13,6 +13,7 @@
       }
     },
     "preview": {
+      "channel": "preview",
       "distribution": "internal",
       "environment": "preview",
       "autoIncrement": true,
@@ -24,6 +25,7 @@
       ]
     },
     "production": {
+      "channel": "production",
       "environment": "production",
       "autoIncrement": true,
       "buildArtifactPaths": [

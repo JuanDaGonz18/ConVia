@@ -37,11 +37,8 @@ function readLocalMapsKey() {
 }
 
 function createExpoConfig({ config }) {
-  const googleServicesFile =
-    process.env.GOOGLE_SERVICES_JSON ||
-    (fs.existsSync(path.join(__dirname, 'google-services.json'))
-      ? './google-services.json'
-      : undefined);
+  // On EAS, GOOGLE_SERVICES_JSON is a file-type env var holding the path to the uploaded file.
+  const googleServicesFile = process.env.GOOGLE_SERVICES_JSON ?? './google-services.json';
 
   // Web build for iPhone users (served from GitHub Pages under a sub-path).
   const webBaseUrl = process.env.EXPO_PUBLIC_WEB_BASE_URL || '';
@@ -64,7 +61,7 @@ function createExpoConfig({ config }) {
     },
     android: {
       ...config.android,
-      ...(googleServicesFile ? { googleServicesFile } : {}),
+      googleServicesFile,
       config: {
         ...config.android?.config,
         googleMaps: {
