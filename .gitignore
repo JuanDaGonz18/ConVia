@@ -54,3 +54,6 @@ backups/
 *.backup
 *.sql.gz
 *.sql.gpg
+
+respaldo-*.sql
+media/
