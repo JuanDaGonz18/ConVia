@@ -12,7 +12,7 @@
  */
 
 export const LEGAL_VERSION = '1.4';
-export const LEGAL_UPDATED_AT = '14 de noviembre de 2026';
+export const LEGAL_UPDATED_AT = '15 de noviembre de 2026';
 
 export const LEGAL_COMPANY = {
   name: 'ConVía',
@@ -69,7 +69,7 @@ export const TERMS: LegalDocument = {
         {
           bullets: [
             'Ser mayor de 18 años.',
-            'Para usar los viajes: pertenecer a una institución habilitada en ConVía y verificarlo con tu correo institucional, con tu cuenta institucional de Microsoft o con tu carné estudiantil. Si tu institución no aparece, puedes pedir que se agregue.',
+            'Para usar los viajes: pertenecer a una institución habilitada en ConVía y verificarlo con tu correo institucional o con tu carné estudiantil. Si tu institución no aparece, puedes pedir que se agregue.',
             'Suministrar información veraz, completa y actualizada, y mantenerla así.',
             'Tener una sola cuenta, personal e intransferible.',
             'Completar la verificación de identidad cuando la aplicación la solicite.',
@@ -83,7 +83,6 @@ export const TERMS: LegalDocument = {
       title: '4. Tu cuenta y tu contraseña',
       body: [
         'Eres responsable de mantener la confidencialidad de tu contraseña y de toda la actividad realizada desde tu cuenta. Si sospechas un uso no autorizado, cambia tu contraseña de inmediato y avísanos.',
-        'Si entras con tu cuenta institucional de Microsoft, la contraseña y la verificación la administra tu institución: ConVía nunca la ve. Si pierdes acceso a esa cuenta (por ejemplo, al terminar tus estudios), puedes perder el acceso a ConVía por esa vía.',
         'ConVía no guarda tu contraseña en el teléfono: tu sesión sigue abierta con un token seguro hasta que cierres sesión. No dejes la sesión abierta en dispositivos compartidos.',
       ],
     },
@@ -223,7 +222,6 @@ export const PRIVACY: LegalDocument = {
           bullets: [
             'Identificación y contacto: nombre, correo (institucional o personal), teléfono (opcional) y foto de perfil.',
             'Cuenta: contraseña (la administra nuestro proveedor de autenticación de forma cifrada; ConVía no puede verla), rol (pasajero o conductor), institución y la versión de estos documentos que aceptaste.',
-            'Inicio de sesión con Microsoft (si lo usas): Microsoft nos envía tu nombre, tu correo institucional y el identificador de tu institución, que usamos para confirmar que perteneces a una institución habilitada. Nunca recibimos tu contraseña de Microsoft.',
             'Institución: la institución que eliges y cómo la verificaste. Si la verificas con tu carné, tu teléfono recorta el carné y quita tu rostro antes de enviarlo; guardamos solo el resultado (sin tu nombre y con los últimos 4 dígitos de tu documento). Si usas un carné sin foto, también envías una captura de tu cuenta institucional con tu nombre y tu correo.',
             'Licencia de conducción (conductores): junto con la foto de la licencia recolectamos su número. Nunca guardamos el número tal cual: solo una huella calculada con una clave secreta (hash con clave), de la que no se puede recuperar el número, y que usamos únicamente para evitar que una misma persona tenga varias cuentas de conductor. La foto de la licencia se convierte en tu teléfono en una representación numérica de tu rostro y no se guarda (ver sección 4). La huella se borra cuando eliminas tu cuenta.',
             'Vehículo (conductores): marca, color, placa, número de cupos y fotos del vehículo. Para verificar el vehículo o autocompletar sus datos, se analiza una foto del carro; esa foto se borra al terminar.',
@@ -286,7 +284,7 @@ export const PRIVACY: LegalDocument = {
         {
           bullets: [
             'Otros usuarios, solo en la medida necesaria para el viaje (por ejemplo, el conductor ve tu nombre, foto y punto de recogida cuando solicitas un cupo).',
-            'Proveedores tecnológicos que actúan como encargados del tratamiento: Supabase (base de datos, autenticación y almacenamiento de archivos), Microsoft (inicio de sesión con tu cuenta institucional, solo si lo usas), Google (Firebase Cloud Messaging para notificaciones en Android y Google Maps en las funciones que lo usan), Expo (envío de notificaciones) y GitHub (aloja esta página, la versión web y el archivo de instalación para Android; como cualquier sitio web, recibe datos técnicos de tu conexión, como la dirección IP).',
+            'Proveedores tecnológicos que actúan como encargados del tratamiento: Supabase (base de datos, autenticación y almacenamiento de archivos), Google (Firebase Cloud Messaging para notificaciones en Android y Google Maps en las funciones que lo usan), Expo (envío de notificaciones) y GitHub (aloja esta página, la versión web y el archivo de instalación para Android; como cualquier sitio web, recibe datos técnicos de tu conexión, como la dirección IP).',
             'Meta Platforms (Meta Model API), como encargado del tratamiento para las funciones con inteligencia artificial: recibe las fotos del vehículo, el video de recogida, los recortes del carné (sin tu rostro) o el carné sin foto y la captura de tu cuenta institucional, y, si usas el asistente, tus mensajes, tus lugares guardados y los datos de los viajes disponibles (por ejemplo, origen, destino, horario y nombre de pila del conductor). Nunca recibe tu selfie, la foto de tu licencia ni la representación numérica de tu rostro. Meta procesa estos datos solo para entregarnos el resultado y no los usa para entrenar sus modelos; ConVía no los usa para publicidad.',
             'Servicios de mapas basados en OpenStreetMap (Photon para buscar lugares, OSRM para calcular rutas y OpenStreetMap y OpenFreeMap para dibujar el mapa), a los que se envían las búsquedas y coordenadas necesarias, sin tu nombre ni tu correo.',
             'Autoridades competentes, cuando exista una orden o una obligación legal.',
