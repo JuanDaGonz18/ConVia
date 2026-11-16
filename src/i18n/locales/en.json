@@ -1168,6 +1168,12 @@
     "takePhoto": "Take photo",
     "uploadPhoto": "Upload photo",
     "changeNote": "If you change your license photo, you'll need to verify your identity again.",
+    "numberLabel": "License number",
+    "numberPlaceholder": "E.g. 1234567890",
+    "numberHint": "Required. We only keep a protected fingerprint of the number (not the number itself) to prevent duplicate accounts.",
+    "notVerified": "We couldn't verify your license. Contact support if you think this is a mistake.",
+    "numberInvalid": "Enter your license number: 4 to 30 letters or digits.",
+    "tooManyAttempts": "Too many attempts. Try again in 24 hours.",
     "storageNote": "We don't keep your license photo: only a numeric representation of your face, which never leaves the server."
   },
   "boardingQr": {

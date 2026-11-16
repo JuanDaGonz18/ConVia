@@ -71,9 +71,10 @@ export const faceVerificationService = {
    * Driver's license photo: the phone finds the portrait on the card, turns it
    * into an embedding and deletes the photo. Only the embedding is sent; the
    * server keeps it as the driver's reference face. This does NOT check that
-   * the license is authentic or officially registered.
+   * the license is authentic or officially registered. The license number goes
+   * with it; the server keeps only a keyed hash of it to stop duplicate accounts.
    */
-  async submitLicensePhoto(uri: string): Promise<{ ok: true } | { ok: false; message: string; reason: FaceVerificationFailureReason }> {
+  async submitLicensePhoto(uri: string, licenseNumber: string): Promise<{ ok: true } | { ok: false; message: string; reason: FaceVerificationFailureReason }> {
     if (!isSupabaseEnabled) return { ok: false, message: i18n.t('face.featureNeedsServer'), reason: 'network_error' };
     let embedding: number[];
     try {
@@ -84,10 +85,19 @@ export const faceVerificationService = {
     }
     try {
       ensureSupabaseConfigured();
-      const { error } = await supabase.rpc('submit_license_face', { p_embedding: embedding });
+      const { data, error } = await supabase.rpc('submit_license_face', { p_embedding: embedding, p_license_number: licenseNumber });
       if (error) {
+        // The license-number limit (5 per 24 h); shown in the app's language.
+        if (error.message.includes('Intenta de nuevo en 24 horas')) {
+          return { ok: false, message: i18n.t('driverLicense.tooManyAttempts'), reason: 'too_many_attempts' };
+        }
         const result = serverError(error.message);
         return { ok: false, message: result.message ?? '', reason: result.failureReason ?? 'network_error' };
+      }
+      // A number already used by another account comes back as a status, not an error.
+      const response = data as { status?: string; message?: string } | null;
+      if (response?.status === 'duplicate') {
+        return { ok: false, message: i18n.t('driverLicense.notVerified'), reason: 'storage_error' };
       }
       return { ok: true };
     } catch {

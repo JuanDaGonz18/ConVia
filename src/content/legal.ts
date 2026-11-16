@@ -11,8 +11,8 @@
  * the version they accepted.
  */
 
-export const LEGAL_VERSION = '1.3';
-export const LEGAL_UPDATED_AT = '10 de noviembre de 2026';
+export const LEGAL_VERSION = '1.4';
+export const LEGAL_UPDATED_AT = '14 de noviembre de 2026';
 
 export const LEGAL_COMPANY = {
   name: 'ConVía',
@@ -225,6 +225,7 @@ export const PRIVACY: LegalDocument = {
             'Cuenta: contraseña (la administra nuestro proveedor de autenticación de forma cifrada; ConVía no puede verla), rol (pasajero o conductor), institución y la versión de estos documentos que aceptaste.',
             'Inicio de sesión con Microsoft (si lo usas): Microsoft nos envía tu nombre, tu correo institucional y el identificador de tu institución, que usamos para confirmar que perteneces a una institución habilitada. Nunca recibimos tu contraseña de Microsoft.',
             'Institución: la institución que eliges y cómo la verificaste. Si la verificas con tu carné, tu teléfono recorta el carné y quita tu rostro antes de enviarlo; guardamos solo el resultado (sin tu nombre y con los últimos 4 dígitos de tu documento). Si usas un carné sin foto, también envías una captura de tu cuenta institucional con tu nombre y tu correo.',
+            'Licencia de conducción (conductores): junto con la foto de la licencia recolectamos su número. Nunca guardamos el número tal cual: solo una huella calculada con una clave secreta (hash con clave), de la que no se puede recuperar el número, y que usamos únicamente para evitar que una misma persona tenga varias cuentas de conductor. La foto de la licencia se convierte en tu teléfono en una representación numérica de tu rostro y no se guarda (ver sección 4). La huella se borra cuando eliminas tu cuenta.',
             'Vehículo (conductores): marca, color, placa, número de cupos y fotos del vehículo. Para verificar el vehículo o autocompletar sus datos, se analiza una foto del carro; esa foto se borra al terminar.',
             'Video de recogida (pasajeros, opcional): un video de hasta 2 segundos del carro que llega, para confirmar que es el del viaje. Puede captar la placa y, de forma incidental, a personas en el entorno; no las identificamos. Guardamos solo el resultado.',
             'Asistente de viajes (ConVía+, opcional): los mensajes que le escribes.',
@@ -264,6 +265,7 @@ export const PRIVACY: LegalDocument = {
       body: [
         'Los datos biométricos son datos sensibles según la ley. Te informamos que no estás obligado a autorizar su tratamiento.',
         'Cómo funciona: tu teléfono toma una selfie y la convierte en una representación numérica de tu rostro. La foto no sale de tu teléfono ni se guarda. Solo la representación numérica se envía a nuestros servidores, donde se compara con la de tu registro (y, para conductores, con la obtenida de la foto de tu licencia, que tampoco se guarda). Esa representación nunca se devuelve a la aplicación ni se comparte con otros usuarios.',
+        'Para conductores, además, la huella del número de tu licencia se compara con las de las demás cuentas para impedir que la misma licencia se registre dos veces. Si coincide, solo te informamos que no pudimos verificar tu licencia, sin decir por qué ni con qué cuenta. Registramos cada intento de registrar un número, incluidos los fallidos (tu cuenta, la fecha y hora y el resultado; nunca el número), para limitar los intentos a 5 cada 24 horas y prevenir abusos. Los registros de intentos se borran a los 90 días o cuando eliminas tu cuenta, lo que ocurra primero. Ni la foto ni el número de tu licencia se comparten con otros usuarios ni con terceros; el número solo pasa por nuestros servidores (Supabase) para calcular la huella.',
         'Finalidad: confirmar que quien pide o publica un viaje es realmente el titular de la cuenta, para la seguridad de todos los usuarios.',
         'Si no autorizas este tratamiento, podrás tener una cuenta, pero no podrás solicitar ni publicar viajes, porque la verificación es una medida de seguridad necesaria para ello. Puedes revocar la autorización eliminando tu cuenta.',
       ],

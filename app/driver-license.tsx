@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { TextField } from '@/components/forms/TextField';
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
@@ -28,6 +29,10 @@ import { errorMessage } from '@/utils/format';
 /** Keys under driverLicense.tips. */
 const PHOTO_TIPS = ['whole', 'flat', 'glare', 'faceClear', 'light', 'focus'] as const;
 
+/** Same rule as the server: no spaces or dashes, uppercase, 4–30 letters or digits. */
+const normalizeLicenseNumber = (value: string) => value.trim().toUpperCase().replace(/[\s-]/g, '');
+const LICENSE_NUMBER_PATTERN = /^[A-Z0-9]{4,30}$/;
+
 type StepState = 'done' | 'active' | 'failed' | 'todo';
 
 /** 'processing' while the phone analyses the photo; 'failed' keeps the reason on screen. */
@@ -44,6 +49,9 @@ export default function DriverLicenseScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [cameraBlocked, setCameraBlocked] = useState(false);
   const [showSelfie, setShowSelfie] = useState(false);
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [licenseNumberTouched, setLicenseNumberTouched] = useState(false);
+  const licenseNumberValid = LICENSE_NUMBER_PATTERN.test(licenseNumber);
   const userId = currentUser?.id;
 
   const updateStatus = useCallback((status: DriverStatus) => {
@@ -110,12 +118,14 @@ export default function DriverLicenseScreen() {
 
   const processPhoto = async (uri: string) => {
     setPhoto({ kind: 'processing' });
-    const result = await faceVerificationService.submitLicensePhoto(uri);
+    const result = await faceVerificationService.submitLicensePhoto(uri, licenseNumber);
     if (!result.ok) {
       setPhoto({ kind: 'failed', message: result.message });
       return;
     }
     setPhoto({ kind: 'none' });
+    setLicenseNumber('');
+    setLicenseNumberTouched(false);
     setMessage(i18n.t('driverLicense.photoProcessed'));
     await load();
   };
@@ -124,6 +134,10 @@ export default function DriverLicenseScreen() {
     setError(null);
     setMessage(null);
     setCameraBlocked(false);
+    if (!licenseNumberValid) {
+      setLicenseNumberTouched(true);
+      return;
+    }
     try {
       if (source === 'camera') {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -241,6 +255,20 @@ export default function DriverLicenseScreen() {
               <ButtonPrimary onPress={() => setShowSelfie(true)} title={t('driverLicense.verifyIdentity')} />
             ) : null}
 
+            <TextField
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!processing}
+              error={licenseNumberTouched && !licenseNumberValid ? t('driverLicense.numberInvalid') : null}
+              hint={t('driverLicense.numberHint')}
+              label={t('driverLicense.numberLabel')}
+              maxLength={40}
+              onBlur={() => setLicenseNumberTouched(true)}
+              onChangeText={(value) => setLicenseNumber(normalizeLicenseNumber(value))}
+              placeholder={t('driverLicense.numberPlaceholder')}
+              value={licenseNumber}
+            />
+
             <Text style={styles.section}>{licenseStored ? t('driverLicense.changePhoto') : t('driverLicense.section')}</Text>
             <View style={styles.tips}>
               {PHOTO_TIPS.map((tip) => (
@@ -257,8 +285,8 @@ export default function DriverLicenseScreen() {
               </View>
             ) : (
               <View style={styles.actions}>
-                <ButtonPrimary onPress={() => void pick('camera')} title={t('driverLicense.takePhoto')} />
-                <ButtonSecondary onPress={() => void pick('library')} title={t('driverLicense.uploadPhoto')} />
+                <ButtonPrimary disabled={!licenseNumberValid} onPress={() => void pick('camera')} title={t('driverLicense.takePhoto')} />
+                <ButtonSecondary disabled={!licenseNumberValid} onPress={() => void pick('library')} title={t('driverLicense.uploadPhoto')} />
               </View>
             )}
             {licenseStored ? (

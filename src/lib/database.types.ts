@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -214,6 +234,37 @@ export type Database = {
         }
         Relationships: []
       }
+      app_events: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          id: number
+          name: string
+          platform: string
+          props: NonNullable<Json>
+          user_id: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          id?: never
+          name: string
+          platform: string
+          props?: NonNullable<Json>
+          user_id?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          id?: never
+          name?: string
+          platform?: string
+          props?: NonNullable<Json>
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       assistant_messages: {
         Row: {
           autor: Database["public"]["Enums"]["message_author"]
@@ -257,10 +308,48 @@ export type Database = {
           },
         ]
       }
+      client_errors: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          fatal: boolean
+          id: number
+          message: string
+          platform: string
+          screen: string | null
+          stack: string | null
+          user_id: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          fatal?: boolean
+          id?: never
+          message: string
+          platform: string
+          screen?: string | null
+          stack?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          fatal?: boolean
+          id?: never
+          message?: string
+          platform?: string
+          screen?: string | null
+          stack?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       driver_profiles: {
         Row: {
           created_at: string
           identity_verified_at: string | null
+          license_hash: string | null
           review_notes: string | null
           reviewed_at: string | null
           status: Database["public"]["Enums"]["driver_status"]
@@ -272,6 +361,7 @@ export type Database = {
         Insert: {
           created_at?: string
           identity_verified_at?: string | null
+          license_hash?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           status?: Database["public"]["Enums"]["driver_status"]
@@ -282,6 +372,7 @@ export type Database = {
         Update: {
           created_at?: string
           identity_verified_at?: string | null
+          license_hash?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           status?: Database["public"]["Enums"]["driver_status"]
@@ -417,6 +508,57 @@ export type Database = {
           },
         ]
       }
+      feedback_reports: {
+        Row: {
+          app_version: string | null
+          category: string
+          created_at: string
+          description: string
+          id: string
+          platform: string | null
+          screenshot_path: string | null
+          status: string
+          team_note: string | null
+          updated_at: string
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          app_version?: string | null
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          platform?: string | null
+          screenshot_path?: string | null
+          status?: string
+          team_note?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          platform?: string | null
+          screenshot_path?: string | null
+          status?: string
+          team_note?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institution_domains: {
         Row: {
           created_at: string
@@ -523,31 +665,6 @@ export type Database = {
           },
         ]
       }
-      feedback_reports: {
-        Row: {
-          app_version: string | null
-          category: string
-          created_at: string
-          description: string
-          id: string
-          platform: string | null
-          screenshot_path: string | null
-          status: string
-          user_id: string
-        }
-        ComputedFields: never
-        Insert: never
-        Update: never
-        Relationships: [
-          {
-            foreignKeyName: "feedback_reports_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       institution_requests: {
         Row: {
           ciudad: string
@@ -642,6 +759,36 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["community_type"]
         }
         Relationships: []
+      }
+      license_number_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          result: string
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          id?: never
+          result: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          result?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_number_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
@@ -847,6 +994,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accepted_legal_version: string | null
           avatar_url: string | null
           created_at: string
           email: string
@@ -872,6 +1020,7 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
+          accepted_legal_version?: string | null
           avatar_url?: string | null
           created_at?: string
           email: string
@@ -896,6 +1045,7 @@ export type Database = {
           verified_at?: string | null
         }
         Update: {
+          accepted_legal_version?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string
@@ -1944,6 +2094,7 @@ export type Database = {
           pago_marcado_at: string | null
           passenger_id: string
           qr_token: string
+          recogida_nombre: string | null
           responded_at: string | null
           trip_id: string
           updated_at: string
@@ -1974,6 +2125,7 @@ export type Database = {
           pago_marcado_at: string | null
           passenger_id: string
           qr_token: string
+          recogida_nombre: string | null
           responded_at: string | null
           trip_id: string
           updated_at: string
@@ -1998,6 +2150,22 @@ export type Database = {
       choose_institution: {
         Args: { p_institution_id: string }
         Returns: undefined
+      }
+      claim_admin_review_pushes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          body: string
+          title: string
+          user_id: string
+        }[]
+      }
+      claim_admin_safety_pushes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          body: string
+          title: string
+          user_id: string
+        }[]
       }
       claim_alert_pushes: {
         Args: { p_schedule_id?: string; p_trip_id?: string }
@@ -2057,6 +2225,10 @@ export type Database = {
         }[]
       }
       get_my_profile: { Args: Record<PropertyKey, never>; Returns: Json }
+      my_accepted_legal_version: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       my_chat_trips: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -2069,7 +2241,6 @@ export type Database = {
           viewer_is_driver: boolean
         }[]
       }
-      my_accepted_legal_version: { Args: Record<PropertyKey, never>; Returns: string | null }
       my_institution: { Args: Record<PropertyKey, never>; Returns: Json }
       my_trip_requests: {
         Args: Record<PropertyKey, never>
@@ -2161,6 +2332,7 @@ export type Database = {
           pago_marcado_at: string | null
           passenger_id: string
           qr_token: string
+          recogida_nombre: string | null
           responded_at: string | null
           trip_id: string
           updated_at: string
@@ -2202,6 +2374,10 @@ export type Database = {
           nombre_corto: string
         }[]
       }
+      service_accepted_legal_version: {
+        Args: { p_user: string }
+        Returns: string
+      }
       service_check_plan: {
         Args: {
           p_capability: string
@@ -2212,6 +2388,10 @@ export type Database = {
         Returns: undefined
       }
       service_expired_card_review_files: {
+        Args: { p_older_than?: string }
+        Returns: string[]
+      }
+      service_expired_feedback_files: {
         Args: { p_older_than?: string }
         Returns: string[]
       }
@@ -2235,9 +2415,20 @@ export type Database = {
         Args: { p_limit?: number; p_older_than?: string }
         Returns: string[]
       }
-      submit_feedback: {
-        Args: { p_app_version?: string; p_category: string; p_description: string; p_platform?: string; p_screenshot?: string }
-        Returns: string
+      service_top_client_errors: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          fatal: number
+          first_seen: string
+          last_seen: string
+          message: string
+          occurrences: number
+          platforms: string[]
+          sample_stack: string
+          screens: string[]
+          users: number
+          versions: string[]
+        }[]
       }
       set_passenger_payment: {
         Args: { p_paid: boolean; p_request_id: string }
@@ -2294,7 +2485,20 @@ export type Database = {
         Args: { p_embedding: number[]; p_purpose?: string }
         Returns: Json
       }
-      submit_license_face: { Args: { p_embedding: number[] }; Returns: Json }
+      submit_feedback: {
+        Args: {
+          p_app_version?: string
+          p_category: string
+          p_description: string
+          p_platform?: string
+          p_screenshot?: string
+        }
+        Returns: string
+      }
+      submit_license_face: {
+        Args: { p_embedding: number[]; p_license_number: string }
+        Returns: Json
+      }
       submit_student_card_face: {
         Args: { p_embedding: number[] }
         Returns: Json
@@ -2302,6 +2506,7 @@ export type Database = {
       switch_role: {
         Args: { p_rol: Database["public"]["Enums"]["user_role"] }
         Returns: {
+          accepted_legal_version: string | null
           avatar_url: string | null
           created_at: string
           email: string
@@ -2394,12 +2599,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2423,11 +2628,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2448,11 +2653,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2473,11 +2678,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2490,11 +2695,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2504,6 +2709,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       community_type: ["universidad", "empresa"],

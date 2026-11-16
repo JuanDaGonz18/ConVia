@@ -1168,6 +1168,12 @@
     "takePhoto": "Tomar foto",
     "uploadPhoto": "Subir foto",
     "changeNote": "Si cambias la foto de tu licencia tendrás que verificar tu identidad de nuevo.",
+    "numberLabel": "Número de licencia",
+    "numberPlaceholder": "Ej. 1234567890",
+    "numberHint": "Obligatorio. Solo guardamos una huella protegida del número (no el número) para evitar cuentas duplicadas.",
+    "notVerified": "No pudimos verificar tu licencia. Escríbenos a soporte si crees que es un error.",
+    "numberInvalid": "Escribe el número de tu licencia: entre 4 y 30 letras o números.",
+    "tooManyAttempts": "Demasiados intentos. Intenta de nuevo en 24 horas.",
     "storageNote": "No guardamos la foto de tu licencia: solo una representación numérica de tu rostro, que nunca sale del servidor."
   },
   "boardingQr": {
