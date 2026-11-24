@@ -24,6 +24,7 @@ import { typography } from '@/constants/typography';
 import { compressPhoto, PHOTO_MAX_SIDE } from '@/services/imageCompression';
 import { isValidPlate, MAX_SEATS, vehicleService } from '@/services/vehicleService';
 import { vehicleSuggestionService } from '@/services/vehicleSuggestionService';
+import { useAiFeature } from '@/services/aiFeatures';
 import { canVerifyPlate, type VehicleVerification, vehicleVerificationService, verificationText } from '@/services/vehicleVerificationService';
 import { planLimitFromError } from '@/subscription/plans';
 import { usePlan } from '@/subscription/usePlan';
@@ -59,7 +60,9 @@ export default function VehicleScreen() {
   const [verification, setVerification] = useState<VehicleVerification | null>(null);
   const [savedPlate, setSavedPlate] = useState('');
   const { isPlus, can } = usePlan();
-  const canAutofill = can('vehicle_autofill');
+  const verifyOn = useAiFeature('vehicle_verify');
+  const suggestOn = useAiFeature('vehicle_suggest');
+  const canAutofill = can('vehicle_autofill') && suggestOn;
 
   useEffect(() => {
     if (!id) return;
@@ -167,7 +170,7 @@ export default function VehicleScreen() {
       const saved = await vehicleService.saveVehicle({ plate, brand, color, seats: parsedSeats }, photo, id);
       toast.success(editing ? t('vehicle.updated') : t('vehicle.added'));
       // New cars go straight to the AI verification step (it can be skipped).
-      if (!editing && canVerifyPlate(saved.plate)) router.replace({ pathname: '/vehicle-verify', params: { id: saved.id, fromNew: '1' } });
+      if (!editing && verifyOn && canVerifyPlate(saved.plate)) router.replace({ pathname: '/vehicle-verify', params: { id: saved.id, fromNew: '1' } });
       else router.back();
     } catch (saveError) {
       setLimitReached(planLimitFromError(rawErrorMessage(saveError))?.key === 'vehicles');
@@ -200,7 +203,7 @@ export default function VehicleScreen() {
           <ActivityIndicator color={colors.primary} />
         ) : (
           <>
-            {editing && savedPlate && canVerifyPlate(savedPlate) ? (
+            {editing && verifyOn && savedPlate && canVerifyPlate(savedPlate) ? (
               verification?.status === 'verified' ? (
                 <Notice tone="success" title={t('vehicle.verifiedTitle')}>
                   {t('vehicle.verifiedText')}

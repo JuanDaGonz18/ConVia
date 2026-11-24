@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createAiSwitch } from '../_shared/aiFeatures.ts';
 import { configFromEnv, createLlm, type LlmConfig } from '../_shared/llm.ts';
 import { positiveIntEnv } from '../_shared/guard.ts';
 import { checkPlan } from '../_shared/plan.ts';
@@ -32,6 +33,7 @@ import { checkLegal } from '../_shared/legal.ts';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const admin = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const aiFeatureEnabled = createAiSwitch(() => admin.from('app_config').select('ai_features').eq('id', true).maybeSingle());
 const LLM_CONFIG = configFromEnv((name) => Deno.env.get(name));
 const RUNS_PER_DAY = positiveIntEnv(Deno.env.get('AGENT_RUNS_PER_DAY'), 30);
 
@@ -97,6 +99,7 @@ Deno.serve(async (request) => {
   if (request.method !== 'POST') return json({ error: 'METHOD_NOT_ALLOWED' }, 405);
   const config = LLM_CONFIG;
   if (!config) return json({ error: 'MODEL_UNAVAILABLE' }, 503);
+  if (!(await aiFeatureEnabled('assistant'))) return json({ error: 'MODEL_UNAVAILABLE' }, 503);
   const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? '';
   if (!token) return json({ error: 'AUTH_REQUIRED' }, 401);
   let body: Record<string, unknown>;

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createAiSwitch } from '../_shared/aiFeatures.ts';
 import { MB, readJsonBody } from '../_shared/guard.ts';
 import { createTransport, MUSE_MODEL } from '../_shared/metaModel.ts';
 import { type CardReport, decideCard, decideDocument, type DocumentReport, type InstitutionRef, requireReviewImages } from './decide.ts';
@@ -19,6 +20,7 @@ import { checkLegal } from '../_shared/legal.ts';
  */
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const aiFeatureEnabled = createAiSwitch(() => admin.from('app_config').select('ai_features').eq('id', true).maybeSingle());
 const MODEL_API_KEY = Deno.env.get('MODEL_API_KEY') ?? '';
 const MODEL = MUSE_MODEL;
 const MAX_CROPS = 4;
@@ -27,6 +29,8 @@ const MAX_BODY_BYTES = 10 * MB;
 /** About 1.5 MB of JPEG per crop once decoded. */
 const MAX_CROP_BASE64 = 2_000_000;
 const MAX_CHECKS_PER_DAY = Number(Deno.env.get('STUDENT_ID_MAX_PER_DAY')) || 5;
+// Spend cap for everyone together (~$0.003 per check): past it the app offers the manual route.
+const MAX_CHECKS_TOTAL_DAY = Number(Deno.env.get('STUDENT_ID_MAX_TOTAL_DAY')) || 200;
 /** The face comparison must be this recent (same rule as seat requests). */
 const FACE_WINDOW_MS = 10 * 60 * 1000;
 const MUSE_TIMEOUT_MS = 30_000;
@@ -195,6 +199,12 @@ Deno.serve(async (request) => {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { count } = await admin.from('student_id_checks').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since);
   if ((count ?? 0) >= MAX_CHECKS_PER_DAY) return response({ error: 'TOO_MANY_ATTEMPTS' }, 429);
+  if (!(await aiFeatureEnabled('student_card'))) return response({ error: 'MODEL_UNAVAILABLE' }, 503);
+  const { count: total } = await admin.from('student_id_checks').select('id', { count: 'exact', head: true }).gte('created_at', since);
+  if ((total ?? 0) >= MAX_CHECKS_TOTAL_DAY) {
+    log('daily_cap', { total });
+    return response({ error: 'MODEL_UNAVAILABLE' }, 503);
+  }
 
   const record = async (row: Record<string, unknown>, status: 'review' | 'verified' | null) => {
     const { error } = await admin.from('student_id_checks').insert({ user_id: userId, institution_id: membership.institution_id, latency_ms: Math.round(performance.now() - started), ...row });

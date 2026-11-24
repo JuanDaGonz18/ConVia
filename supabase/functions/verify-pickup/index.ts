@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createAiSwitch } from '../_shared/aiFeatures.ts';
 
 import { isCarPlate, normalizePlate } from '../verify-vehicle/decision.ts';
 import { pickupRetry } from './decision.ts';
@@ -30,6 +31,7 @@ import { checkLegal } from '../_shared/legal.ts';
  */
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const aiFeatureEnabled = createAiSwitch(() => admin.from('app_config').select('ai_features').eq('id', true).maybeSingle());
 const MODEL_API_KEY = Deno.env.get('MODEL_API_KEY') ?? '';
 const MODE = modelMode(MODEL_API_KEY, Deno.env.get('ALLOW_MOCK'));
 const MOCK = MODE === 'mock';
@@ -147,6 +149,7 @@ Deno.serve(async (request) => {
   if (request.method !== 'POST') return response({ error: 'METHOD_NOT_ALLOWED' }, 405);
   if (request.headers.has('x-convia-cron')) return cleanupStale(request);
   if (MODE === 'unavailable') return response({ error: 'MODEL_UNAVAILABLE' }, 503);
+  if (!(await aiFeatureEnabled('pickup_verify'))) return response({ error: 'MODEL_UNAVAILABLE' }, 503);
   const started = performance.now();
 
   const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
