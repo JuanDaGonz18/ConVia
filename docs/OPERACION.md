@@ -240,6 +240,19 @@ node scripts/admin/push-email-templates.mjs             # sube
 Solo cambia esas plantillas y sus asuntos. Los correos salen por Brevo (SMTP propio): sin él,
 Supabase solo envía unos pocos correos por hora y únicamente a miembros del equipo del proyecto.
 
+### Correos de bienvenida y de primer pago de ConVía+
+
+Los envía la Edge Function `send-emails` con la API de Brevo (cuentan en los 300 correos/día del
+plan gratis, junto con los de confirmación). Se encolan en `private.email_outbox`: bienvenida al
+confirmar el correo y agradecimiento al aprobar el primer pago. Un cron cada 10 minutos reintenta.
+
+```powershell
+npx supabase secrets set BREVO_API_KEY=<api key de Brevo> --project-ref hfnsgeunskbkapjavcao
+npx supabase functions deploy send-emails --project-ref hfnsgeunskbkapjavcao
+```
+
+Para ver la cola: `select kind, attempts, last_error, sent_at from private.email_outbox order by id desc limit 20;`
+
 ## 6. Prueba de carga (stack local, datos sintéticos)
 
 Nunca contra el proyecto alojado: el workflow levanta Supabase **local** en el

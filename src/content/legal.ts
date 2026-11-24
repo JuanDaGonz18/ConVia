@@ -11,7 +11,7 @@
  * the version they accepted.
  */
 
-export const LEGAL_VERSION = '1.6';
+export const LEGAL_VERSION = '1.7';
 export const LEGAL_UPDATED_AT = '24 de noviembre de 2026';
 
 export const LEGAL_COMPANY = {
@@ -249,6 +249,7 @@ export const PRIVACY: LegalDocument = {
             'Publicar, buscar, solicitar y coordinar viajes, mostrar viajes cercanos o relevantes y calcular rutas.',
             'Mostrar a los participantes de un viaje la información necesaria: nombre, foto, calificación, vehículo, placa, ruta y punto de recogida.',
             'Permitir el chat entre participantes de un mismo viaje y enviarte notificaciones sobre tus viajes y solicitudes.',
+            'Enviarte correos sobre tu cuenta: confirmar tu correo, recuperar tu contraseña, darte la bienvenida con consejos para usar ConVía y, si pagas ConVía+, confirmarte el pago. No te enviamos publicidad por correo.',
             'Atender tus consultas y reclamos, hacer cumplir los Términos y Condiciones y colaborar con autoridades cuando la ley lo exija.',
             'Mejorar la seguridad y el funcionamiento de la aplicación.',
             'Diagnosticar fallas, entender el uso de la app y atender tus reportes.',
@@ -284,7 +285,7 @@ export const PRIVACY: LegalDocument = {
         {
           bullets: [
             'Otros usuarios, solo en la medida necesaria para el viaje (por ejemplo, el conductor ve tu nombre, foto y punto de recogida cuando solicitas un cupo).',
-            'Proveedores tecnológicos que actúan como encargados del tratamiento: Supabase (base de datos, autenticación y almacenamiento de archivos), Google (inicio de sesión con Google si lo eliges, Firebase Cloud Messaging para notificaciones en Android y Google Maps en las funciones que lo usan), Expo (envío de notificaciones) y GitHub (aloja esta página, la versión web y el archivo de instalación para Android; como cualquier sitio web, recibe datos técnicos de tu conexión, como la dirección IP).',
+            'Proveedores tecnológicos que actúan como encargados del tratamiento: Supabase (base de datos, autenticación y almacenamiento de archivos), Google (inicio de sesión con Google si lo eliges, Firebase Cloud Messaging para notificaciones en Android y Google Maps en las funciones que lo usan), Expo (envío de notificaciones), Brevo (envío de los correos de ConVía: recibe tu correo y tu nombre) y GitHub (aloja esta página, la versión web y el archivo de instalación para Android; como cualquier sitio web, recibe datos técnicos de tu conexión, como la dirección IP).',
             'Meta Platforms (Meta Model API), como encargado del tratamiento para las funciones con inteligencia artificial: recibe las fotos del vehículo, el video de recogida, los recortes del carné (sin tu rostro) o el carné sin foto y la captura de tu cuenta institucional, y, si usas el asistente, tus mensajes, tus lugares guardados y los datos de los viajes disponibles (por ejemplo, origen, destino, horario y nombre de pila del conductor). Nunca recibe tu selfie, la foto de tu licencia ni la representación numérica de tu rostro. Meta procesa estos datos solo para entregarnos el resultado y no los usa para entrenar sus modelos; ConVía no los usa para publicidad.',
             'Servicios de mapas basados en OpenStreetMap (Photon para buscar lugares, OSRM para calcular rutas y OpenStreetMap y OpenFreeMap para dibujar el mapa), a los que se envían las búsquedas y coordenadas necesarias, sin tu nombre ni tu correo.',
             'Autoridades competentes, cuando exista una orden o una obligación legal.',

@@ -430,6 +430,10 @@ verify_jwt = true
 [functions.card-review-cleanup]
 verify_jwt = true
 
+# Welcome and first-ConVía+ e-mails. Called only by the database (anon key + x-convia-cron).
+[functions.send-emails]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327
