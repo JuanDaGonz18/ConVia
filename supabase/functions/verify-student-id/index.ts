@@ -73,7 +73,7 @@ const SYSTEM = [
   'confidence: 0..1, how sure you are of the fields you returned.',
 ].join(' ');
 
-/** Card without photo: the whole front (the device checked it has no face) and a cropped account screenshot. */
+/** Manual review: the whole card front and an account screenshot, any face painted gray on the device. */
 const DOCUMENT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -110,9 +110,9 @@ const DOCUMENT_SCHEMA = {
 
 const DOCUMENT_SYSTEM = [
   'You check documents for a Colombian university carpooling app.',
-  'Image 1 is the FRONT of a student ID card without a photo of the person. Image 2 is a screenshot of the person\'s institutional account profile (Microsoft Teams, Outlook or a student portal), cropped to the name and e-mail.',
+  'Image 1 is the FRONT of a student ID card; if it has a photo of the person, that photo was covered with a gray box on purpose. Image 2 is a screenshot of the person\'s institutional account profile (Microsoft Teams, Outlook or a student portal), cropped to the name and e-mail.',
   'Return JSON only. Copy text exactly as shown; use null for anything you cannot read with certainty. Never guess.',
-  'card.has_person_photo: the card shows a photo of a person. card.looks_like_screen_or_printout: the card is shown on a screen or is a copy, not the physical card.',
+  'card.has_person_photo: the card has a place for a photo of the person (visible or covered in gray). card.looks_like_screen_or_printout: the card is shown on a screen or is a copy, not the physical card.',
   'card.expiry_date: validity/expiry ("Vigencia", "Válido hasta", "Vence") as printed.',
   'screenshot.looks_like_institutional_account: it looks like a real Teams/Outlook/portal profile screen. screenshot.signs_of_editing: mismatched fonts, misaligned or pasted text, artifacts around the name or e-mail, or anything suggesting the screenshot was edited.',
   'readable: the card name and the screenshot name and e-mail can be read. confidence: 0..1 for the fields returned.',

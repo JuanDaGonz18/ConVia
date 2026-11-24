@@ -33,24 +33,28 @@ export default function StudentDocumentScreen() {
   const [checking, setChecking] = useState<Slot | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<{ decision: StudentCardDecision; reasons: string[] } | null>(null);
 
   const pick = async (slot: Slot) => {
     setError(null);
+    setNotice(null);
     const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9, exif: false });
     const uri = picked.canceled ? null : picked.assets?.[0]?.uri;
     if (!uri) return;
     setChecking(slot);
     try {
       const inspected = await inspectDocumentImage(uri);
-      // A face means the image must not be sent: a card with a photo goes through the other path,
-      // a screenshot with a profile picture must be cropped first.
-      if (inspected.faceCount > 0) {
+      // Faces (the card's portrait, a profile picture) were painted gray on the device. Only when
+      // they fill almost the whole image is there nothing left to send.
+      if (!inspected.jpegBase64) {
         setImages((current) => ({ ...current, [slot]: undefined }));
-        setError(t(slot === 'card' ? 'studentDocument.cardHasFace' : 'studentDocument.screenshotHasFace'));
+        setError(t('studentDocument.mostlyFace'));
         return;
       }
-      setImages((current) => ({ ...current, [slot]: { jpegBase64: inspected.jpegBase64 } }));
+      const jpegBase64 = inspected.jpegBase64;
+      setImages((current) => ({ ...current, [slot]: { jpegBase64 } }));
+      if (inspected.faceCount > 0) setNotice(t('studentDocument.faceCovered'));
     } catch (inspectError) {
       setError(errorMessage(inspectError, t('studentDocument.imageFailed')));
     } finally {
@@ -120,6 +124,7 @@ export default function StudentDocumentScreen() {
         {slot('card', 'card-outline')}
         {slot('screenshot', 'person-circle-outline')}
         {error ? <Notice tone="warning">{error}</Notice> : null}
+        {notice ? <Notice tone="info">{notice}</Notice> : null}
         <ButtonPrimary disabled={!images.card || !images.screenshot || checking !== null} loading={sending} onPress={() => void send()} title={t('studentDocument.send')} />
         <Text style={styles.muted}>{t('studentDocument.reviewNote')}</Text>
       </ScrollView>

@@ -246,7 +246,7 @@ export function decideDocument(
   }
   const reasons: DocumentReason[] = [];
   if (!card.is_student_id_card) reasons.push('not_a_card');
-  if (card.has_person_photo) reasons.push('card_has_photo');
+  // A card with a photo is fine here: the device covers the face before sending it.
   if (card.looks_like_screen_or_printout) reasons.push('screen_or_print');
   if (!checks.institution_matches) reasons.push('institution_mismatch');
   if (!expiresOn) reasons.push('no_expiry');

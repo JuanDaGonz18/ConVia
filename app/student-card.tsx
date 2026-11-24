@@ -87,7 +87,7 @@ export default function StudentCardScreen() {
         ) : phase.kind !== 'done' ? (
           <>
             <View style={styles.tips}>
-              {(['flat', 'light', 'whole', 'privacy'] as const).map((tip) => (
+              {(['whole', 'institution', 'flat', 'light', 'privacy'] as const).map((tip) => (
                 <View key={tip} style={styles.tip}>
                   <Ionicons color={colors.primary} name={tip === 'privacy' ? 'lock-closed-outline' : 'checkmark-circle-outline'} size={18} />
                   <Text style={styles.tipText}>{t(`studentCard.tips.${tip}`)}</Text>
