@@ -5,7 +5,7 @@
 // API (secret BREVO_API_KEY). Without the key nothing is sent and the queue waits.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-import { type EmailKind, renderEmail } from './emails.ts';
+import { type EmailKind, renderEmail, sendWithBrevo } from '../_shared/emails.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SENDER_EMAIL = Deno.env.get('EMAIL_SENDER') ?? 'gonzalezjuandavid07@gmail.com';
@@ -25,26 +25,11 @@ type Claimed = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-async function sendOne(apiKey: string, row: Claimed): Promise<string | null> {
+function sendOne(apiKey: string, row: Claimed): Promise<string | null> {
   const mail = renderEmail({
     kind: row.kind, email: row.email, nombre: row.nombre, plusUntil: row.plus_until, promo: row.promo, months: row.months,
   });
-  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      sender: { email: SENDER_EMAIL, name: SENDER_NAME },
-      replyTo: { email: SENDER_EMAIL, name: SENDER_NAME },
-      to: [{ email: row.email }],
-      subject: mail.subject,
-      htmlContent: mail.html,
-      textContent: mail.text,
-      tags: [`convia-${row.kind}`],
-    }),
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (res.ok) return null;
-  return `brevo ${res.status}: ${(await res.text()).slice(0, 300)}`;
+  return sendWithBrevo(apiKey, { email: SENDER_EMAIL, name: SENDER_NAME }, row.email, mail, `convia-${row.kind}`);
 }
 
 Deno.serve(async (request) => {

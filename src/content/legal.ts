@@ -249,7 +249,7 @@ export const PRIVACY: LegalDocument = {
             'Publicar, buscar, solicitar y coordinar viajes, mostrar viajes cercanos o relevantes y calcular rutas.',
             'Mostrar a los participantes de un viaje la información necesaria: nombre, foto, calificación, vehículo, placa, ruta y punto de recogida.',
             'Permitir el chat entre participantes de un mismo viaje y enviarte notificaciones sobre tus viajes y solicitudes.',
-            'Enviarte correos sobre tu cuenta: confirmar tu correo, recuperar tu contraseña, darte la bienvenida con consejos para usar ConVía y, si pagas ConVía+, confirmarte el pago. No te enviamos publicidad por correo.',
+            'Enviarte correos sobre tu cuenta: confirmar tu correo, recuperar tu contraseña, darte la bienvenida con consejos para usar ConVía, confirmarte el pago si pagas ConVía+ y confirmarte la eliminación de tu cuenta si la eliminas. No te enviamos publicidad por correo.',
             'Atender tus consultas y reclamos, hacer cumplir los Términos y Condiciones y colaborar con autoridades cuando la ley lo exija.',
             'Mejorar la seguridad y el funcionamiento de la aplicación.',
             'Diagnosticar fallas, entender el uso de la app y atender tus reportes.',

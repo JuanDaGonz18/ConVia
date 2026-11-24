@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+import { renderEmail, sendWithBrevo } from '../_shared/emails.ts';
+
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 const headers = {
@@ -30,6 +32,20 @@ async function removeFolder(bucket: string, userId: string) {
   if (removeError) throw removeError;
 }
 
+/** Last e-mail to the person, confirming the deletion. Never blocks or fails the deletion. */
+async function sendGoodbye(email: string | null, nombre: string | null) {
+  const apiKey = Deno.env.get('BREVO_API_KEY');
+  if (!apiKey || !email) return;
+  try {
+    const mail = renderEmail({ kind: 'goodbye', email, nombre, plusUntil: null, promo: false, months: null });
+    const sender = { email: Deno.env.get('EMAIL_SENDER') ?? 'gonzalezjuandavid07@gmail.com', name: Deno.env.get('EMAIL_SENDER_NAME') ?? 'ConVía' };
+    const failure = await sendWithBrevo(apiKey, sender, email, mail, 'convia-goodbye');
+    if (failure) console.warn('[delete-account] goodbye e-mail:', failure);
+  } catch (error) {
+    console.warn('[delete-account] goodbye e-mail:', error instanceof Error ? error.message : String(error));
+  }
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
   if (request.method !== 'POST') return response({ error: 'METHOD_NOT_ALLOWED' }, 405);
@@ -49,11 +65,16 @@ Deno.serve(async (request) => {
   if (tripsError) return response({ error: 'DELETE_FAILED' }, 500);
   if (activeTrips) return response({ error: 'ACTIVE_TRIP' }, 409);
 
+  // Read before deleting: the goodbye e-mail goes out once the account is gone.
+  const email = authData.user.email ?? null;
+  const { data: profile } = await admin.from('profiles').select('nombre').eq('id', userId).maybeSingle();
+
   try {
     for (const bucket of BUCKETS) await removeFolder(bucket, userId);
     // profiles, vehicles, trips, requests, messages… cascade from auth.users.
     const { error } = await admin.auth.admin.deleteUser(userId);
     if (error) throw error;
+    await sendGoodbye(email, profile?.nombre ?? null);
     return response({ deleted: true });
   } catch (error) {
     console.error('[delete-account]', error);

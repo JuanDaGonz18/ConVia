@@ -1,10 +1,11 @@
 /**
- * ConVía e-mails that are not about the account itself (those are supabase/templates): the welcome
- * after the e-mail is confirmed and the thank-you for the first ConVía+ payment. Same look as the
- * auth templates. No Deno globals, so Node can test it.
+ * ConVía e-mails sent by our functions (the auth ones are supabase/templates): the welcome after
+ * the e-mail is confirmed, the thank-you for the first ConVía+ payment (send-emails) and the
+ * goodbye after the account is deleted (delete-account). Same look as the auth templates.
+ * No Deno globals, so Node can test it.
  */
 
-export type EmailKind = 'welcome' | 'plus_first';
+export type EmailKind = 'welcome' | 'plus_first' | 'goodbye';
 
 export type EmailInput = {
   kind: EmailKind;
@@ -62,7 +63,7 @@ function tipsTable(tips: Tip[]): string {
         </tr>`).join('');
 }
 
-function layout(opts: { preheader: string; title: string; intro: string; tips?: Tip[]; tipsTitle?: string; box?: string; button: string; closing: string }): string {
+function layout(opts: { preheader: string; title: string; intro: string; tips?: Tip[]; tipsTitle?: string; box?: string; button: string; closing: string; footer?: string }): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -110,7 +111,7 @@ function layout(opts: { preheader: string; title: string; intro: string; tips?: 
         </tr>
         <tr>
           <td style="padding:24px 32px 32px 32px; ${FONT} font-size:12px; line-height:18px; color:#71727A;">
-            Recibes este correo porque tienes una cuenta en ConVía. Si tienes una pregunta o algo no funciona, respóndelo o usa «Reportar un problema» en tu perfil.
+            ${opts.footer ?? 'Recibes este correo porque tienes una cuenta en ConVía. Si tienes una pregunta o algo no funciona, respóndelo o usa «Reportar un problema» en tu perfil.'}
           </td>
         </tr>
       </table>
@@ -167,6 +168,30 @@ export function renderEmail(input: EmailInput): RenderedEmail {
     };
   }
 
+  if (input.kind === 'goodbye') {
+    return {
+      subject: 'Tu cuenta de ConVía fue eliminada',
+      html: layout({
+        preheader: 'Confirmamos que eliminamos tu cuenta y tus datos. Gracias por haber sido parte de ConVía.',
+        title: 'Gracias por haber sido parte de ConVía',
+        intro: `${hola} Confirmamos que eliminamos tu cuenta de ConVía y tus datos: perfil, vehículos, viajes, chats y fotos. Gracias por haber confiado en nosotros y por compartir el camino con tu comunidad.`,
+        box: '<strong>¿Nos cuentas por qué te fuiste?</strong> Responde este correo con lo que quieras: lo leemos todo y nos ayuda a mejorar ConVía para los demás.',
+        button: 'Volver a ConVía',
+        closing: 'Si cambias de opinión, puedes crear una cuenta nueva cuando quieras. Las puertas siguen abiertas.<br><br><strong>El equipo de ConVía</strong>',
+        footer: 'Recibes este correo porque eliminaste tu cuenta de ConVía. Es el último: no te enviaremos más. Si pagaste ConVía+, conservamos solo el registro contable del pago, sin vínculo con tu perfil, como lo exige la ley.',
+      }),
+      text: [
+        `${name ? `¡Hola, ${name}!` : '¡Hola!'} Confirmamos que eliminamos tu cuenta de ConVía y tus datos.`,
+        'Gracias por haber sido parte de ConVía.',
+        '',
+        '¿Nos cuentas por qué te fuiste? Responde este correo: lo leemos todo.',
+        `Si cambias de opinión, puedes crear una cuenta nueva: ${APP_URL}`,
+        '',
+        'El equipo de ConVía',
+      ].join('\n'),
+    };
+  }
+
   const period = input.months === 12 ? '12 meses' : input.months && input.months > 1 ? `${input.months} meses` : '1 mes';
   const until = input.plusUntil ? ` Tu ConVía+ está activo hasta el <strong>${fechaEs(input.plusUntil)}</strong>.` : '';
   const plusTips: Tip[] = [
@@ -197,4 +222,30 @@ export function renderEmail(input: EmailInput): RenderedEmail {
       `Abrir ConVía: ${APP_URL}`,
     ].join('\n'),
   };
+}
+
+/** Sends one e-mail with the Brevo API. Returns null when sent, or the error. */
+export async function sendWithBrevo(
+  apiKey: string,
+  sender: { email: string; name: string },
+  to: string,
+  mail: RenderedEmail,
+  tag: string,
+): Promise<string | null> {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      sender,
+      replyTo: sender,
+      to: [{ email: to }],
+      subject: mail.subject,
+      htmlContent: mail.html,
+      textContent: mail.text,
+      tags: [tag],
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (res.ok) return null;
+  return `brevo ${res.status}: ${(await res.text()).slice(0, 300)}`;
 }
