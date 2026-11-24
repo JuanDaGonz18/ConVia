@@ -3,7 +3,7 @@
  * linked from the download page (/app/legal?doc=privacy).
  *
  * Written to match what the app actually does (see README > Security notes).
- * ConVía is a non-profit student project, not a company: no personal names,
+ * ConVía is run by a team of students, not a company: no personal names,
  * tax ID or street address are published. If a company is ever set up, put
  * its details in LEGAL_COMPANY and section 1 of the privacy policy, and have a
  * lawyer review both documents before going to the app stores.
@@ -11,13 +11,13 @@
  * the version they accepted.
  */
 
-export const LEGAL_VERSION = '1.5';
+export const LEGAL_VERSION = '1.6';
 export const LEGAL_UPDATED_AT = '24 de noviembre de 2026';
 
 export const LEGAL_COMPANY = {
   name: 'ConVía',
   /** Who runs ConVía, as it appears in both documents. */
-  operator: 'el equipo de estudiantes que desarrolla ConVía como proyecto académico',
+  operator: 'el equipo de estudiantes que desarrolla ConVía',
   /** General location only (no street address). */
   location: 'Cundinamarca, Colombia',
   /** The one contact channel for questions, requests and complaints. */
@@ -37,7 +37,7 @@ export const TERMS: LegalDocument = {
     'El aporte que acuerdan pasajero y conductor es solo para compartir gastos del trayecto, no para obtener ganancia.',
     'Cada conductor responde por tener licencia, SOAT, revisión técnico-mecánica y su vehículo en regla.',
     'Debes ser mayor de edad, dar datos reales y tratar a los demás con respeto. Podemos suspender cuentas que incumplan estas reglas.',
-    'ConVía es un proyecto académico de estudiantes, gratuito y sin ánimo de lucro, en fase beta. No es un servicio oficial de ninguna universidad.',
+    'ConVía está en fase beta y el plan gratis tiene todo lo esencial. No es un servicio oficial de ninguna universidad.',
   ],
   sections: [
     {
@@ -53,13 +53,13 @@ export const TERMS: LegalDocument = {
       title: '2. Qué es ConVía',
       body: [
         'ConVía es una plataforma tecnológica que permite a miembros de una comunidad universitaria publicar trayectos que ya van a realizar en su vehículo particular y a otros miembros solicitar un cupo en ellos (carro compartido).',
-        'ConVía es un proyecto académico desarrollado por estudiantes universitarios. No es una empresa constituida, no tiene ánimo de lucro y no es un servicio oficial ni respaldado por ninguna universidad o institución educativa.',
+        'ConVía la desarrolla un equipo de estudiantes universitarios. No es un servicio oficial ni respaldado por ninguna universidad o institución educativa.',
         'Cualquier persona puede crear una cuenta, con cualquier correo. Para ver, pedir o publicar viajes debes verificar que perteneces a una institución habilitada en ConVía (ver sección 3). Mientras no lo hagas, no verás viajes, personas ni chats.',
-        'La aplicación está en fase beta: es gratuita, puede tener errores y puede cambiar, interrumpirse o terminar en cualquier momento. Si ConVía deja de funcionar, eliminaremos los datos personales según la Política de Tratamiento de Datos.',
+        'La aplicación está en fase beta: el plan gratis no tiene costo, puede tener errores y puede cambiar, interrumpirse o terminar en cualquier momento. Si ConVía deja de funcionar, eliminaremos los datos personales según la Política de Tratamiento de Datos.',
         'ConVía no es una empresa de transporte, no presta el servicio de transporte, no es propietaria de los vehículos, no contrata a los conductores y no es parte del acuerdo entre pasajero y conductor. Nuestra función se limita a facilitar el contacto y la coordinación entre usuarios.',
         'La aplicación no debe usarse para prestar servicio público de transporte ni ninguna actividad de transporte con fines comerciales o de lucro.',
         'ConVía+ es un plan opcional con funciones adicionales: el asistente de viajes y el autocompletado de los datos del vehículo con inteligencia artificial, varios vehículos, viajes recurrentes, alertas de viajes, filtros y estadísticas avanzados, más lugares y conductores favoritos, verificaciones de recogida sin el límite mensual del plan gratis, mapas de Google con tráfico, prioridad entre solicitudes igual de compatibles y perfil destacado. El plan gratis conserva todo lo esencial para compartir viajes. El detalle vigente está en la pantalla ConVía+ de la aplicación.',
-        'Mientras dure la beta, ConVía+ es gratuito: algunas de sus funciones están abiertas a todos y las demás se activan sin costo. Nunca te cobraremos por ConVía+ sin mostrarte antes el precio y obtener tu aceptación expresa.',
+        'Mientras dure la beta, algunas funciones de ConVía+ están abiertas a todos sin costo. Promoción de lanzamiento: quien cree su cuenta hasta el 14 de febrero de 2027 (hora de Colombia) recibe 2 meses de ConVía+ sin costo, contados desde su registro; al terminar vuelve al plan gratis sin perder sus datos y sin ningún cobro. Nunca te cobraremos por ConVía+ sin mostrarte antes el precio y obtener tu aceptación expresa.',
       ],
     },
     {
@@ -202,14 +202,14 @@ export const PRIVACY: LegalDocument = {
     'Para verificar tu identidad convertimos tu rostro en una representación numérica. No guardamos fotos de tu cara ni de tu licencia.',
     'Algunas funciones usan inteligencia artificial de Meta. Los videos de recogida se borran a más tardar en 1 hora y las imágenes del carné que van a revisión, a más tardar en 7 días.',
     'No vendemos tus datos. Puedes consultarlos, corregirlos o eliminar tu cuenta cuando quieras.',
-    'ConVía es un proyecto académico de estudiantes, sin ánimo de lucro y sin empresa detrás.',
+    'ConVía la desarrolla un equipo de estudiantes. No es un servicio oficial de ninguna universidad.',
   ],
   sections: [
     {
       id: 'responsable',
       title: '1. Responsable del tratamiento',
       body: [
-        `El responsable del tratamiento de tus datos es ${LEGAL_COMPANY.operator}, sin ánimo de lucro y sin constituir una empresa, con domicilio en ${LEGAL_COMPANY.location}. ConVía no es un servicio oficial de ninguna universidad: las instituciones cuyos correos se admiten no reciben ni administran tus datos.`,
+        `El responsable del tratamiento de tus datos es ${LEGAL_COMPANY.operator}, con domicilio en ${LEGAL_COMPANY.location}. ConVía no es un servicio oficial de ninguna universidad: las instituciones cuyos correos se admiten no reciben ni administran tus datos.`,
         `Canal de atención para consultas, reclamos y cualquier asunto sobre tus datos personales: ${LEGAL_COMPANY.email}.`,
         'Esta política se expide en cumplimiento de la Ley 1581 de 2012, el Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015) y demás normas colombianas sobre protección de datos personales.',
       ],
