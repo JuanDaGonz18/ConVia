@@ -176,6 +176,8 @@ h1,h2,h3,p,ul,ol{margin:0}
 .plan-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .plan h3{font-size:24px;font-weight:800}
 .plan-head p{font-size:15px;font-weight:600;color:var(--muted)}
+.plan.plus .plan-head p{color:var(--ink);font-weight:700}
+.plan-note{font-size:14px;line-height:1.55;color:var(--muted)}
 .plan ul{line-height:1.5}
 
 /* Preguntas */
@@ -392,7 +394,7 @@ h1,h2,h3,p,ul,ol{margin:0}
     <div class="sec-head">
       <p class="eyebrow" data-i18n="plansEyebrow">Planes</p>
       <h2 class="h2" data-i18n="plansTitle">Todo lo esencial es gratis</h2>
-      <p data-i18n="plansLead">Durante la beta, las funciones marcadas como beta también son gratis para todos.</p>
+      <p data-i18n="plansLead">ConVía+ es opcional, con precios en pesos colombianos e impuestos incluidos. Durante la beta, las funciones marcadas como beta también son gratis para todos.</p>
     </div>
     <div class="plan-row">
       <div class="plan">
@@ -405,13 +407,14 @@ h1,h2,h3,p,ul,ol{margin:0}
         </ul>
       </div>
       <div class="plan plus">
-        <div class="plan-head"><h3>Con<span class="c-accent">Vía</span>+</h3><p id="plus-price">Pronto</p></div>
+        <div class="plan-head"><h3>Con<span class="c-accent">Vía</span>+</h3><p id="plus-price">$12.000/mes</p></div>
         <ul>
           <li data-i18n="pl1">Asistente que busca y te propone el viaje</li>
           <li data-i18n="pl2">Autollenado de tu vehículo con una foto</li>
           <li data-i18n="pl3">Verificación de recogida sin límite</li>
           <li data-i18n="pl4">Google Maps con tráfico y prioridad en solicitudes</li>
         </ul>
+        <p class="plan-note" data-i18n="plusNote">O $108.000 por 12 meses. Pago por transferencia desde tu banco, con una referencia. No se renueva solo.</p>
       </div>
     </div>
   </div>
@@ -427,6 +430,7 @@ h1,h2,h3,p,ul,ol{margin:0}
       <details><summary><span data-i18n="q3">¿Tengo iPhone, puedo usarla?</span><span class="faq-plus" aria-hidden="true">+</span></summary><p data-i18n="a3">Sí, desde el navegador con la versión web. La verificación de recogida con video, por ahora, solo está en la app de Android.</p></details>
       <details><summary><span data-i18n="q4">¿Cuánto cuesta un viaje?</span><span class="faq-plus" aria-hidden="true">+</span></summary><p data-i18n="a4">El conductor fija un aporte por puesto para repartir los gastos del trayecto, no para obtener ganancia. El pago lo acuerdan entre ustedes, fuera de la app.</p></details>
       <details><summary><span data-i18n="q5">¿Qué pasa con mis datos?</span><span class="faq-plus" aria-hidden="true">+</span></summary><p data-i18n-html="a5">Tu correo y tu teléfono no se muestran a otros usuarios. Las imágenes del carné se borran al revisarse y los videos de recogida en menos de una hora. Todo está en la <a href="https://juandagonz18.github.io/ConVia/app/legal">política de tratamiento de datos</a>.</p></details>
+      <details><summary><span data-i18n="q6">¿Cómo pago ConVía+?</span><span class="faq-plus" aria-hidden="true">+</span></summary><p data-i18n="a6">Pago por transferencia: en la app eliges mensual ($12.000) o anual ($108.000), y te mostramos la llave Bre-B, el valor y una referencia única que escribes en la descripción de la transferencia. Tocas «Ya pagué» y lo activamos en máximo 24 horas hábiles. No se renueva solo, puedes cancelar cuando quieras y tienes 5 días hábiles para retractarte con reembolso total.</p></details>
     </div>
   </div>
 </section>
@@ -456,7 +460,7 @@ h1,h2,h3,p,ul,ol{margin:0}
       <a href="https://juandagonz18.github.io/ConVia/app/legal" data-i18n="legal">Términos y privacidad</a>
       <a href="mailto:gonzalezjuandavid07@gmail.com" data-i18n="contact">Contacto</a>
     </nav>
-    <p data-i18n="footer">Proyecto académico en beta. Sin ánimo de lucro.</p>
+    <p data-i18n="footer">Proyecto académico en beta.</p>
   </div>
 </footer>
 
@@ -465,8 +469,8 @@ h1,h2,h3,p,ul,ol{margin:0}
 var CONFIG = {
   // Link to the 30–45 s walkthrough (YouTube/Vimeo link or a .mp4/.webm file). Empty = the video block stays hidden.
   videoUrl: "",
-  // ConVía+ price, e.g. "$9.900/mes". Empty = only "Pronto".
-  plusPrice: "",
+  // ConVía+ monthly price in COP (taxes included), e.g. "$12.000". Empty = only "Pronto".
+  plusPrice: "$12.000",
   apkUrl: "https://github.com/JuanDaGonz18/ConVia/releases/latest/download/convia.apk",
   releasesApi: "https://api.github.com/repos/JuanDaGonz18/ConVia/releases/latest"
 };
@@ -510,22 +514,24 @@ var EN = {
   d1: "You choose the route, the time, the seats and the contribution.", d2: "Accept or decline each request and see the pickup point first.", d3: "Repeat your weekly trips without posting them one by one.",
   paxEyebrow: "If you ride", paxTitle: "Get there on time, with people from your community",
   p1: "See the route, time, car and contribution before requesting a seat.", p2: "Save your routes and get an alert when a trip that works for you shows up.", p3: "Know who’s picking you up: verified profile, rating and car.",
-  plansEyebrow: "Plans", plansTitle: "Everything essential is free", plansLead: "During the beta, features marked as beta are free for everyone too.",
+  plansEyebrow: "Plans", plansTitle: "Everything essential is free", plansLead: "ConVía+ is optional, priced in Colombian pesos with taxes included. During the beta, features marked as beta are free for everyone too.",
   freeName: "Free",
   fr1: "Find, request and post trips", fr2: "Chat, QR code and identity verification", fr3: "Pickup verification with a monthly allowance", fr4: "Student ID and the app in Spanish and English",
   pl1: "An assistant that searches and suggests the trip for you", pl2: "Fill in your vehicle from a photo", pl3: "Unlimited pickup verification", pl4: "Google Maps with traffic and priority on requests",
+  plusNote: "Or COP $108.000 for 12 months. Paid by bank transfer, with a reference. It never renews by itself.",
   faqTitle: "Frequently asked questions",
   q1: "Why isn’t it on the Play Store?", a1: "We’re in open beta and distribute the Android app directly from this page. It will reach the stores when the pilot ends.",
   q2: "Android says the file may be harmful. Is it safe?", a2: "Android shows that warning for any app that doesn’t come from the Play Store. The file is published from ConVía’s official repository.",
   q3: "I have an iPhone. Can I use it?", a3: "Yes, in your browser with the web version. Pickup verification with video is, for now, only in the Android app.",
   q4: "How much does a trip cost?", a4: "The driver sets a contribution per seat to split the trip’s costs, not to make a profit. You settle the payment between yourselves, outside the app.",
   q5: "What happens to my data?", a5: 'Your email and phone number aren’t shown to other users. Student ID images are deleted once reviewed and pickup videos in less than an hour. It’s all in the <a href="https://juandagonz18.github.io/ConVia/app/legal">data processing policy</a>.',
+  q6: "How do I pay for ConVía+?", a6: "By bank transfer: in the app you choose monthly (COP $12.000) or yearly (COP $108.000), and we show you the Bre-B key, the amount and a unique reference to write in the transfer description. Tap “Ya pagué” and we activate it within 24 business hours. It never renews by itself, you can cancel anytime and you have 5 business days to withdraw with a full refund.",
   finalLabel: "Download", finalTitle: "Your next trip is already heading your way", finalLead: "Download it for free and verify your institution in minutes.",
-  footNav: "Legal and contact", legal: "Terms and privacy", contact: "Contact", footer: "Academic project in beta. Non-profit."
+  footNav: "Legal and contact", legal: "Terms and privacy", contact: "Contact", footer: "Academic project in beta."
 };
 var UI = {
-  es: { title: "ConVía · Comparte tu ruta con tu comunidad", desc: "ConVía conecta a conductores y pasajeros de tu universidad o empresa que hacen la misma ruta. Personas verificadas, chat sin dar tu número y abordaje con QR. Gratis para Android y en la web.", switchLang: "Read in English", toLight: "Cambiar a modo claro", toDark: "Cambiar a modo oscuro", soon: "Pronto", soonAndroid: "Muy pronto en Android" },
-  en: { title: "ConVía · Share your route with your community", desc: "ConVía connects drivers and passengers from your university or company who travel the same route. Verified people, chat without sharing your number and QR boarding. Free on Android and the web.", switchLang: "Leer en español", toLight: "Switch to light mode", toDark: "Switch to dark mode", soon: "Coming soon", soonAndroid: "Coming soon to Android" }
+  es: { title: "ConVía · Comparte tu ruta con tu comunidad", desc: "ConVía conecta a conductores y pasajeros de tu universidad o empresa que hacen la misma ruta. Personas verificadas, chat sin dar tu número y abordaje con QR. Gratis para Android y en la web.", switchLang: "Read in English", toLight: "Cambiar a modo claro", toDark: "Cambiar a modo oscuro", soon: "Pronto", soonAndroid: "Muy pronto en Android", perMonth: "/mes" },
+  en: { title: "ConVía · Share your route with your community", desc: "ConVía connects drivers and passengers from your university or company who travel the same route. Verified people, chat without sharing your number and QR boarding. Free on Android and the web.", switchLang: "Leer en español", toLight: "Switch to light mode", toDark: "Switch to dark mode", soon: "Coming soon", soonAndroid: "Coming soon to Android", perMonth: "/month" }
 };
 
 var $ = function (id) { return document.getElementById(id); };
@@ -554,7 +560,7 @@ function applyLanguage() {
   btn.textContent = lang === "en" ? "ES" : "EN";
   btn.setAttribute("lang", lang === "en" ? "es" : "en");
   btn.setAttribute("aria-label", ui("switchLang"));
-  $("plus-price").textContent = CONFIG.plusPrice ? CONFIG.plusPrice + " · " + ui("soon").toLowerCase() : ui("soon");
+  $("plus-price").textContent = CONFIG.plusPrice ? CONFIG.plusPrice + ui("perMonth") : ui("soon");
   renderAndroid(); labelThemeButton();
 }
 $("lang-btn").addEventListener("click", function () {
