@@ -90,7 +90,9 @@
         "emailNotConfirmed": "You haven't confirmed your email yet. Open the link we sent when you signed up.",
         "profileMissing": "Your account exists but has no ConVía profile. Contact your institution's administrator.",
         "generic": "We couldn't log you in. Check your connection and try again."
-      }
+      },
+      "google": "Continue with Google",
+      "oauthDivider": "or"
     },
     "register": {
       "step1": "STEP 1 OF 2",
@@ -146,7 +148,10 @@
         "alreadyRegistered": "An account already exists with this email. Log in with it.",
         "weakPassword": "Your password doesn't meet the security requirements.",
         "generic": "We couldn't create your account. Check your connection and try again."
-      }
+      },
+      "oauthTitle": "The fastest way",
+      "googleButton": "Create account with Google",
+      "oauthDivider": "With your Google account"
     },
     "forgot": {
       "kicker": "RECOVER ACCESS",
@@ -207,12 +212,20 @@
           "text": "Tap the button to use this e-mail for your ConVía account.",
           "button": "Confirm"
         }
-      }
+      },
+      "noProfileOAuth": "We couldn't find your profile after logging in.",
+      "googleFailed": "We couldn't log you in with Google. Try again.",
+      "retryGoogle": "Try again with your Google account."
     },
     "microsoft": {
-      "terms": "By continuing you accept the terms and the data processing policy.",
-      "readMore": "Read more",
       "failed": "We couldn't sign you in with Microsoft. Please try again."
+    },
+    "oauth": {
+      "terms": "By continuing you accept the terms and the data processing policy.",
+      "readMore": "Read more"
+    },
+    "google": {
+      "failed": "We couldn't sign you in with Google. Please try again."
     }
   },
   "pickup": {
