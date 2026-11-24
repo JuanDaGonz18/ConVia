@@ -29,7 +29,7 @@ select count(*) from private.available_trip_rows();
 select set_config('request.jwt.claims', json_build_object('sub', :'passenger', 'role', 'authenticated')::text, false);
 set role authenticated;
 explain (analyze, buffers, costs off)
-  select * from public.available_trips where driver_id <> :'passenger'::uuid order by salida_at;
+  select * from public.available_trips where driver_id <> :'passenger'::uuid order by salida_at limit 150;
 reset role;
 
 \echo '=== available_trips por id (detalle del viaje, como la app)'
@@ -46,7 +46,7 @@ reset role;
 explain (analyze, buffers, costs off)
   select t.id, private.public_label(t.origen_nombre), private.fuzz(t.origen_lat),
          t.cupos_totales - private.seats_taken(t.id), p.nombre, private.mask_plate(v.placa),
-         private.public_route(t.ruta), private.is_plus(t.driver_id)
+         t.ruta_publica, private.is_plus(t.driver_id)
     from public.trips t
     join public.profiles p on p.id = t.driver_id
     join public.vehicles v on v.id = t.vehicle_id

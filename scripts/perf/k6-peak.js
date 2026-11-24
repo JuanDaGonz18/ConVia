@@ -80,7 +80,7 @@ function rpc(token, name, body = {}) {
 }
 
 function search(token, uid) {
-  const res = http.get(`${BASE}/rest/v1/available_trips?select=*&driver_id=neq.${uid}&order=salida_at`, {
+  const res = http.get(`${BASE}/rest/v1/available_trips?select=*&driver_id=neq.${uid}&order=salida_at&limit=150`, {
     headers: headers(token), tags: { name: 'search' },
   });
   check(res, { 'search 200': (r) => r.status === 200 });

@@ -125,9 +125,9 @@ function PassengerHome() {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     try {
-      setTrips(await tripService.getAvailableTrips());
+      setTrips(await tripService.getAvailableTrips({ force }));
       setError(null);
     } catch (loadError) {
       setError(errorMessage(loadError, i18n.t('home.tripsFailed')));
@@ -160,7 +160,7 @@ function PassengerHome() {
 
   const refresh = async () => {
     setRefreshing(true);
-    await load();
+    await load(true);
     setRefreshing(false);
   };
 
