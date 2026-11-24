@@ -61,6 +61,8 @@ const FRIENDLY_ERRORS: [RegExp, string][] = [
   [/REQUEST_PENDING/, 'institutionRequestPending'],
   [/ALREADY_VERIFIED/, 'institutionAlreadyVerified'],
   [/NO_INSTITUTION_CHOSEN/, 'noInstitutionChosen'],
+  [/MODEL_UNAVAILABLE/, 'aiUnavailable'],
+  [/TOO_MANY_ATTEMPTS/, 'tooManyAttempts'],
 ];
 
 // Signs that a message is an internal/technical one we should not show verbatim.

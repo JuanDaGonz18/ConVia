@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createAiSwitch } from '../_shared/aiFeatures.ts';
 
 import { MB, modelMode, readJsonBody } from '../_shared/guard.ts';
 import { createTransport, ModelError, museStructured } from '../_shared/metaModel.ts';
@@ -19,6 +20,7 @@ import { checkLegal } from '../_shared/legal.ts';
  */
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const aiFeatureEnabled = createAiSwitch(() => admin.from('app_config').select('ai_features').eq('id', true).maybeSingle());
 const MODEL_API_KEY = Deno.env.get('MODEL_API_KEY') ?? '';
 const MODE = modelMode(MODEL_API_KEY, Deno.env.get('ALLOW_MOCK'));
 const MOCK = MODE === 'mock';
@@ -92,6 +94,7 @@ Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
   if (request.method !== 'POST') return response({ error: 'METHOD_NOT_ALLOWED' }, 405);
   if (MODE === 'unavailable') return response({ error: 'MODEL_UNAVAILABLE' }, 503);
+  if (!(await aiFeatureEnabled('vehicle_suggest'))) return response({ error: 'MODEL_UNAVAILABLE' }, 503);
   const started = performance.now();
 
   const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');

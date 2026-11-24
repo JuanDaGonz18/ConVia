@@ -1013,6 +1013,8 @@
     "institutionAlreadyVerified": "Your institution is already verified.",
     "tooManyAttempts": "Too many attempts today. Try again tomorrow.",
     "noInstitutionChosen": "Choose your institution first.",
+    "aiUnavailable": "Automatic verification isn't available right now. Try again later.",
+    "tooManyAttempts": "Too many attempts today. Try again tomorrow or use manual verification.",
     "storageQuota": "You've reached the limit of saved files. Try again later."
   },
   "distance": {
