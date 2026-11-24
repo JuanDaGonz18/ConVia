@@ -67,6 +67,9 @@ jobs:
       - name: Pruebas de funciones
         run: npm run test:functions
 
+      - name: E2E con todas las funciones de IA y sin la promo (antes de servir las funciones)
+        run: npx supabase db query "update public.app_config set ai_features = '{student_card,vehicle_verify,vehicle_suggest,pickup_verify,assistant}', plus_promo_until = null where id"
+
       - name: Servir Edge Functions (ALLOW_MOCK=true)
         run: |
           env_file="$RUNNER_TEMP/functions.env"
