@@ -12,11 +12,11 @@ import { authService } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage } from '@/utils/format';
 
-export type OAuthProvider = 'google' | 'microsoft';
+export type OAuthProvider = 'google';
 
 type OAuthSignInButtonProps = {
   provider: OAuthProvider;
-  /** e.g. "Continuar con Google" on the login screen, "Crear cuenta con Google" on sign-up. */
+  /** "Continuar con Google" on the login screen, "Crear cuenta con Google" on sign-up. */
   title: string;
   /** Text of the divider above the button; no divider when omitted. */
   dividerText?: string;
@@ -40,10 +40,9 @@ function GoogleLogo() {
 }
 
 /**
- * Sign-in with an external account (Google or Microsoft), shared by the login
- * and sign-up screens. The first sign-in also creates the account, so both
- * screens use the same flow. Render each one only when its flag
- * (isGoogleAuthEnabled / isMicrosoftAuthEnabled) is true.
+ * Sign-in with an external account (Google for now), shared by the login and
+ * sign-up screens. The first sign-in also creates the account, so both screens
+ * use the same flow. Render it only when isGoogleAuthEnabled is true.
  */
 export function OAuthSignInButton({ provider, title, dividerText, showTerms = true, disabled = false, onBusyChange, onError }: Readonly<OAuthSignInButtonProps>) {
   const { t } = useTranslation();
@@ -59,7 +58,7 @@ export function OAuthSignInButton({ provider, title, dividerText, showTerms = tr
     onError(null);
     setBusy(true);
     try {
-      const user = provider === 'google' ? await authService.signInWithGoogle() : await authService.signInWithMicrosoft();
+      const user = await authService.signInWithGoogle();
       if (!user) {
         // Web: the page is on its way to the provider; keep the button busy.
         if (Platform.OS === 'web') return;
@@ -86,8 +85,7 @@ export function OAuthSignInButton({ provider, title, dividerText, showTerms = tr
       ) : null}
       <ButtonSecondary
         disabled={disabled}
-        icon={provider === 'microsoft' ? 'logo-microsoft' : undefined}
-        leading={provider === 'google' ? <GoogleLogo /> : undefined}
+        leading={<GoogleLogo />}
         loading={loading}
         onPress={() => void handlePress()}
         title={title}

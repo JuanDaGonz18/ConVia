@@ -25,7 +25,7 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import i18n from '@/i18n';
-import { authService, isGoogleAuthEnabled, isMicrosoftAuthEnabled } from '@/services/authService';
+import { authService, isGoogleAuthEnabled } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
 import { UserRole } from '@/types';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
@@ -72,11 +72,11 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
   const [showFaceVerification, setShowFaceVerification] = useState(false);
   const [registeredUserId, setRegisteredUserId] = useState<string | null>(null);
 
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
-  const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
   const markFaceVerified = useAppStore((state) => state.markFaceVerified);
 
   // After a first attempt, keep the list of problems in sync as the person fixes them.
@@ -161,30 +161,17 @@ export default function RegisterScreen() {
               </View>
             ) : (
               <>
-                {useSupabase && (isGoogleAuthEnabled || isMicrosoftAuthEnabled) ? (
-                  <View style={styles.microsoft}>
-                    <Text style={styles.microsoftTitle}>{t(isMicrosoftAuthEnabled ? 'auth.register.microsoftTitle' : 'auth.register.oauthTitle')}</Text>
-                    {isMicrosoftAuthEnabled ? (
-                      <OAuthSignInButton
-                        disabled={loading || oauthLoading}
-                        dividerText={t('auth.register.microsoftDivider')}
-                        onBusyChange={setOauthLoading}
-                        onError={setError}
-                        provider="microsoft"
-                        showTerms={!isGoogleAuthEnabled}
-                        title={t('auth.register.microsoftButton')}
-                      />
-                    ) : null}
-                    {isGoogleAuthEnabled ? (
-                      <OAuthSignInButton
-                        disabled={loading || oauthLoading}
-                        dividerText={isMicrosoftAuthEnabled ? undefined : t('auth.register.oauthDivider')}
-                        onBusyChange={setOauthLoading}
-                        onError={setError}
-                        provider="google"
-                        title={t('auth.register.googleButton')}
-                      />
-                    ) : null}
+                {useSupabase && isGoogleAuthEnabled ? (
+                  <View style={styles.oauth}>
+                    <Text style={styles.oauthTitle}>{t('auth.register.oauthTitle')}</Text>
+                    <OAuthSignInButton
+                      disabled={loading || oauthLoading}
+                      dividerText={t('auth.register.oauthDivider')}
+                      onBusyChange={setOauthLoading}
+                      onError={setError}
+                      provider="google"
+                      title={t('auth.register.googleButton')}
+                    />
                     <View style={styles.orDivider}>
                       <View style={styles.orLine} />
                       <Text style={styles.orText}>{t('auth.register.orEmail')}</Text>
@@ -333,6 +320,11 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+  oauth: { gap: spacing[12] },
+  oauthTitle: { ...typography.label, color: colors.text, textAlign: 'center' },
+  orDivider: { alignItems: 'center', flexDirection: 'row', gap: spacing[12], marginTop: spacing[4] },
+  orLine: { backgroundColor: colors.lightGray, flex: 1, height: 1 },
+  orText: { ...typography.caption, color: colors.textSecondary },
   safeArea: { backgroundColor: colors.surfaceMuted, flex: 1 },
   flex: { flex: 1 },
   content: { gap: spacing[16], paddingBottom: spacing[40], paddingHorizontal: dimensions.screenPadding, paddingTop: spacing[16] },
@@ -347,11 +339,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 16,
   },
-  microsoft: { gap: spacing[12] },
-  microsoftTitle: { ...typography.label, color: colors.text, textAlign: 'center' },
-  orDivider: { alignItems: 'center', flexDirection: 'row', gap: spacing[12], marginTop: spacing[4] },
-  orLine: { backgroundColor: colors.lightGray, flex: 1, height: 1 },
-  orText: { ...typography.caption, color: colors.textSecondary },
   missingList: { gap: 2 },
   missingItem: { ...typography.bodySmall, color: colors.warningText },
   roleSection: { gap: spacing[8] },
