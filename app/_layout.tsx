@@ -17,6 +17,7 @@ import { notificationService } from '@/services/notificationService';
 import { purgeLegacyCredentials } from '@/services/legacyCredentialPurge';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
+import { usePersonalizationLoader } from '@/hooks/usePersonalizationLoader';
 import { SubscriptionSync } from '@/subscription/usePlan';
 import { loadLanguagePreference } from '@/i18n';
 import { preloadIconFonts } from '@/utils/iconFonts';
@@ -54,6 +55,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
+  usePersonalizationLoader();
 
   const [appReady, setAppReady] = useState(false);
   const [welcomeComplete, setWelcomeComplete] = useState(false);
