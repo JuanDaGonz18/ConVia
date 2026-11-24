@@ -224,6 +224,22 @@ misma cuenta, no crea otra). Probar en Safari (iPhone) y en el APK.
 también una opción equivalente que proteja la privacidad (Sign in with Apple
 la cumple; guía 4.8). La web y el APK no lo necesitan.
 
+## 5c. Correos de ConVía (plantillas)
+
+Las plantillas en español están en `supabase/templates/` (confirmación, recuperar contraseña y
+cambio de correo; asuntos en `supabase/config.toml`). Supabase no las toma del repo: después de
+cambiarlas, súbelas a producción con un token personal
+(https://supabase.com/dashboard/account/tokens):
+
+```powershell
+$env:SUPABASE_ACCESS_TOKEN = "<token>"
+node scripts/admin/push-email-templates.mjs --dry-run   # revisa
+node scripts/admin/push-email-templates.mjs             # sube
+```
+
+Solo cambia esas plantillas y sus asuntos. Los correos salen por Brevo (SMTP propio): sin él,
+Supabase solo envía unos pocos correos por hora y únicamente a miembros del equipo del proyecto.
+
 ## 6. Prueba de carga (stack local, datos sintéticos)
 
 Nunca contra el proyecto alojado: el workflow levanta Supabase **local** en el

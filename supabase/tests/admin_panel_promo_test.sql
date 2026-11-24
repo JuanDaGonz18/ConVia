@@ -37,7 +37,21 @@ begin
   r := r || case when private.effective_tier(uUser) = 'plus' then E'\nOK  promo: the trial counts as ConVía+'
                  else E'\nBAD promo: effective tier is ' || coalesce(private.effective_tier(uUser), 'null') end;
 
+  -- Aviso de fin (para todo ConVía+ con fecha de fin) y paso a "expired".
+  update public.app_config set payments_enabled = false;
+  update public.subscriptions set current_period_end = now() + interval '2 days' where user_id = uUser;
+  j := private.plus_payments_daily();
+  r := r || case when exists (select 1 from private.plus_pushes where user_id = uUser and kind = 'expiring'
+                                and body like 'Tu ConVía+ de regalo termina el %plan gratis%')
+                 then E'\nOK  expiry: promo users are warned 3 days before, without talking about paying'
+                 else E'\nBAD expiry: no warning for the promo (' || j::text || ')' end;
+  j := private.plus_payments_daily();
+  r := r || case when (select count(*) from private.plus_pushes where user_id = uUser and kind = 'expiring') = 1
+                 then E'\nOK  expiry: warned once per period' else E'\nBAD expiry: warned twice' end;
   update public.subscriptions set current_period_end = now() - interval '1 minute' where user_id = uUser;
+  j := private.plus_payments_daily();
+  r := r || case when (select status from public.subscriptions where user_id = uUser) = 'expired'
+                 then E'\nOK  expiry: the promo becomes expired when it ends' else E'\nBAD expiry: promo status not expired' end;
   r := r || case when private.effective_tier(uUser) = 'free' then E'\nOK  promo: after the end date it is the free plan'
                  else E'\nBAD promo: still plus after the end date' end;
 
