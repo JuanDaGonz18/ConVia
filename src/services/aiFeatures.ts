@@ -40,3 +40,30 @@ export function useAiFeature(feature: AiFeature): boolean {
   }, [feature]);
   return enabled;
 }
+
+/** All switched-on features (null until loaded), for screens that list several. */
+export function useAiFeatures(): Set<string> | null {
+  const [features, setFeatures] = useState<Set<string> | null>(() => cache?.features ?? null);
+  useEffect(() => {
+    let active = true;
+    void loadAiFeatures()
+      .then((loaded) => { if (active) setFeatures(loaded); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+  return features;
+}
+
+/** Plan capabilities and limits that only work while an AI feature is on. */
+export const AI_FEATURE_OF: Partial<Record<string, AiFeature>> = {
+  trip_assistant: 'assistant',
+  vehicle_autofill: 'vehicle_suggest',
+  pickup_verification: 'pickup_verify',
+  pickup_verifications_month: 'pickup_verify',
+};
+
+/** False only when the item needs an AI feature that is known to be off. */
+export function aiItemShown(key: string, features: Set<string> | null) {
+  const feature = AI_FEATURE_OF[key];
+  return !feature || !features || features.has(feature);
+}
