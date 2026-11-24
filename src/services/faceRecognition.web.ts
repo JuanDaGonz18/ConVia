@@ -333,21 +333,32 @@ export async function analyzeStudentCard(photoUri: string): Promise<StudentCardA
   }
 }
 
-/** A document image to send whole (card without photo, cropped account screenshot): how many faces it shows, and its JPEG. */
-export type DocumentImage = { faceCount: number; jpegBase64: string };
+/** A document image for the manual review (faces painted gray); jpegBase64 null when faces cover almost all of it. */
+export type DocumentImage = { faceCount: number; jpegBase64: string | null };
 
-/** Browser version of inspectDocumentImage (faceRecognition.ts): any face found means the image is not sent. */
+/** Browser version of inspectDocumentImage (faceRecognition.ts): every face is painted gray before sending. */
 export async function inspectDocumentImage(photoUri: string): Promise<DocumentImage> {
   try {
     const photo = await loadImage(photoUri);
-    let faceCount = 0;
+    let detected: { image: HTMLCanvasElement; faces: WebFace[] } | null = null;
     try {
-      faceCount = (await detectUpright(photo, 'document')).faces.length;
+      detected = await detectUpright(photo, 'document');
     } catch (error) {
       if (!(error instanceof FaceCheckError) || error === UNAVAILABLE) throw error;
     }
-    const upright = draw(photo, 'document', 0);
-    return { faceCount, jpegBase64: upright.toDataURL('image/jpeg', 0.85).split(',')[1] };
+    if (!detected?.faces.length) {
+      const upright = draw(photo, 'document', 0);
+      return { faceCount: 0, jpegBase64: upright.toDataURL('image/jpeg', 0.85).split(',')[1] };
+    }
+    const { image, faces } = detected;
+    const masks = maskBoxes(faces.map((f) => f.box), image.width, image.height);
+    if (coveredShare(masks, image.width, image.height) > MAX_MASKED_SHARE) return { faceCount: faces.length, jpegBase64: null };
+    const full = canvas(image.width, image.height);
+    full.context.drawImage(image, 0, 0);
+    const gray = MASK_GRAY.toString(16).padStart(2, '0');
+    full.context.fillStyle = `#${gray}${gray}${gray}`;
+    for (const box of masks) full.context.fillRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
+    return { faceCount: faces.length, jpegBase64: full.element.toDataURL('image/jpeg', 0.85).split(',')[1] };
   } catch (error) {
     if (__DEV__) console.warn('[face] document image error:', error instanceof Error ? error.message : String(error));
     throw new FaceCheckError('model_unavailable', 'No se pudo procesar la imagen en este navegador. Inténtalo de nuevo.');

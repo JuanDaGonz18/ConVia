@@ -1449,7 +1449,8 @@
       "flat": "Pon el carné sobre una mesa, sin reflejos.",
       "light": "Con buena luz y enfocado.",
       "whole": "Que se vea el carné completo.",
-      "privacy": "Tu cara se compara con tu selfie en este dispositivo y se excluye: solo se envía el resto del carné."
+      "privacy": "Tu cara se compara con tu selfie en este dispositivo y se tapa con un recuadro gris antes de enviar el carné.",
+      "institution": "Que se vea el nombre de tu universidad o empresa."
     },
     "takePhoto": "Tomar foto del carné",
     "fromGallery": "Elegir de la galería",
@@ -1522,12 +1523,12 @@
     "yourInstitution": "tu institución"
   },
   "studentDocument": {
-    "entry": "Mi carné no tiene foto",
-    "title": "Carné sin foto",
-    "subtitle": "Sube el frente de tu carné y una captura de tu cuenta institucional (Teams, Outlook o el portal estudiantil).",
-    "privacy": "Recorta la captura para que solo se vean tu nombre y tu correo, sin foto de perfil. Revisamos en tu dispositivo que ninguna imagen muestre una cara antes de enviarla; solo guardamos el resultado y el dominio de tu correo.",
+    "entry": "Prefiero revisión manual",
+    "title": "Revisión manual",
+    "subtitle": "Sube el frente de tu carné (con o sin foto) y una captura de tu cuenta institucional (Teams, Outlook o el portal estudiantil). Una persona lo revisa.",
+    "privacy": "Antes de enviar, tu dispositivo tapa con un recuadro gris cualquier cara de las imágenes (la foto del carné o la de perfil). Solo guardamos el resultado y el dominio de tu correo.",
     "cardTitle": "1. Frente del carné",
-    "cardHint": "Foto o imagen del frente, completo y legible.",
+    "cardHint": "Foto del frente completo y legible, donde se vea el nombre de tu institución.",
     "screenshotTitle": "2. Captura de tu cuenta",
     "screenshotHint": "Recortada a tu nombre completo y tu correo institucional.",
     "cardHasFace": "Tu carné tiene foto: usa «Verificar con mi carné», que es automático.",
@@ -1540,7 +1541,9 @@
     "reviewerNotes": "Lo que verá quien revisa:",
     "retryTitle": "No pudimos leer los documentos",
     "retryText": "Intenta con imágenes más nítidas: el nombre en el carné, y el nombre y el correo en la captura.",
-    "failed": "No se pudieron enviar los documentos."
+    "failed": "No se pudieron enviar los documentos.",
+    "faceCovered": "Tapamos la cara con un recuadro gris: no sale de tu dispositivo.",
+    "mostlyFace": "La cara ocupa casi toda la imagen y no quedaría nada para revisar. Toma la foto del carné completo, un poco más lejos."
   },
   "assistant": {
     "kicker": "ASISTENTE",

@@ -349,13 +349,16 @@ export async function analyzeStudentCard(photoUri: string): Promise<StudentCardA
   }
 }
 
-/** A document image to send whole (card without photo, cropped account screenshot): how many faces it shows, and its JPEG. */
-export type DocumentImage = { faceCount: number; jpegBase64: string };
+/**
+ * A document image to send whole for the manual review (card front, account screenshot): how many
+ * faces it showed (painted gray in the JPEG), and the JPEG; null when the faces cover almost all
+ * of it and there would be nothing left to read.
+ */
+export type DocumentImage = { faceCount: number; jpegBase64: string | null };
 
 /**
- * Before a card without photo or an account screenshot is sent, the device makes sure no face is
- * in it (a Teams or Outlook profile picture, or a card that does have a photo): any face found
- * means the image is NOT sent and the user is asked to crop it or use the photo-card path.
+ * Before a card front or an account screenshot is sent, every face in it (the card's portrait, a
+ * Teams or Outlook profile picture) is painted gray on the phone, so no face is ever sent.
  * Returns the image as JPEG (longest side 1600 px) for the upload.
  */
 export async function inspectDocumentImage(photoUri: string): Promise<DocumentImage> {
@@ -367,14 +370,25 @@ export async function inspectDocumentImage(photoUri: string): Promise<DocumentIm
     const working = scale < 1
       ? await original.resizeAsync(Math.round(original.width * scale), Math.round(original.height * scale))
       : original;
-    let faceCount = 0;
+    let detected: { image: Image; faces: Face[] } | null = null;
     try {
-      faceCount = (await detectUpright(working, 'document', tempFiles)).faces.length;
+      detected = await detectUpright(working, 'document', tempFiles);
     } catch (error) {
       if (!(error instanceof FaceCheckError)) throw error;
     }
-    const encoded = await working.toEncodedImageDataAsync('jpg', 85);
-    return { faceCount, jpegBase64: toBase64(new Uint8Array(encoded.buffer)) };
+    if (!detected?.faces.length) {
+      const encoded = await working.toEncodedImageDataAsync('jpg', 85);
+      return { faceCount: 0, jpegBase64: toBase64(new Uint8Array(encoded.buffer)) };
+    }
+    const { image, faces } = detected;
+    const masks = maskBoxes(faces.map((f) => f.bounds as { x: number; y: number; width: number; height: number }), image.width, image.height);
+    if (coveredShare(masks, image.width, image.height) > MAX_MASKED_SHARE) return { faceCount: faces.length, jpegBase64: null };
+    const raw = await image.toRawPixelDataAsync();
+    const pixels = new Uint8Array(raw.buffer.slice(0));
+    paintBoxes(pixels, raw.width, raw.height, raw.pixelFormat, masks);
+    const masked = await images.loadFromRawPixelDataAsync({ ...raw, buffer: pixels.buffer });
+    const encoded = await masked.toEncodedImageDataAsync('jpg', 85);
+    return { faceCount: faces.length, jpegBase64: toBase64(new Uint8Array(encoded.buffer)) };
   } catch (error) {
     if (__DEV__) console.warn('[face] document image error:', error instanceof Error ? error.message : String(error));
     throw new FaceCheckError('model_unavailable', 'No se pudo procesar la imagen en este teléfono. Inténtalo de nuevo.');

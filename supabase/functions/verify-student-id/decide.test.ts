@@ -125,7 +125,6 @@ describe('decideDocument (card without photo + account screenshot)', () => {
       [decideDocument(doc({}, { signs_of_editing: true }), ctx), 'edited_screenshot'],
       [decideDocument(doc({}, { looks_like_institutional_account: false }), ctx), 'not_institutional_account'],
       [decideDocument(doc({ expiry_date: '2025-01-31' }), ctx), 'expired'],
-      [decideDocument(doc({ has_person_photo: true }), ctx), 'card_has_photo'],
       [decideDocument(doc({ institution_name: 'UNIVERSIDAD DE LOS ANDES' }), ctx), 'institution_mismatch'],
     ] as const) {
       assert.equal(result.decision, 'review', reason);

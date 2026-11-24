@@ -1449,7 +1449,8 @@
       "flat": "Lay the card on a table, without glare.",
       "light": "In good light and in focus.",
       "whole": "The whole card visible.",
-      "privacy": "Your face is compared with your selfie on this device and left out: only the rest of the card is sent."
+      "privacy": "Your face is compared with your selfie on this device and covered with a gray box before the card is sent.",
+      "institution": "Your university's or company's name must be visible."
     },
     "takePhoto": "Photograph my ID",
     "fromGallery": "Choose from gallery",
@@ -1522,12 +1523,12 @@
     "yourInstitution": "your institution"
   },
   "studentDocument": {
-    "entry": "My student card has no photo",
-    "title": "Card without photo",
-    "subtitle": "Upload the front of your card and a screenshot of your institutional account (Teams, Outlook or the student portal).",
-    "privacy": "Crop the screenshot so only your name and email show, without a profile picture. Your device checks that no image shows a face before sending it; we only keep the result and your email domain.",
+    "entry": "I'd rather have a manual review",
+    "title": "Manual review",
+    "subtitle": "Upload the front of your card (with or without a photo) and a screenshot of your institutional account (Teams, Outlook or the student portal). A person reviews it.",
+    "privacy": "Before sending, your device covers any face in the images (the card photo or a profile picture) with a gray box. We only keep the result and your e-mail domain.",
     "cardTitle": "1. Front of the card",
-    "cardHint": "A photo or image of the whole front, legible.",
+    "cardHint": "A photo of the whole front, readable, showing your institution's name.",
     "screenshotTitle": "2. Account screenshot",
     "screenshotHint": "Cropped to your full name and institutional email.",
     "cardHasFace": "Your card has a photo: use \"Verify with my student ID\", which is automatic.",
@@ -1540,7 +1541,9 @@
     "reviewerNotes": "What the reviewer will see:",
     "retryTitle": "We couldn't read the documents",
     "retryText": "Try sharper images: the name on the card, and the name and email on the screenshot.",
-    "failed": "Couldn't send the documents."
+    "failed": "Couldn't send the documents.",
+    "faceCovered": "We covered the face with a gray box: it never leaves your device.",
+    "mostlyFace": "The face fills almost the whole image, so there would be nothing left to review. Take the photo of the whole card from a bit farther away."
   },
   "assistant": {
     "kicker": "ASSISTANT",
