@@ -19,7 +19,7 @@ import { typography } from '@/constants/typography';
 import { SavedUsersPanel } from '@/dev/SavedUsersPanel';
 import { savedUsers } from '@/dev/savedUsers';
 import i18n from '@/i18n';
-import { authService, isGoogleAuthEnabled, isMicrosoftAuthEnabled } from '@/services/authService';
+import { authService, isGoogleAuthEnabled } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
 
@@ -145,20 +145,12 @@ export default function LoginScreen() {
                 onBusyChange={setOauthLoading}
                 onError={setError}
                 provider="google"
-                showTerms={!isMicrosoftAuthEnabled}
                 title={t('auth.login.google')}
               />
             ) : null}
-            {useSupabase && isMicrosoftAuthEnabled ? (
-              <OAuthSignInButton
-                disabled={loading || oauthLoading}
-                dividerText={isGoogleAuthEnabled ? undefined : t('auth.login.oauthDivider')}
-                onBusyChange={setOauthLoading}
-                onError={setError}
-                provider="microsoft"
-                title={t('auth.login.microsoft')}
-              />
-            ) : null}
+
+            {/* Microsoft sign-in was removed: those accounts set a password with "¿Olvidaste tu contraseña?". */}
+            {useSupabase ? <Text style={styles.formerMicrosoft}>{t('auth.login.formerMicrosoft')}</Text> : null}
           </View>
 
           <View style={styles.divider}>
@@ -216,6 +208,7 @@ const styles = StyleSheet.create({
   dividerText: { ...typography.caption, color: colors.textSecondary },
   forgotRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'flex-end' },
   forgot: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
+  formerMicrosoft: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
   demo: { gap: spacing[8] },
   demoTitle: { ...typography.caption, color: colors.textSecondary, textAlign: 'center', textTransform: 'uppercase' },
 });

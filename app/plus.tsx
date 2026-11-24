@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';
+import { PlusPayment } from '@/components/subscription/PlusPayment';
 import { ButtonSecondary } from '@/components/ui/ButtonSecondary';
 import { Notice } from '@/components/ui/Notice';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -17,6 +18,7 @@ import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import { monitoring } from '@/services/monitoringService';
 import { subscriptionService } from '@/services/subscriptionService';
+import { PAYMENTS_OFF, type PaymentInfo } from '@/subscription/payments';
 import { CAPABILITIES, Capability, DEFAULT_PLANS, LIMIT_INFO, Plan, PlanLimit, PlanTier } from '@/subscription/plans';
 import { refreshPlan, usePlan } from '@/subscription/usePlan';
 import { localeTag } from '@/i18n';
@@ -74,11 +76,14 @@ export default function PlusScreen() {
   const { plan, isPlus, betaMode } = usePlan();
   const [plans, setPlans] = useState<Record<PlanTier, Plan>>(DEFAULT_PLANS);
   const [checking, setChecking] = useState(false);
+  // Off unless the server enables transfer payments (migration 047); while off the screen is unchanged.
+  const [payments, setPayments] = useState<PaymentInfo>(PAYMENTS_OFF);
   useEffect(() => monitoring.track('plan_view', { plus: isPlus }), [isPlus]);
 
   useFocusEffect(useCallback(() => {
     void refreshPlan();
     void subscriptionService.getPlans().then(setPlans).catch(() => undefined);
+    void subscriptionService.getPaymentInfo().then(setPayments);
   }, []));
 
   const checkAgain = async () => {
@@ -136,7 +141,9 @@ export default function PlusScreen() {
           </Notice>
         ) : null}
 
-        {!isPlus ? (
+        {payments.enabled ? (
+          <PlusPayment info={payments} onSubmitted={() => void refreshPlan()} />
+        ) : !isPlus ? (
           <Notice title="Muy pronto podrás suscribirte aquí" tone="info">
             Los pagos dentro de la app aún no están habilitados. Durante la etapa de pruebas, el equipo de ConVía activa ConVía+ directamente en tu cuenta.
           </Notice>
@@ -146,7 +153,7 @@ export default function PlusScreen() {
           icon="refresh"
           loading={checking}
           onPress={() => void checkAgain()}
-          title={isPlus ? 'Actualizar mi plan' : 'Ya me activaron ConVía+'}
+          title={isPlus || payments.enabled ? 'Actualizar mi plan' : 'Ya me activaron ConVía+'}
         />
       </ScrollView>
     </SafeAreaView>

@@ -10,7 +10,9 @@ const headers = {
 
 // Face verification runs on the device and stores no photos today; face-verifications is
 // still emptied in case it holds files from older flows.
-const BUCKETS = ['avatars', 'vehicle-photos', 'face-verifications', 'feedback'];
+// payment-receipts: ConVía+ transfer receipts (migration 047); the payment record itself is kept
+// without the person (user_id set null) for the 5-year accounting retention.
+const BUCKETS = ['avatars', 'vehicle-photos', 'face-verifications', 'feedback', 'payment-receipts'];
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers });

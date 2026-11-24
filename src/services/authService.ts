@@ -10,7 +10,7 @@ import { legalService } from '@/services/legalService';
 import { monitoring } from '@/services/monitoringService';
 import { notificationService } from '@/services/notificationService';
 import { DriverStatus, User, UserRole } from '@/types';
-import { googleErrorMessage, microsoftErrorMessage, parseAuthUrl } from '@/utils/authLink';
+import { googleErrorMessage, parseAuthUrl } from '@/utils/authLink';
 
 const SESSION_KEY = 'convia.demo.session';
 const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
@@ -70,19 +70,6 @@ function authCallbackUrl() {
   return 'convia://callback';
 }
 
-/** Microsoft sign-in is shown only once the Azure provider is configured in Supabase. */
-export const isMicrosoftAuthEnabled = process.env.EXPO_PUBLIC_MICROSOFT_AUTH === 'true';
-
-/**
- * Microsoft goes straight to the institution's sign-in page instead of the
- * generic account picker. The server still checks the tenant (migration 27);
- * this is only a shortcut for the person.
- */
-const MICROSOFT_DOMAIN_HINT = process.env.EXPO_PUBLIC_MICROSOFT_DOMAIN_HINT ?? 'unisabana.edu.co';
-
-/** Marks on the callback URL that the person is coming back from Microsoft (web build). */
-export const MICROSOFT_CALLBACK_FLAG = 'microsoft';
-
 /** Google sign-in is shown only once the Google provider is configured in Supabase (docs/OPERACION.md §5b). */
 export const isGoogleAuthEnabled = process.env.EXPO_PUBLIC_GOOGLE_AUTH === 'true';
 
@@ -90,19 +77,19 @@ export const isGoogleAuthEnabled = process.env.EXPO_PUBLIC_GOOGLE_AUTH === 'true
 export const GOOGLE_CALLBACK_FLAG = 'google';
 
 /** Callback flags of the OAuth providers: coming back with one of these accepts the terms (first time only). */
-export const OAUTH_CALLBACK_FLAGS: readonly string[] = [MICROSOFT_CALLBACK_FLAG, GOOGLE_CALLBACK_FLAG];
+export const OAUTH_CALLBACK_FLAGS: readonly string[] = [GOOGLE_CALLBACK_FLAG];
 
 type OAuthOptions = {
-  provider: 'azure' | 'google';
+  provider: 'google';
   flag: string;
-  method: 'microsoft' | 'google';
+  method: 'google';
   scopes?: string;
   queryParams: Record<string, string>;
   errorMessage: (link: ReturnType<typeof parseAuthUrl>) => string;
 };
 
 /**
- * Supabase Auth OAuth with PKCE, shared by Microsoft and Google.
+ * Supabase Auth OAuth with PKCE (Google; ready for other providers).
  * Phones: opens the provider in the system browser and returns the user, or
  * null when the person closes the window.
  * Web: the whole page goes to the provider and comes back to /callback, which
@@ -143,7 +130,7 @@ async function signInWithOAuthProvider({ provider, flag, method, scopes, queryPa
 export const RESET_PASSWORD_NEXT = 'reset-password';
 
 /**
- * The terms are shown next to the Microsoft button: continuing accepts them (first time only),
+ * The terms are shown next to the Google button: continuing accepts them (first time only),
  * in the current version. Someone who accepted an older version gets the new-terms modal instead.
  */
 export async function acceptTermsIfNeeded(userId: string) {
@@ -216,23 +203,6 @@ export const authService = {
     const user = buildDemoUser(email, 'client', 'Mateo Ruiz', 'mock-user-current');
     await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({ user }));
     return user;
-  },
-
-  /**
-   * Institutional Microsoft account (Supabase Auth + Azure provider, PKCE).
-   * The server only accepts allowlisted tenants with the institution's domain
-   * (migration 27). Signs in and also creates the account the first time.
-   * See signInWithOAuthProvider for what it returns on phones and on the web.
-   */
-  signInWithMicrosoft(): Promise<User | null> {
-    return signInWithOAuthProvider({
-      provider: 'azure',
-      flag: MICROSOFT_CALLBACK_FLAG,
-      method: 'microsoft',
-      scopes: 'openid email profile offline_access',
-      queryParams: { domain_hint: MICROSOFT_DOMAIN_HINT, prompt: 'select_account' },
-      errorMessage: microsoftErrorMessage,
-    });
   },
 
   /**

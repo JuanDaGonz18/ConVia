@@ -9,9 +9,9 @@ import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { Notice } from '@/components/ui/Notice';
 
 import { colors } from '@/constants/colors';
-import { acceptTermsIfNeeded, authService, EMAIL_LINK_TYPES, type EmailLinkType, exchangeAuthCode, GOOGLE_CALLBACK_FLAG, MICROSOFT_CALLBACK_FLAG, OAUTH_CALLBACK_FLAGS, RESET_PASSWORD_NEXT, verifyEmailLink } from '@/services/authService';
+import { acceptTermsIfNeeded, authService, EMAIL_LINK_TYPES, type EmailLinkType, exchangeAuthCode, GOOGLE_CALLBACK_FLAG, OAUTH_CALLBACK_FLAGS, RESET_PASSWORD_NEXT, verifyEmailLink } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
-import { authLinkErrorMessage, googleErrorMessage, microsoftErrorMessage, parseAuthLink } from '@/utils/authLink';
+import { authLinkErrorMessage, googleErrorMessage, parseAuthLink } from '@/utils/authLink';
 import { errorMessage } from '@/utils/format';
 
 export default function AuthCallbackScreen() {
@@ -25,14 +25,13 @@ export default function AuthCallbackScreen() {
   // Failures (expired or reused links) arrive in the URL fragment, which route params don't include.
   const link = parseAuthLink(useLinkingURL(), params);
   const code = link.code;
-  // The web build comes back here from Microsoft or Google (see signInWithOAuthProvider in authService).
-  const fromMicrosoft = params.via === MICROSOFT_CALLBACK_FLAG;
+  // The web build comes back here from Google (see signInWithOAuthProvider in authService).
   const fromGoogle = params.via === GOOGLE_CALLBACK_FLAG;
   const fromOAuth = OAUTH_CALLBACK_FLAGS.includes(params.via ?? '');
-  const linkErrorMessage = fromMicrosoft ? microsoftErrorMessage : fromGoogle ? googleErrorMessage : authLinkErrorMessage;
+  const linkErrorMessage = fromGoogle ? googleErrorMessage : authLinkErrorMessage;
   const callbackError = link.errorCode ? linkErrorMessage(link) : null;
-  const failedKey = fromMicrosoft ? 'auth.callback.microsoftFailed' : fromGoogle ? 'auth.callback.googleFailed' : 'auth.callback.invalidOrUsed';
-  const retryKey = fromMicrosoft ? 'auth.callback.retryMicrosoft' : fromGoogle ? 'auth.callback.retryGoogle' : 'auth.callback.retryLogin';
+  const failedKey = fromGoogle ? 'auth.callback.googleFailed' : 'auth.callback.invalidOrUsed';
+  const retryKey = fromGoogle ? 'auth.callback.retryGoogle' : 'auth.callback.retryLogin';
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const [error, setError] = useState<string | null>(
     callbackError ?? (code || tokenHash ? null : t('auth.callback.invalidLink')),
@@ -43,7 +42,7 @@ export default function AuthCallbackScreen() {
   const signedIn = async () => {
     const user = await authService.getCurrentUser();
     if (!user) {
-      setError(t(fromMicrosoft ? 'auth.callback.noProfileMicrosoft' : fromOAuth ? 'auth.callback.noProfileOAuth' : 'auth.callback.noProfile'));
+      setError(t(fromOAuth ? 'auth.callback.noProfileOAuth' : 'auth.callback.noProfile'));
       return;
     }
     if (fromOAuth) await acceptTermsIfNeeded(user.id);
