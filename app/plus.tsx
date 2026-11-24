@@ -19,6 +19,7 @@ import { typography } from '@/constants/typography';
 import { monitoring } from '@/services/monitoringService';
 import { subscriptionService } from '@/services/subscriptionService';
 import { PAYMENTS_OFF, type PaymentInfo } from '@/subscription/payments';
+import { aiItemShown, useAiFeatures } from '@/services/aiFeatures';
 import { CAPABILITIES, Capability, DEFAULT_PLANS, LIMIT_INFO, Plan, PlanLimit, PlanTier } from '@/subscription/plans';
 import { refreshPlan, usePlan } from '@/subscription/usePlan';
 import { localeTag } from '@/i18n';
@@ -41,19 +42,19 @@ function limitLabel(value: number | null) {
  * catalog) and limits (from the server). During the beta, FREE shows "En beta"
  * for what the beta opens to everyone.
  */
-function planRows(plans: Record<PlanTier, Plan>, betaMode: boolean, limitTitle: (key: PlanLimit) => string): Row[] {
+function planRows(plans: Record<PlanTier, Plan>, betaMode: boolean, limitTitle: (key: PlanLimit) => string, ai: Set<string> | null): Row[] {
   const rows: Row[] = [{ label: 'Mapa', free: 'OpenStreetMap', plus: 'Google Maps' }];
   (Object.keys(CAPABILITIES) as Capability[])
     .filter((key) => {
       const info = CAPABILITIES[key];
-      return info.tier === 'plus' && info.implemented && key !== 'google_maps';
+      return info.tier === 'plus' && info.implemented && key !== 'google_maps' && aiItemShown(key, ai);
     })
     .forEach((key) => {
       const info = CAPABILITIES[key];
       rows.push({ label: info.title, free: betaMode && info.betaUnlocked ? 'En beta' : false, plus: true });
     });
   (Object.keys(LIMIT_INFO) as PlanLimit[])
-    .filter((key) => plans.free.planLimits[key] !== plans.plus.planLimits[key])
+    .filter((key) => plans.free.planLimits[key] !== plans.plus.planLimits[key] && aiItemShown(key, ai))
     .forEach((key) => rows.push({
       label: limitTitle(key),
       free: limitLabel(plans.free.planLimits[key]),
@@ -72,6 +73,7 @@ function Cell({ value, highlight }: Readonly<{ value: string | boolean; highligh
 }
 
 export default function PlusScreen() {
+  const aiFeatures = useAiFeatures();
   const { t } = useTranslation();
   const { plan, isPlus, betaMode } = usePlan();
   const [plans, setPlans] = useState<Record<PlanTier, Plan>>(DEFAULT_PLANS);
@@ -126,7 +128,7 @@ export default function PlusScreen() {
             <Text style={[styles.cell, styles.headerText]}>Gratis</Text>
             <View style={styles.cell}><PlusBadge /></View>
           </View>
-          {[...ESSENTIALS, ...planRows(plans, betaMode, (key) => t(`plusLimits.${key}`, { defaultValue: LIMIT_INFO[key].title }))].map((row) => (
+          {[...ESSENTIALS, ...planRows(plans, betaMode, (key) => t(`plusLimits.${key}`, { defaultValue: LIMIT_INFO[key].title }), aiFeatures)].map((row) => (
             <View key={row.label} style={styles.row}>
               <Text style={styles.label}>{row.label}</Text>
               <View style={styles.cell}><Cell value={row.free} /></View>
