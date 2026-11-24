@@ -67,6 +67,9 @@ jobs:
       - name: Pruebas de funciones
         run: npm run test:functions
 
+      - name: Encender las funciones de IA para los E2E (antes de servirlas: guardan la lista 1 min) (en producción solo el carné)
+        run: npx supabase db query "update public.app_config set ai_features = '{student_card,vehicle_verify,vehicle_suggest,pickup_verify,assistant}' where id"
+
       - name: Servir Edge Functions (ALLOW_MOCK=true)
         run: |
           env_file="$RUNNER_TEMP/functions.env"
@@ -83,9 +86,6 @@ jobs:
           echo "::error::Las funciones no respondieron"
           cat "$RUNNER_TEMP/functions.log"
           exit 1
-
-      - name: Encender las funciones de IA para los E2E (en producción solo el carné)
-        run: npx supabase db query "update public.app_config set ai_features = '{student_card,vehicle_verify,vehicle_suggest,pickup_verify,assistant}' where id"
 
       - name: E2E verify-vehicle
         run: npm run test:verify-vehicle
