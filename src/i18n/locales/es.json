@@ -1450,7 +1450,8 @@
       "light": "Con buena luz y enfocado.",
       "whole": "Que se vea el carné completo.",
       "privacy": "Tu cara se compara con tu selfie en este dispositivo y se tapa con un recuadro gris antes de enviar el carné.",
-      "institution": "Que se vea el nombre de tu universidad o empresa."
+      "institution": "Que se vea el nombre de tu universidad o empresa.",
+      "noInstitution": "¿Tu carné no dice el nombre de tu universidad? Usa «Prefiero revisión manual» y sube también una captura de Teams u Outlook, donde se vea tu correo institucional."
     },
     "takePhoto": "Tomar foto del carné",
     "fromGallery": "Elegir de la galería",

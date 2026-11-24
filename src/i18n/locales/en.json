@@ -1450,7 +1450,8 @@
       "light": "In good light and in focus.",
       "whole": "The whole card visible.",
       "privacy": "Your face is compared with your selfie on this device and covered with a gray box before the card is sent.",
-      "institution": "Your university's or company's name must be visible."
+      "institution": "Your university's or company's name must be visible.",
+      "noInstitution": "Your card doesn't show your university's name? Use \"I'd rather have a manual review\" and also upload a Teams or Outlook screenshot showing your institutional e-mail."
     },
     "takePhoto": "Photograph my ID",
     "fromGallery": "Choose from gallery",

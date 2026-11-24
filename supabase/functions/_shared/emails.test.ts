@@ -45,4 +45,13 @@ describe('emails', () => {
     assert.doesNotMatch(mail.html, /<img src=x>/);
     assert.equal(escapeHtml('<a>'), '&lt;a&gt;');
   });
+
+  it('goodbye: confirms the deletion, asks why and leaves the door open', () => {
+    const mail = renderEmail({ ...base, kind: 'goodbye' });
+    assert.equal(mail.subject, 'Tu cuenta de ConVía fue eliminada');
+    assert.match(mail.html, /eliminamos tu cuenta/);
+    assert.match(mail.html, /Responde este correo/);
+    assert.match(mail.html, /no te enviaremos más/);
+    assert.doesNotMatch(mail.html, /Recibes este correo porque tienes una cuenta/);
+  });
 });
