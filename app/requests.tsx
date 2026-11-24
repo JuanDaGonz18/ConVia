@@ -26,6 +26,7 @@ import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { tripService, TripRequestRecord, TripRequestStatus } from '@/services/tripService';
 import i18n from '@/i18n';
 import { useAppStore } from '@/store/appStore';
+import { useAiFeature } from '@/services/aiFeatures';
 import { errorMessage, formatDateTime, formatMessageTime } from '@/utils/format';
 
 const STATUS_COLORS: Record<TripRequestStatus, { background: string; color: string }> = {
@@ -55,6 +56,7 @@ export default function RequestsScreen() {
   // Request waiting for the driver's face check before it is accepted.
   const [pendingAccept, setPendingAccept] = useState<string | null>(null);
   const [mapOpenId, setMapOpenId] = useState<string | null>(null);
+  const pickupVerifyOn = useAiFeature('pickup_verify');
   // Rejecting or cancelling waits for an explicit confirmation.
   const [confirm, setConfirm] = useState<{ requestId: string; kind: 'reject' | 'cancel' } | null>(null);
   const [requests, setRequests] = useState<TripRequestRecord[]>([]);
@@ -222,11 +224,13 @@ export default function RequestsScreen() {
               ) : null}
               {!isDriver && request.estado === 'aceptado' ? (
                 <>
-                  <ButtonPrimary
-                    icon="car-outline"
-                    onPress={() => router.push({ pathname: '/pickup-verify', params: { requestId: request.id, tripId: request.trip_id } })}
-                    title={t('pickup.button')}
-                  />
+                  {pickupVerifyOn ? (
+                    <ButtonPrimary
+                      icon="car-outline"
+                      onPress={() => router.push({ pathname: '/pickup-verify', params: { requestId: request.id, tripId: request.trip_id } })}
+                      title={t('pickup.button')}
+                    />
+                  ) : null}
                   <ButtonSecondary
                     icon="qr-code-outline"
                     onPress={() => router.push({ pathname: '/boarding-qr', params: { requestId: request.id } })}

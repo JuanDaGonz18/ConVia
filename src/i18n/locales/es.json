@@ -1013,6 +1013,8 @@
     "institutionAlreadyVerified": "Tu institución ya está verificada.",
     "tooManyAttempts": "Demasiados intentos por hoy. Inténtalo mañana.",
     "noInstitutionChosen": "Primero elige tu institución.",
+    "aiUnavailable": "La verificación automática no está disponible en este momento. Inténtalo más tarde.",
+    "tooManyAttempts": "Hiciste muchos intentos hoy. Inténtalo de nuevo mañana o usa la verificación manual.",
     "storageQuota": "Alcanzaste el límite de archivos guardados. Inténtalo más tarde."
   },
   "distance": {

@@ -217,6 +217,7 @@ export type Database = {
       }
       app_config: {
         Row: {
+          ai_features: string[]
           beta_mode: boolean
           bre_b_key: string | null
           id: boolean
@@ -226,6 +227,7 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
+          ai_features?: string[]
           beta_mode?: boolean
           bre_b_key?: string | null
           id?: boolean
@@ -234,6 +236,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_features?: string[]
           beta_mode?: boolean
           bre_b_key?: string | null
           id?: boolean
