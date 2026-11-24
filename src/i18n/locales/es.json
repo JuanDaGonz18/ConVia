@@ -146,7 +146,8 @@
       },
       "oauthTitle": "La forma más rápida",
       "googleButton": "Crear cuenta con Google",
-      "oauthDivider": "Con tu cuenta de Google"
+      "oauthDivider": "Con tu cuenta de Google",
+      "promo": "Regístrate hasta el 14 de febrero y recibe {{months}} meses de ConVía+ gratis."
     },
     "forgot": {
       "kicker": "RECUPERAR ACCESO",
@@ -1013,7 +1014,6 @@
     "tooManyAttempts": "Demasiados intentos por hoy. Inténtalo mañana.",
     "noInstitutionChosen": "Primero elige tu institución.",
     "aiUnavailable": "La verificación automática no está disponible en este momento. Inténtalo más tarde.",
-    "tooManyAttempts": "Hiciste muchos intentos hoy. Inténtalo de nuevo mañana o usa la verificación manual.",
     "storageQuota": "Alcanzaste el límite de archivos guardados. Inténtalo más tarde."
   },
   "distance": {

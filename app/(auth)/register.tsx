@@ -27,6 +27,7 @@ import { typography } from '@/constants/typography';
 import i18n from '@/i18n';
 import { authService, isGoogleAuthEnabled } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
+import { PLUS_PROMO_MONTHS, plusPromoActive } from '@/subscription/promo';
 import { UserRole } from '@/types';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
 import { missingPasswordRules, passwordMeetsRules } from '@/utils/password';
@@ -150,6 +151,9 @@ export default function RegisterScreen() {
 
           <View style={styles.card}>
             {error ? <Notice onDismiss={() => setError(null)} tone="error">{error}</Notice> : null}
+            {!registeredUserId && plusPromoActive() ? (
+              <Notice tone="success">{t('auth.register.promo', { months: PLUS_PROMO_MONTHS })}</Notice>
+            ) : null}
 
             {registeredUserId ? (
               <View style={styles.stepTwo}>

@@ -23,6 +23,8 @@ declare
   bad integer := 0;
 
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   -- ---------------- datos de prueba (como administrador) ----------------
   -- Estas pruebas verifican las reglas tal como regirán después de la beta
   -- (límites de plan aplicados). El cambio se deshace al final.

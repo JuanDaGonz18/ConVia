@@ -14,6 +14,8 @@ declare
   r text := ''; n integer; bad integer;
   v_ruta jsonb := '{"coords": [[-74.033, 4.8615], [-74.13, 4.765]], "km": 14, "minutes": 25, "via": []}';
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   select id into inst from public.institutions where dominio = 'unisabana.edu.co';
 
   -- ================= Registro =================

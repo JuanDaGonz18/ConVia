@@ -13,6 +13,8 @@ declare
   r text := ''; t text; n integer; ok boolean; caps text[]; v_beta boolean;
   bad integer;
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
     (dF, 'zz.free@unisabana.edu.co',    '{"nombre":"ZZ Free"}', 'authenticated', 'authenticated'),
     (pP, 'zz.plus@unisabana.edu.co',    '{"nombre":"ZZ Plus"}',    'authenticated', 'authenticated'),

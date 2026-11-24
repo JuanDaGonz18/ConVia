@@ -16,6 +16,8 @@ declare
   r text := ''; n integer; bad integer; v text;
   cur text := private.current_legal_version();
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   -- ================= Registro =================
   insert into auth.users (id, email, raw_user_meta_data, raw_app_meta_data, aud, role) values
     (uNew, 'zz.legal.new@gmail.com', jsonb_build_object('nombre', 'ZZ New', 'terms_accepted', true, 'terms_version', cur), '{"provider":"email"}', 'authenticated', 'authenticated'),

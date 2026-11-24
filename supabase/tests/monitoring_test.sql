@@ -13,6 +13,8 @@ declare
   r text := ''; n integer; bad integer; ok boolean; v_id uuid; v_props jsonb; v_text text; bodies text[];
   shot text;
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   delete from public.institution_requests;
   update public.institution_memberships set status = 'pending' where status = 'review';
   delete from private.admin_review_pushes;

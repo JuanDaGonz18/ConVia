@@ -22,6 +22,7 @@ import i18n from '@/i18n';
 import { authService, isGoogleAuthEnabled } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
+import { PLUS_PROMO_MONTHS, plusPromoActive } from '@/subscription/promo';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -96,6 +97,7 @@ export default function LoginScreen() {
             <Text style={styles.cardTitle}>{t('auth.login.title')}</Text>
 
             {error ? <Notice onDismiss={() => setError(null)} tone="error">{error}</Notice> : null}
+            {plusPromoActive() ? <Notice tone="success">{t('auth.register.promo', { months: PLUS_PROMO_MONTHS })}</Notice> : null}
 
             <TextField
               autoCapitalize="none"
