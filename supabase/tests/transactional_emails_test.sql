@@ -50,9 +50,9 @@ begin
   r := r || case when n = 3 then E'\nOK  claim: welcome ×2 and plus_first with e-mail and name' else E'\nBAD claim: ' || n end;
   select count(*) into n from public.service_claim_emails(50) c where c.email like 'zz.mail.%';
   r := r || case when n = 0 then E'\nOK  claim: claimed rows are not handed out twice' else E'\nBAD claim: handed out again' end;
+  execute 'reset role';
   perform public.service_mark_email(o.id, null) from private.email_outbox o where o.user_id = uA and o.kind = 'welcome';
   perform public.service_mark_email(o.id, 'brevo 500') from private.email_outbox o where o.user_id = uB;
-  execute 'reset role';
   r := r || case when (select sent_at is not null from private.email_outbox where user_id = uA and kind = 'welcome')
                       and (select sent_at is null and claimed_at is null and attempts = 1 and last_error = 'brevo 500'
                              from private.email_outbox where user_id = uB)
