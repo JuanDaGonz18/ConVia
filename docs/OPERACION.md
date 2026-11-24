@@ -210,7 +210,7 @@ OAuth con los permisos básicos).
 2. **APK:** `npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_GOOGLE_AUTH --value true --visibility plaintext`,
    y en tu `.env`; compilar y publicar un APK nuevo.
 3. **Términos 1.5:** esta función viene con `LEGAL_VERSION = '1.5'`. Aplicar la
-   migración `20261124130000_legal_version_1_5.sql` **después** de publicar la
+   migración `20261124140908_legal_version_1_5.sql` **después** de publicar la
    web y el APK nuevos (ver su encabezado).
 
 ### Verificar antes de anunciarlo
