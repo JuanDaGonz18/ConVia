@@ -240,6 +240,58 @@ desde su tenant autorizado, Supabase agrega la identidad a la misma cuenta.
 El secreto de Microsoft **nunca** va a la app ni al repositorio; solo vive en
 Supabase.
 
+## 5b. Inicio de sesión con Google
+
+"Continuar con Google" (login) y "Crear cuenta con Google" (registro) usan el
+mismo flujo PKCE que Microsoft (`signInWithOAuthProvider` en
+`src/services/authService.ts`), ocultos hasta activarlos. Cualquier cuenta de
+Google sirve, como el registro con correo: si el correo es de un dominio
+institucional, `handle_new_user` verifica la institución al instante; si no,
+la persona la elige después de entrar. Cuesta $0 (Google Cloud no cobra por
+OAuth con los permisos básicos).
+
+### Configurar (una vez)
+
+1. **Google Cloud Console** (con tu cuenta, proyecto nuevo "ConVía"):
+   *Google Auth Platform* → *Branding*: nombre **ConVía**, correo de soporte,
+   logo, página principal y enlaces a la política de privacidad y a los
+   términos (`/app/legal?doc=privacy`). *Audience*: **External** y
+   *Publish app* (si queda en *Testing*, solo entran los correos de prueba).
+   *Data access*: solo `openid`, `.../auth/userinfo.email`,
+   `.../auth/userinfo.profile` (no requieren verificación de Google).
+2. *Clients* → *Create client* → **Web application**:
+   - *Authorized JavaScript origins*: la URL pública de la web (p. ej.
+     `https://juandagonz18.github.io`) y la de Cloudflare Pages si se usa.
+   - *Authorized redirect URIs*:
+     `https://hfnsgeunskbkapjavcao.supabase.co/auth/v1/callback`
+3. **Supabase** → Authentication → Sign In / Providers → **Google**: activar,
+   pegar *Client ID* y *Client secret*, guardar. El secreto vive solo en
+   Supabase, **nunca** en la app ni en el repositorio.
+4. Supabase → URL Configuration → *Redirect URLs*: deben estar la web
+   (`https://juandagonz18.github.io/ConVia/**`, y la de Cloudflare si aplica)
+   y `convia://**` (ya están por Microsoft).
+
+### Activar el botón
+
+1. **Web:** variable de repositorio `GOOGLE_AUTH` = `true` (GitHub → Settings →
+   Secrets and variables → Actions → *Variables*) y volver a correr *Sitio web*.
+2. **APK:** `npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_GOOGLE_AUTH --value true --visibility plaintext`,
+   y en tu `.env`; compilar y publicar un APK nuevo.
+3. **Términos 1.5:** esta función viene con `LEGAL_VERSION = '1.5'`. Aplicar la
+   migración `20261124130000_legal_version_1_5.sql` **después** de publicar la
+   web y el APK nuevos (ver su encabezado).
+
+### Verificar antes de anunciarlo
+
+Entrar con una cuenta Gmail (queda sin institución y la elige), con una cuenta
+de Google de un correo institucional (queda verificada) y con el correo de una
+cuenta ya existente de correo y contraseña (Supabase agrega la identidad a la
+misma cuenta, no crea otra). Probar en Safari (iPhone) y en el APK.
+
+**App Store:** si algún día se publica en iOS con login de Google, Apple pide
+también una opción equivalente que proteja la privacidad (Sign in with Apple
+la cumple; guía 4.8). La web y el APK no lo necesitan.
+
 ## 6. Prueba de carga (stack local, datos sintéticos)
 
 Nunca contra el proyecto alojado: el workflow levanta Supabase **local** en el

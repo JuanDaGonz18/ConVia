@@ -66,4 +66,21 @@ writeFileSync(indexPath, html);
 writeFileSync(join(site, '404.html'), html);
 writeFileSync(join(site, '.nojekyll'), '');
 
+// Security headers for hosts that read a _headers file (Cloudflare Pages; GitHub Pages ignores it).
+// No script-src/style-src CSP on purpose: the app loads map tiles, fonts and Supabase from other
+// origins, and a wrong CSP breaks the app silently. These lines only block what ConVía never needs.
+writeFileSync(
+  join(site, '_headers'),
+  [
+    '/*',
+    '  Strict-Transport-Security: max-age=31536000; includeSubDomains',
+    "  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'",
+    '  X-Frame-Options: DENY',
+    '  X-Content-Type-Options: nosniff',
+    '  Referrer-Policy: strict-origin-when-cross-origin',
+    '  Permissions-Policy: camera=(self), geolocation=(self), microphone=(self), payment=(), usb=(), interest-cohort=()',
+    '',
+  ].join('\n'),
+);
+
 console.log(`Site ready in ${site} (app at ${baseUrl}/)`);

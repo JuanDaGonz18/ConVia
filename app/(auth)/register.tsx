@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 
-import { MicrosoftSignInButton } from '@/components/auth/MicrosoftSignInButton';
+import { OAuthSignInButton } from '@/components/auth/OAuthSignInButton';
 import { FaceVerificationModal } from '@/components/face/FaceVerificationModal';
 import { FieldError } from '@/components/forms/FieldError';
 import { PasswordChecklist, PasswordField } from '@/components/forms/PasswordField';
@@ -25,7 +25,7 @@ import { radius } from '@/constants/radius';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 import i18n from '@/i18n';
-import { authService, isMicrosoftAuthEnabled } from '@/services/authService';
+import { authService, isGoogleAuthEnabled, isMicrosoftAuthEnabled } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
 import { UserRole } from '@/types';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
@@ -71,7 +71,7 @@ export default function RegisterScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [microsoftLoading, setMicrosoftLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [showFaceVerification, setShowFaceVerification] = useState(false);
   const [registeredUserId, setRegisteredUserId] = useState<string | null>(null);
 
@@ -161,16 +161,30 @@ export default function RegisterScreen() {
               </View>
             ) : (
               <>
-                {useSupabase && isMicrosoftAuthEnabled ? (
+                {useSupabase && (isGoogleAuthEnabled || isMicrosoftAuthEnabled) ? (
                   <View style={styles.microsoft}>
-                    <Text style={styles.microsoftTitle}>{t('auth.register.microsoftTitle')}</Text>
-                    <MicrosoftSignInButton
-                      disabled={loading}
-                      dividerText={t('auth.register.microsoftDivider')}
-                      onBusyChange={setMicrosoftLoading}
-                      onError={setError}
-                      title={t('auth.register.microsoftButton')}
-                    />
+                    <Text style={styles.microsoftTitle}>{t(isMicrosoftAuthEnabled ? 'auth.register.microsoftTitle' : 'auth.register.oauthTitle')}</Text>
+                    {isMicrosoftAuthEnabled ? (
+                      <OAuthSignInButton
+                        disabled={loading || oauthLoading}
+                        dividerText={t('auth.register.microsoftDivider')}
+                        onBusyChange={setOauthLoading}
+                        onError={setError}
+                        provider="microsoft"
+                        showTerms={!isGoogleAuthEnabled}
+                        title={t('auth.register.microsoftButton')}
+                      />
+                    ) : null}
+                    {isGoogleAuthEnabled ? (
+                      <OAuthSignInButton
+                        disabled={loading || oauthLoading}
+                        dividerText={isMicrosoftAuthEnabled ? undefined : t('auth.register.oauthDivider')}
+                        onBusyChange={setOauthLoading}
+                        onError={setError}
+                        provider="google"
+                        title={t('auth.register.googleButton')}
+                      />
+                    ) : null}
                     <View style={styles.orDivider}>
                       <View style={styles.orLine} />
                       <Text style={styles.orText}>{t('auth.register.orEmail')}</Text>
@@ -298,7 +312,7 @@ export default function RegisterScreen() {
             )}
 
             <ButtonPrimary
-              disabled={microsoftLoading}
+              disabled={oauthLoading}
               icon={registeredUserId ? 'scan-outline' : undefined}
               loading={loading}
               loadingTitle={t('auth.register.submitting')}

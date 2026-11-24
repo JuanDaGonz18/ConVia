@@ -52,3 +52,10 @@ export function microsoftErrorMessage(link: Pick<AuthLink, 'errorCode' | 'errorD
   }
   return 'No pudimos iniciar sesión con Microsoft. Inténtalo de nuevo.';
 }
+
+/** A clear Spanish explanation for a failed Google sign-in. */
+export function googleErrorMessage(link: Pick<AuthLink, 'errorCode' | 'errorDescription'>) {
+  const text = `${link.errorCode ?? ''} ${link.errorDescription ?? ''}`;
+  if (/access_denied/i.test(text)) return 'Cancelaste el inicio de sesión con Google.';
+  return 'No pudimos iniciar sesión con Google. Inténtalo de nuevo.';
+}

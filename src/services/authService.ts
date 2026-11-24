@@ -10,7 +10,7 @@ import { legalService } from '@/services/legalService';
 import { monitoring } from '@/services/monitoringService';
 import { notificationService } from '@/services/notificationService';
 import { DriverStatus, User, UserRole } from '@/types';
-import { microsoftErrorMessage, parseAuthUrl } from '@/utils/authLink';
+import { googleErrorMessage, microsoftErrorMessage, parseAuthUrl } from '@/utils/authLink';
 
 const SESSION_KEY = 'convia.demo.session';
 const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
@@ -82,6 +82,62 @@ const MICROSOFT_DOMAIN_HINT = process.env.EXPO_PUBLIC_MICROSOFT_DOMAIN_HINT ?? '
 
 /** Marks on the callback URL that the person is coming back from Microsoft (web build). */
 export const MICROSOFT_CALLBACK_FLAG = 'microsoft';
+
+/** Google sign-in is shown only once the Google provider is configured in Supabase (docs/OPERACION.md §5b). */
+export const isGoogleAuthEnabled = process.env.EXPO_PUBLIC_GOOGLE_AUTH === 'true';
+
+/** Marks on the callback URL that the person is coming back from Google (web build). */
+export const GOOGLE_CALLBACK_FLAG = 'google';
+
+/** Callback flags of the OAuth providers: coming back with one of these accepts the terms (first time only). */
+export const OAUTH_CALLBACK_FLAGS: readonly string[] = [MICROSOFT_CALLBACK_FLAG, GOOGLE_CALLBACK_FLAG];
+
+type OAuthOptions = {
+  provider: 'azure' | 'google';
+  flag: string;
+  method: 'microsoft' | 'google';
+  scopes?: string;
+  queryParams: Record<string, string>;
+  errorMessage: (link: ReturnType<typeof parseAuthUrl>) => string;
+};
+
+/**
+ * Supabase Auth OAuth with PKCE, shared by Microsoft and Google.
+ * Phones: opens the provider in the system browser and returns the user, or
+ * null when the person closes the window.
+ * Web: the whole page goes to the provider and comes back to /callback, which
+ * finishes the sign-in; this returns null and the page navigates away.
+ * (Safari blocks a popup opened after an awaited request, so no popup.)
+ */
+async function signInWithOAuthProvider({ provider, flag, method, scopes, queryParams, errorMessage }: OAuthOptions): Promise<User | null> {
+  ensureSupabaseConfigured();
+
+  if (Platform.OS === 'web') {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${authCallbackUrl()}?via=${flag}`, scopes, queryParams },
+    });
+    if (error) throw error;
+    return null;
+  }
+
+  const redirectTo = authCallbackUrl();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo, skipBrowserRedirect: true, scopes, queryParams },
+  });
+  if (error) throw error;
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  if (result.type !== 'success') return null;
+  const link = parseAuthUrl(result.url);
+  if (link.errorCode || !link.code) throw new Error(errorMessage(link));
+  await exchangeAuthCode(link.code);
+  const user = await getSupabaseUser();
+  if (!user) throw new Error('No se encontró el perfil del usuario.');
+  await acceptTermsIfNeeded(user.id);
+  monitoring.track('login', { method });
+  return user;
+}
 
 /** Marks on the callback URL that a password-reset link was opened: the next screen sets the new password. */
 export const RESET_PASSWORD_NEXT = 'reset-password';
@@ -166,43 +222,33 @@ export const authService = {
    * Institutional Microsoft account (Supabase Auth + Azure provider, PKCE).
    * The server only accepts allowlisted tenants with the institution's domain
    * (migration 27). Signs in and also creates the account the first time.
-   *
-   * Phones: opens Microsoft in an in-app browser and returns the user, or
-   * null when the person closes the window.
-   * Web: the whole page goes to Microsoft and comes back to /callback, which
-   * finishes the sign-in; this returns null and the page navigates away.
-   * (Safari blocks a popup opened after an awaited request, so no popup.)
+   * See signInWithOAuthProvider for what it returns on phones and on the web.
    */
-  async signInWithMicrosoft(): Promise<User | null> {
-    ensureSupabaseConfigured();
-    const scopes = 'openid email profile offline_access';
-    const queryParams = { domain_hint: MICROSOFT_DOMAIN_HINT, prompt: 'select_account' };
-
-    if (Platform.OS === 'web') {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'azure',
-        options: { redirectTo: `${authCallbackUrl()}?via=${MICROSOFT_CALLBACK_FLAG}`, scopes, queryParams },
-      });
-      if (error) throw error;
-      return null;
-    }
-
-    const redirectTo = authCallbackUrl();
-    const { data, error } = await supabase.auth.signInWithOAuth({
+  signInWithMicrosoft(): Promise<User | null> {
+    return signInWithOAuthProvider({
       provider: 'azure',
-      options: { redirectTo, skipBrowserRedirect: true, scopes, queryParams },
+      flag: MICROSOFT_CALLBACK_FLAG,
+      method: 'microsoft',
+      scopes: 'openid email profile offline_access',
+      queryParams: { domain_hint: MICROSOFT_DOMAIN_HINT, prompt: 'select_account' },
+      errorMessage: microsoftErrorMessage,
     });
-    if (error) throw error;
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-    if (result.type !== 'success') return null;
-    const link = parseAuthUrl(result.url);
-    if (link.errorCode || !link.code) throw new Error(microsoftErrorMessage(link));
-    await exchangeAuthCode(link.code);
-    const user = await getSupabaseUser();
-    if (!user) throw new Error('No se encontró el perfil del usuario.');
-    await acceptTermsIfNeeded(user.id);
-    monitoring.track('login', { method: 'microsoft' });
-    return user;
+  },
+
+  /**
+   * Google account (Supabase Auth + Google provider, PKCE). Any Google account
+   * works, like e-mail sign-up: an institutional address is verified by the
+   * server at once (handle_new_user), any other chooses its institution after
+   * logging in. Signs in and also creates the account the first time.
+   */
+  signInWithGoogle(): Promise<User | null> {
+    return signInWithOAuthProvider({
+      provider: 'google',
+      flag: GOOGLE_CALLBACK_FLAG,
+      method: 'google',
+      queryParams: { prompt: 'select_account' },
+      errorMessage: googleErrorMessage,
+    });
   },
 
   async register(

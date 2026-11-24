@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -13,6 +14,8 @@ type ButtonSecondaryProps = {
   disabled?: boolean;
   loading?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
+  /** A custom icon (e.g. a brand logo) in place of `icon`. */
+  leading?: ReactNode;
   /** 'danger' for destructive actions (red text). */
   tone?: 'default' | 'danger';
   accessibilityLabel?: string;
@@ -24,6 +27,7 @@ export function ButtonSecondary({
   disabled = false,
   loading = false,
   icon,
+  leading,
   tone = 'default',
   accessibilityLabel,
 }: Readonly<ButtonSecondaryProps>) {
@@ -42,6 +46,8 @@ export function ButtonSecondary({
       <View style={styles.content}>
         {loading ? (
           <ActivityIndicator color={color} size="small" />
+        ) : leading ? (
+          leading
         ) : icon ? (
           <Ionicons color={tone === 'danger' ? colors.error : colors.primary} name={icon} size={19} />
         ) : null}

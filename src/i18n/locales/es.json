@@ -90,7 +90,9 @@
         "emailNotConfirmed": "Aún no has confirmado tu correo. Abre el enlace que te enviamos al registrarte.",
         "profileMissing": "Tu cuenta existe pero no tiene perfil en ConVía. Escríbele al administrador de tu institución.",
         "generic": "No pudimos iniciar sesión. Revisa tu conexión e inténtalo de nuevo."
-      }
+      },
+      "google": "Continuar con Google",
+      "oauthDivider": "o"
     },
     "register": {
       "step1": "PASO 1 DE 2",
@@ -146,7 +148,10 @@
         "alreadyRegistered": "Ya existe una cuenta con este correo. Inicia sesión con ella.",
         "weakPassword": "La contraseña no cumple los requisitos de seguridad.",
         "generic": "No pudimos crear tu cuenta. Revisa tu conexión e inténtalo de nuevo."
-      }
+      },
+      "oauthTitle": "La forma más rápida",
+      "googleButton": "Crear cuenta con Google",
+      "oauthDivider": "Con tu cuenta de Google"
     },
     "forgot": {
       "kicker": "RECUPERAR ACCESO",
@@ -207,12 +212,20 @@
           "text": "Toca el botón para usar este correo en tu cuenta de ConVía.",
           "button": "Confirmar"
         }
-      }
+      },
+      "noProfileOAuth": "No se encontró tu perfil después de entrar.",
+      "googleFailed": "No pudimos iniciar sesión con Google. Inténtalo de nuevo.",
+      "retryGoogle": "Vuelve a intentarlo con tu cuenta de Google."
     },
     "microsoft": {
-      "terms": "Al continuar aceptas los términos y la política de tratamiento de datos.",
-      "readMore": "Leer más",
       "failed": "No pudimos iniciar sesión con Microsoft. Inténtalo de nuevo."
+    },
+    "oauth": {
+      "terms": "Al continuar aceptas los términos y la política de tratamiento de datos.",
+      "readMore": "Leer más"
+    },
+    "google": {
+      "failed": "No pudimos iniciar sesión con Google. Inténtalo de nuevo."
     }
   },
   "pickup": {

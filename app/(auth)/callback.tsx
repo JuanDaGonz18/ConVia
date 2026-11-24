@@ -9,9 +9,9 @@ import { ButtonPrimary } from '@/components/ui/ButtonPrimary';
 import { Notice } from '@/components/ui/Notice';
 
 import { colors } from '@/constants/colors';
-import { acceptTermsIfNeeded, authService, EMAIL_LINK_TYPES, type EmailLinkType, exchangeAuthCode, MICROSOFT_CALLBACK_FLAG, RESET_PASSWORD_NEXT, verifyEmailLink } from '@/services/authService';
+import { acceptTermsIfNeeded, authService, EMAIL_LINK_TYPES, type EmailLinkType, exchangeAuthCode, GOOGLE_CALLBACK_FLAG, MICROSOFT_CALLBACK_FLAG, OAUTH_CALLBACK_FLAGS, RESET_PASSWORD_NEXT, verifyEmailLink } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
-import { authLinkErrorMessage, microsoftErrorMessage, parseAuthLink } from '@/utils/authLink';
+import { authLinkErrorMessage, googleErrorMessage, microsoftErrorMessage, parseAuthLink } from '@/utils/authLink';
 import { errorMessage } from '@/utils/format';
 
 export default function AuthCallbackScreen() {
@@ -25,9 +25,14 @@ export default function AuthCallbackScreen() {
   // Failures (expired or reused links) arrive in the URL fragment, which route params don't include.
   const link = parseAuthLink(useLinkingURL(), params);
   const code = link.code;
-  // The web build comes back here from Microsoft (see authService.signInWithMicrosoft).
+  // The web build comes back here from Microsoft or Google (see signInWithOAuthProvider in authService).
   const fromMicrosoft = params.via === MICROSOFT_CALLBACK_FLAG;
-  const callbackError = link.errorCode ? (fromMicrosoft ? microsoftErrorMessage(link) : authLinkErrorMessage(link)) : null;
+  const fromGoogle = params.via === GOOGLE_CALLBACK_FLAG;
+  const fromOAuth = OAUTH_CALLBACK_FLAGS.includes(params.via ?? '');
+  const linkErrorMessage = fromMicrosoft ? microsoftErrorMessage : fromGoogle ? googleErrorMessage : authLinkErrorMessage;
+  const callbackError = link.errorCode ? linkErrorMessage(link) : null;
+  const failedKey = fromMicrosoft ? 'auth.callback.microsoftFailed' : fromGoogle ? 'auth.callback.googleFailed' : 'auth.callback.invalidOrUsed';
+  const retryKey = fromMicrosoft ? 'auth.callback.retryMicrosoft' : fromGoogle ? 'auth.callback.retryGoogle' : 'auth.callback.retryLogin';
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
   const [error, setError] = useState<string | null>(
     callbackError ?? (code || tokenHash ? null : t('auth.callback.invalidLink')),
@@ -38,10 +43,10 @@ export default function AuthCallbackScreen() {
   const signedIn = async () => {
     const user = await authService.getCurrentUser();
     if (!user) {
-      setError(t(fromMicrosoft ? 'auth.callback.noProfileMicrosoft' : 'auth.callback.noProfile'));
+      setError(t(fromMicrosoft ? 'auth.callback.noProfileMicrosoft' : fromOAuth ? 'auth.callback.noProfileOAuth' : 'auth.callback.noProfile'));
       return;
     }
-    if (fromMicrosoft) await acceptTermsIfNeeded(user.id);
+    if (fromOAuth) await acceptTermsIfNeeded(user.id);
     setCurrentUser(user);
     setComplete(true);
   };
@@ -62,10 +67,10 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     if (!code || callbackError) return;
     void exchangeAuthCode(code).then(signedIn).catch((exchangeError: unknown) => {
-      setError(errorMessage(exchangeError, t(fromMicrosoft ? 'auth.callback.microsoftFailed' : 'auth.callback.invalidOrUsed')));
+      setError(errorMessage(exchangeError, t(failedKey)));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- signedIn only uses stable setters and these values
-  }, [callbackError, code, fromMicrosoft, setCurrentUser, t]);
+  }, [callbackError, code, failedKey, setCurrentUser, t]);
 
   if (complete) return <Redirect href={resettingPassword ? '/(auth)/reset-password' : '/(tabs)'} />;
 
@@ -88,7 +93,7 @@ export default function AuthCallbackScreen() {
       <BrandLogo size="md" />
       {shownError ? <Notice title={t('auth.callback.failedTitle')} tone="error">{shownError}</Notice> : <ActivityIndicator color={colors.primary} size="large" />}
       <Text style={styles.message}>
-        {t(!shownError ? 'auth.callback.working' : fromMicrosoft ? 'auth.callback.retryMicrosoft' : 'auth.callback.retryLogin')}
+        {t(!shownError ? 'auth.callback.working' : retryKey)}
       </Text>
       {shownError && resettingPassword ? <ButtonPrimary onPress={() => router.replace('/(auth)/forgot-password')} title={t('auth.callback.askAgain')} /> : null}
       {shownError ? <ButtonPrimary onPress={() => router.replace('/(auth)/login')} title={t('auth.callback.goToLogin')} /> : null}

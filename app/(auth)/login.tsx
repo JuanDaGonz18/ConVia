@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { MicrosoftSignInButton } from '@/components/auth/MicrosoftSignInButton';
+import { OAuthSignInButton } from '@/components/auth/OAuthSignInButton';
 import { BrandLogo } from '@/components/brand/Brand';
 import { PasswordField } from '@/components/forms/PasswordField';
 import { TextField } from '@/components/forms/TextField';
@@ -19,7 +19,7 @@ import { typography } from '@/constants/typography';
 import { SavedUsersPanel } from '@/dev/SavedUsersPanel';
 import { savedUsers } from '@/dev/savedUsers';
 import i18n from '@/i18n';
-import { authService, isMicrosoftAuthEnabled } from '@/services/authService';
+import { authService, isGoogleAuthEnabled, isMicrosoftAuthEnabled } from '@/services/authService';
 import { useAppStore } from '@/store/appStore';
 import { errorMessage, rawErrorMessage } from '@/utils/format';
 
@@ -42,7 +42,7 @@ export default function LoginScreen() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [microsoftLoading, setMicrosoftLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const passwordRef = useRef<TextInputInstance>(null);
 
   const setCurrentUser = useAppStore((state) => state.setCurrentUser);
@@ -136,13 +136,26 @@ export default function LoginScreen() {
               </Pressable>
             </View>
 
-            <ButtonPrimary disabled={microsoftLoading} loading={loading} loadingTitle={t('auth.login.submitting')} onPress={() => void handleLogin()} title={t('auth.login.submit')} />
+            <ButtonPrimary disabled={oauthLoading} loading={loading} loadingTitle={t('auth.login.submitting')} onPress={() => void handleLogin()} title={t('auth.login.submit')} />
 
-            {useSupabase && isMicrosoftAuthEnabled ? (
-              <MicrosoftSignInButton
-                disabled={loading}
-                onBusyChange={setMicrosoftLoading}
+            {useSupabase && isGoogleAuthEnabled ? (
+              <OAuthSignInButton
+                disabled={loading || oauthLoading}
+                dividerText={t('auth.login.oauthDivider')}
+                onBusyChange={setOauthLoading}
                 onError={setError}
+                provider="google"
+                showTerms={!isMicrosoftAuthEnabled}
+                title={t('auth.login.google')}
+              />
+            ) : null}
+            {useSupabase && isMicrosoftAuthEnabled ? (
+              <OAuthSignInButton
+                disabled={loading || oauthLoading}
+                dividerText={isGoogleAuthEnabled ? undefined : t('auth.login.oauthDivider')}
+                onBusyChange={setOauthLoading}
+                onError={setError}
+                provider="microsoft"
                 title={t('auth.login.microsoft')}
               />
             ) : null}
