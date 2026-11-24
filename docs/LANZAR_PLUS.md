@@ -1,7 +1,7 @@
 # Lanzar ConVía+ de pago (transferencia Bre-B)
 
 Pasos exactos para encender el pago de ConVía+. Cómo funciona: `docs/PLANES.md` →
-«Pago por transferencia». Todo queda construido y apagado desde la migración `20261124150000_plus_payments`
+«Pago por transferencia». Todo queda construido y apagado desde la migración `20261124141549_plus_payments`
 (PR `feat/plus-payments`). Este lanzamiento es el PR `launch/plus-payments`:
 migraciones `20261124150100` (documentos legales 1.6) y `20261124150200` (`payments_enabled = true`).
 
@@ -87,7 +87,7 @@ Merge de `launch/plus-payments` en `main`. El push a `main` vuelve a publicar la
 
 ```bash
 git checkout main && git pull
-npx supabase migration list          # deben salir pendientes 20261124150100 y 20261124150200 (y 20261124150000 si no se aplicó)
+npx supabase migration list          # deben salir pendientes 20261124150100 y 20261124150200 (y 20261124141549 si no se aplicó)
 npx supabase db push
 ```
 

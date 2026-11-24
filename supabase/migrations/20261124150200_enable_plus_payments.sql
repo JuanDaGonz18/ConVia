@@ -1,5 +1,5 @@
 -- =====================================================================
--- ConVía — lanzamiento de ConVía+ por transferencia (sobre 20261124150000_plus_payments)
+-- ConVía — lanzamiento de ConVía+ por transferencia (sobre 20261124141549_plus_payments)
 --
 -- Enciende el interruptor. La llave Bre-B y el titular NO están en el
 -- repositorio: mientras sigan en NULL la app sigue mostrando "Muy pronto"
