@@ -808,7 +808,7 @@
     "confirmCancel": "Yes, cancel trip",
     "confirmFinish": "Yes, finish",
     "cancelMessage": "We'll let all passengers know, including those with a reserved seat, and their requests will be canceled. This can't be undone.",
-    "finishMessage": "Confirm the trip already happened. We'll notify your passengers and you can mark payments and rate them.",
+    "finishMessage": "Confirm the trip took place. Passengers whose QR you didn't scan are marked as not boarded and can't rate or be rated.",
     "cancelled": "Trip canceled. We notified the passengers",
     "cancelFailed": "Couldn't cancel the trip.",
     "finishFailed": "Couldn't finish the trip.",
@@ -857,7 +857,19 @@
     "cancelled": "You canceled your request and freed your seat",
     "cancelFailed": "Couldn't cancel the request.",
     "rejectTitle": "Decline this request?",
-    "cancelTitle": "Cancel your request?"
+    "cancelTitle": "Cancel your request?",
+    "map": {
+      "show": "See pickup on the map",
+      "hide": "Hide map",
+      "label": "Map with the pickup point at {{place}}",
+      "pickup": "Pickup: {{place}}",
+      "dropoff": "Drop-off",
+      "trip": "Start and end of your trip",
+      "tripStart": "Start of your trip",
+      "tripEnd": "End of your trip",
+      "approximate": "Approximate location (about 400 m) until you accept the request.",
+      "noLocation": "The passenger didn't mark a pickup point on the map."
+    }
   },
   "tripDetails": {
     "errors": {
@@ -1900,7 +1912,9 @@
     "saveComment": "Save comment",
     "saved": "Saved",
     "rateFirst": "Pick a rating first.",
-    "addComment": "Leave a comment"
+    "addComment": "Leave a comment",
+    "notBoardedPassenger": "Your boarding wasn't recorded: your QR wasn't scanned, so this trip doesn't count as taken and you can't rate the driver.",
+    "notBoardedDriver": "Didn't board: their QR wasn't scanned. They can't be rated."
   },
   "legalGate": {
     "title": "We updated the Terms and the Privacy Policy",

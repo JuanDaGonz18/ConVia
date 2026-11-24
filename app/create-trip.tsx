@@ -3,7 +3,7 @@ import { Image, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View 
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { DateTimePicker } from '@expo/ui/community/datetime-picker';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 import { useTranslation } from 'react-i18next';
 
 import { PlusBadge } from '@/components/subscription/PlusBadge';

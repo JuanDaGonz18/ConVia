@@ -105,6 +105,8 @@ begin
   r := r || case when t = 'ZZT952 | Calle 153, Colina' then E'\nOK  privacy: accepted passenger sees full plate, driver origin reduced' else E'\nBAD privacy: accepted passenger → ' || coalesce(t, 'null') end;
   execute 'reset role';
 
+  -- Only boarded passengers (QR scanned) can rate (migration rating_requires_boarding).
+  update public.trip_requests set estado = 'abordado' where trip_id = tA and passenger_id = pF;
   update public.trips set estado = 'finalizado', finished_at = now() where id = tA;
   perform set_config('request.jwt.claims', json_build_object('sub', pF, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
