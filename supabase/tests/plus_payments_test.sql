@@ -14,6 +14,8 @@ declare
   refM text; refY text; ref3 text; refB text;
   v_end timestamptz; v_end2 timestamptz; shot text; bodies text[];
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   insert into auth.users (id, email, raw_user_meta_data, raw_app_meta_data, aud, role) values
     (uA,  'zz.pay.a@gmail.com',  '{"nombre":"ZZ Pay A","terms_accepted":true}', '{"provider":"email"}', 'authenticated', 'authenticated'),
     (uB,  'zz.pay.b@gmail.com',  '{"nombre":"ZZ Pay B","terms_accepted":true}', '{"provider":"email"}', 'authenticated', 'authenticated'),

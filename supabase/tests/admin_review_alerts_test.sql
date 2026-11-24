@@ -14,6 +14,8 @@ declare
   inst uuid;
   r text := ''; n integer; bad integer; bodies text[];
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   select id into inst from public.institutions where dominio = 'unisabana.edu.co';
 
   -- Punto de partida limpio (todo se deshace al final).

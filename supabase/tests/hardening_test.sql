@@ -19,6 +19,8 @@ declare
   v_inst uuid;
   r text := ''; n integer; ok boolean;
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   update public.app_config set beta_mode = true;
   insert into public.institutions (nombre, tipo, dominio) values ('Org O (prueba)', 'universidad', 'orgo-prueba.edu.co');
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values

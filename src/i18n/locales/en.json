@@ -146,7 +146,8 @@
       },
       "oauthTitle": "The fastest way",
       "googleButton": "Create account with Google",
-      "oauthDivider": "With your Google account"
+      "oauthDivider": "With your Google account",
+      "promo": "Sign up by February 14 and get {{months}} months of ConVía+ free."
     },
     "forgot": {
       "kicker": "RECOVER ACCESS",
@@ -1013,7 +1014,6 @@
     "tooManyAttempts": "Too many attempts today. Try again tomorrow.",
     "noInstitutionChosen": "Choose your institution first.",
     "aiUnavailable": "Automatic verification isn't available right now. Try again later.",
-    "tooManyAttempts": "Too many attempts today. Try again tomorrow or use manual verification.",
     "storageQuota": "You've reached the limit of saved files. Try again later."
   },
   "distance": {

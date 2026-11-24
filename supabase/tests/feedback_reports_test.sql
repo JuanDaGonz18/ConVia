@@ -9,6 +9,8 @@ declare
   uB uuid := gen_random_uuid();
   r text := ''; n integer; v_id uuid;
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   insert into auth.users (id, email, raw_user_meta_data, raw_app_meta_data, aud, role) values
     (uA, 'zz.feedback.a@gmail.com', '{"nombre":"ZZ A","terms_accepted":true}', '{"provider":"email"}', 'authenticated', 'authenticated'),
     (uB, 'zz.feedback.b@gmail.com', '{"nombre":"ZZ B","terms_accepted":true}', '{"provider":"email"}', 'authenticated', 'authenticated');

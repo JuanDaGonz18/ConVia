@@ -22,6 +22,8 @@ declare
   v_hora time := date_trunc('hour', (now() at time zone 'America/Bogota') + interval '12 hours')::time;
   res jsonb; r text := ''; t text; n integer; n2 integer; ok boolean;
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   update public.app_config set beta_mode = true;
   insert into public.institutions (nombre, tipo, dominio) values ('Org B (prueba)', 'universidad', 'orgb-prueba.edu.co');
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values

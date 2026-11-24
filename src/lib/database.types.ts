@@ -223,6 +223,8 @@ export type Database = {
           id: boolean
           payee_name: string | null
           payments_enabled: boolean
+          plus_promo_months: number
+          plus_promo_until: string | null
           updated_at: string
         }
         ComputedFields: never
@@ -233,6 +235,8 @@ export type Database = {
           id?: boolean
           payee_name?: string | null
           payments_enabled?: boolean
+          plus_promo_months?: number
+          plus_promo_until?: string | null
           updated_at?: string
         }
         Update: {
@@ -242,6 +246,8 @@ export type Database = {
           id?: boolean
           payee_name?: string | null
           payments_enabled?: boolean
+          plus_promo_months?: number
+          plus_promo_until?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -2171,6 +2177,24 @@ export type Database = {
     }
     Functions: {
       accept_legal: { Args: { p_version: string }; Returns: string }
+      admin_decide_membership: {
+        Args: { p_approve: boolean; p_reason?: string; p_user: string }
+        Returns: string
+      }
+      admin_panel: { Args: Record<PropertyKey, never>; Returns: Json }
+      admin_resolve_institution_request: {
+        Args: {
+          p_action: string
+          p_dominios?: string[]
+          p_institution?: string
+          p_motivo?: string
+          p_nombre?: string
+          p_request: string
+          p_tipo?: Database["public"]["Enums"]["community_type"]
+        }
+        Returns: Json
+      }
+      am_i_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
       board_passenger: {
         Args: { p_qr_token: string }
         Returns: {

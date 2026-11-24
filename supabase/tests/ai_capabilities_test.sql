@@ -11,6 +11,8 @@ declare
   uP uuid := gen_random_uuid();  -- ConVía+
   r text := ''; t text; caps text[]; lim jsonb; bad integer;
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
     (uF, 'zz.aifree@unisabana.edu.co', '{"nombre":"ZZ AI Free"}', 'authenticated', 'authenticated'),
     (uP, 'zz.aiplus@unisabana.edu.co', '{"nombre":"ZZ AI Plus"}', 'authenticated', 'authenticated');

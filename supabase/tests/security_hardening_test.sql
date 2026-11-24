@@ -12,6 +12,8 @@ declare
   r text := ''; n integer; s text;
   bad integer := 0;
 begin
+  -- Sin la promoción de lanzamiento (ConVía+ al registrarse): estas pruebas cuentan con el plan gratis.
+  update public.app_config set plus_promo_until = null;
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
     (u, 'zz.hardening@unisabana.edu.co', '{"nombre":"ZZ Hardening","rol":"conductor"}', 'authenticated', 'authenticated');
   select rol::text into s from public.profiles where id = u;
