@@ -1,8 +1,9 @@
 /**
- * Student-card privacy, on the phone: the photo is never sent whole. Only crops of the card
- * AROUND the face (left, right, above, below the face box plus a margin) go to the server, so
- * no face pixels leave the phone. The face box comes from the same upright image the crops are
- * cut from, so no coordinate mapping is involved.
+ * Student-card privacy, on the phone: the face never leaves it. The card goes whole, with every
+ * face (plus a margin) painted over in gray on the device, so the text keeps its layout and can
+ * be read in one piece. The face box comes from the same upright image that is painted, so no
+ * coordinate mapping is involved. (Older app versions sent crops around the face instead:
+ * regionsAroundFace / regionsAroundFaces, still accepted by the server.)
  *
  * Pure TypeScript (no React Native), unit-tested with Node.
  */
@@ -94,4 +95,62 @@ export function toBase64(bytes: Uint8Array) {
     out += i + 2 < bytes.length ? ALPHABET[n & 63] : '=';
   }
   return out;
+}
+
+/** Gray painted over the faces (opaque, neutral). */
+export const MASK_GRAY = 0xbd;
+/** Past this share of the image covered by faces there is too little card left to read. */
+export const MAX_MASKED_SHARE = 0.7;
+
+/** Every face box grown by its margin: what gets painted over. */
+export function maskBoxes(faces: Box[], width: number, height: number) {
+  return faces.map((face) => excludedBox(face, width, height));
+}
+
+/** Share of the image the boxes cover (overlaps counted once). */
+export function coveredShare(boxes: { x0: number; y0: number; x1: number; y1: number }[], width: number, height: number) {
+  if (!boxes.length || width <= 0 || height <= 0) return 0;
+  // Exact union area on a coarse grid of the boxes' own edges.
+  const xs = [...new Set(boxes.flatMap((b) => [b.x0, b.x1]))].sort((a, b) => a - b);
+  const ys = [...new Set(boxes.flatMap((b) => [b.y0, b.y1]))].sort((a, b) => a - b);
+  let area = 0;
+  for (let i = 0; i < xs.length - 1; i++) {
+    for (let j = 0; j < ys.length - 1; j++) {
+      const cx = (xs[i] + xs[i + 1]) / 2;
+      const cy = (ys[j] + ys[j + 1]) / 2;
+      if (boxes.some((b) => cx > b.x0 && cx < b.x1 && cy > b.y0 && cy < b.y1)) {
+        area += (xs[i + 1] - xs[i]) * (ys[j + 1] - ys[j]);
+      }
+    }
+  }
+  return area / (width * height);
+}
+
+/**
+ * Paints the boxes gray in raw 4-byte pixels (any channel order: gray is the same in all of
+ * them; the alpha or padding byte is set to 255). Rows may be padded: the stride is taken from
+ * the buffer length.
+ */
+export function paintBoxes(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  pixelFormat: string,
+  boxes: { x0: number; y0: number; x1: number; y1: number }[],
+) {
+  const stride = Math.floor(pixels.length / height);
+  if (stride < width * 4) throw new Error(`unsupported pixel buffer: ${pixels.length} bytes for ${width}x${height}`);
+  const alphaFirst = /^[AX]/.test(pixelFormat);
+  for (const box of boxes) {
+    for (let y = Math.max(0, box.y0); y < Math.min(height, box.y1); y++) {
+      const row = y * stride;
+      for (let x = Math.max(0, box.x0); x < Math.min(width, box.x1); x++) {
+        const i = row + x * 4;
+        pixels[i] = alphaFirst ? 255 : MASK_GRAY;
+        pixels[i + 1] = MASK_GRAY;
+        pixels[i + 2] = MASK_GRAY;
+        pixels[i + 3] = alphaFirst ? MASK_GRAY : 255;
+      }
+    }
+  }
 }

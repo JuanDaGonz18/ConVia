@@ -24,7 +24,7 @@ import {
   SIZE,
   WORKING_SIZE,
 } from '@/services/faceCore';
-import { regionsAroundFace, regionsAroundFaces } from '@/services/studentCard';
+import { coveredShare, maskBoxes, MAX_MASKED_SHARE, MASK_GRAY } from '@/services/studentCard';
 import { importUrl, loadScript } from '@/web/loadScript';
 
 export { FaceCheckError };
@@ -280,8 +280,8 @@ export type StudentCardAnalysis =
   | { ok: true; embedding: number[] | null; crops: string[] }
   | { ok: false; reason: 'face_not_found' | 'several_faces' | 'face_unusable' | 'nothing_to_read' };
 
-/** Longest side of each crop sent to the server. */
-const CARD_CROP_MAX_SIDE = 1024;
+/** Longest side of the card sent to the server. */
+const CARD_MAX_SIDE = 1600;
 
 /**
  * Student card, in the browser: same rules as the phone (faceRecognition.ts). The face is found
@@ -299,11 +299,9 @@ export async function analyzeStudentCard(photoUri: string): Promise<StudentCardA
       throw error;
     }
     const { image, faces } = detected;
-    // Every face is cut out (a second, small security photo too); the crops never touch any of them.
-    const regions = faces.length === 1
-      ? regionsAroundFace(faces[0].box, image.width, image.height)
-      : regionsAroundFaces([...faces].sort((a, b) => b.box.width - a.box.width).map((f) => f.box), image.width, image.height);
-    if (!regions.length) return { ok: false, reason: 'nothing_to_read' };
+    // Every face (a second, small security photo too) is painted over before anything is sent.
+    const masks = maskBoxes(faces.map((f) => f.box), image.width, image.height);
+    if (coveredShare(masks, image.width, image.height) > MAX_MASKED_SHARE) return { ok: false, reason: 'nothing_to_read' };
 
     // The face is compared only when there is exactly one clear face; otherwise the crops still go
     // to the server and a person reviews them (face_not_checked).
@@ -319,15 +317,16 @@ export async function analyzeStudentCard(photoUri: string): Promise<StudentCardA
       }
     }
 
-    const crops = regions.map((region) => {
-      const width = region.endX - region.startX;
-      const height = region.endY - region.startY;
-      const shrink = Math.min(1, CARD_CROP_MAX_SIDE / Math.max(width, height));
-      const { element, context } = canvas(Math.round(width * shrink), Math.round(height * shrink));
-      context.drawImage(image, region.startX, region.startY, width, height, 0, 0, element.width, element.height);
-      return element.toDataURL('image/jpeg', 0.8).split(',')[1];
-    });
-    return { ok: true, embedding, crops };
+    // The whole card on a new canvas, faces painted gray at full size before shrinking.
+    const full = canvas(image.width, image.height);
+    full.context.drawImage(image, 0, 0);
+    const gray = MASK_GRAY.toString(16).padStart(2, '0');
+    full.context.fillStyle = `#${gray}${gray}${gray}`;
+    for (const box of masks) full.context.fillRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
+    const shrink = Math.min(1, CARD_MAX_SIDE / Math.max(image.width, image.height));
+    const out = shrink < 1 ? canvas(Math.round(image.width * shrink), Math.round(image.height * shrink)) : full;
+    if (out !== full) out.context.drawImage(full.element, 0, 0, out.element.width, out.element.height);
+    return { ok: true, embedding, crops: [out.element.toDataURL('image/jpeg', 0.85).split(',')[1]] };
   } catch (error) {
     if (__DEV__) console.warn('[face] student card error:', error instanceof Error ? error.message : String(error));
     throw new FaceCheckError('model_unavailable', 'No se pudo procesar la foto en este navegador. Inténtalo de nuevo.');
