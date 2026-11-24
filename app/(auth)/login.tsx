@@ -149,8 +149,6 @@ export default function LoginScreen() {
               />
             ) : null}
 
-            {/* Microsoft sign-in was removed: those accounts set a password with "¿Olvidaste tu contraseña?". */}
-            {useSupabase ? <Text style={styles.formerMicrosoft}>{t('auth.login.formerMicrosoft')}</Text> : null}
           </View>
 
           <View style={styles.divider}>
@@ -208,7 +206,6 @@ const styles = StyleSheet.create({
   dividerText: { ...typography.caption, color: colors.textSecondary },
   forgotRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'flex-end' },
   forgot: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
-  formerMicrosoft: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
   demo: { gap: spacing[8] },
   demoTitle: { ...typography.caption, color: colors.textSecondary, textAlign: 'center', textTransform: 'uppercase' },
 });
