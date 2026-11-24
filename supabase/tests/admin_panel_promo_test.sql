@@ -120,9 +120,9 @@ begin
   j := public.admin_resolve_institution_request(req2, 'reject', p_motivo => 'No es una institución');
   r := r || case when j ->> 'estado' = 'rechazada' then E'\nOK  resolve: reject' else E'\nBAD resolve reject: ' || j::text end;
   j := public.admin_resolve_institution_request(req, 'approve', p_nombre => 'ZZ Universidad Nueva', p_dominios => array['zz-nueva-prueba.edu.co']);
+  execute 'reset role';
   r := r || case when j ->> 'estado' = 'aprobada' and exists (select 1 from public.institution_domains where dominio = 'zz-nueva-prueba.edu.co')
                  then E'\nOK  resolve: approve creates the institution and its domain' else E'\nBAD resolve approve: ' || j::text end;
-  execute 'reset role';
 
   ok := (select count(*) from public.institution_memberships where user_id = uCard and status = 'verified' and method = 'student_card_photo') = 1
     and (select count(*) from public.institution_memberships where user_id = uCard2 and status = 'pending') = 1
