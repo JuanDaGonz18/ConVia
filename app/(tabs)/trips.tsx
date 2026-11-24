@@ -70,12 +70,12 @@ export default function TripsScreen() {
   // Actions that affect passengers wait for an explicit confirmation.
   const [confirm, setConfirm] = useState<{ tripId: string; kind: 'cancel' | 'finish' } | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     setError(null);
     try {
       if (isDriver) setDriverTrips(await tripService.getDriverTrips());
       else {
-        const [available, mine] = await Promise.all([tripService.getAvailableTrips(), tripService.getPassengerHistory()]);
+        const [available, mine] = await Promise.all([tripService.getAvailableTrips({ force }), tripService.getPassengerHistory()]);
         setTrips(available);
         setHistory(mine);
       }
@@ -88,7 +88,7 @@ export default function TripsScreen() {
 
   const refresh = async () => {
     setRefreshing(true);
-    await load();
+    await load(true);
     setRefreshing(false);
   };
 

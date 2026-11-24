@@ -209,19 +209,48 @@ function mapAvailableTrip(row: {
   };
 }
 
+/** How long a search result is reused between screens (Home, Trips, Map). */
+const AVAILABLE_TRIPS_TTL_MS = 30_000;
+/** The soonest open trips; enough for any real institution, and keeps each search small. */
+const AVAILABLE_TRIPS_LIMIT = 150;
+let availableTripsCache: { userId: string | undefined; at: number; promise: Promise<Trip[]> } | null = null;
+
+/** Drops the cached search so the next screen sees fresh seats and trips. */
+export function invalidateAvailableTrips() {
+  availableTripsCache = null;
+}
+
 export const tripService = {
-  async getAvailableTrips(): Promise<Trip[]> {
+  /**
+   * Open trips of the person's institution, soonest first (at most
+   * AVAILABLE_TRIPS_LIMIT). Home, Trips and Map all call this on focus, so the
+   * result is reused for AVAILABLE_TRIPS_TTL_MS; pull-to-refresh passes
+   * `force`, and anything that changes seats or trips clears it.
+   */
+  async getAvailableTrips({ force = false }: { force?: boolean } = {}): Promise<Trip[]> {
     if (useSupabase) {
       ensureSupabaseConfigured();
       // One's own trips can't be requested, so they never appear as available
       // (recommendations, lists, map or trip details).
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user.id;
-      let query = supabase.from('available_trips').select('*').order('salida_at');
-      if (userId) query = query.neq('driver_id', userId);
-      const { data, error } = await query;
-      if (error) throw error;
-      return data.map(mapAvailableTrip).filter((trip): trip is Trip => trip !== null);
+      const cached = availableTripsCache;
+      if (!force && cached && cached.userId === userId && Date.now() - cached.at < AVAILABLE_TRIPS_TTL_MS) {
+        return cached.promise;
+      }
+      const promise = (async () => {
+        let query = supabase.from('available_trips').select('*').order('salida_at').limit(AVAILABLE_TRIPS_LIMIT);
+        if (userId) query = query.neq('driver_id', userId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map(mapAvailableTrip).filter((trip): trip is Trip => trip !== null);
+      })();
+      availableTripsCache = { userId, at: Date.now(), promise };
+      // A failed search is not reused.
+      promise.catch(() => {
+        if (availableTripsCache?.promise === promise) availableTripsCache = null;
+      });
+      return promise;
     }
 
     return mockTrips;
@@ -235,6 +264,7 @@ export const tripService = {
     return data.map(mapAvailableTrip).filter((trip): trip is Trip => trip !== null);
   },
   async createTrip(input: CreateTripInput) {
+    invalidateAvailableTrips();
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     const userId = await requireUserId();
     const { data, error } = await supabase
@@ -264,6 +294,7 @@ export const tripService = {
   },
   /** `dropoff`: where the passenger wants to get off (optional), so the driver can judge the fit. */
   async requestPickup(tripId: string, address: string, lat?: number, lng?: number, dropoff?: Location | null, pickupName?: string | null) {
+    invalidateAvailableTrips();
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     const userId = await requireUserId();
     const { data, error } = await supabase
@@ -444,6 +475,7 @@ export const tripService = {
    * readable summary and returns it; accepted passengers are then notified.
    */
   async updateTrip(tripId: string, input: CreateTripInput): Promise<{ changes: string[]; notified: number }> {
+    invalidateAvailableTrips();
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     ensureSupabaseConfigured();
     const { data, error } = await supabase.rpc('update_trip', {
@@ -469,6 +501,7 @@ export const tripService = {
     return { changes: result.changes, notified: result.update_id ? result.accepted : 0 };
   },
   async cancelRequest(requestId: string) {
+    invalidateAvailableTrips();
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     ensureSupabaseConfigured();
     const { error } = await supabase.rpc('cancel_trip_request', { p_request_id: requestId });
@@ -476,6 +509,7 @@ export const tripService = {
     notificationService.notify('request_cancelled', requestId);
   },
   async respondToRequest(requestId: string, accept: boolean) {
+    invalidateAvailableTrips();
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     ensureSupabaseConfigured();
     const { error } = await supabase.rpc('respond_trip_request', {
@@ -487,6 +521,7 @@ export const tripService = {
     if (accept) monitoring.track('accept_request');
   },
   async startTrip(tripId: string) {
+    invalidateAvailableTrips();
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     ensureSupabaseConfigured();
     const { error } = await supabase.rpc('start_trip', { p_trip_id: tripId });
@@ -494,6 +529,7 @@ export const tripService = {
   },
   /** Marks the trip completed and tells its passengers. */
   async finishTrip(tripId: string) {
+    invalidateAvailableTrips();
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     ensureSupabaseConfigured();
     const { data, error } = await supabase.rpc('finish_trip', { p_trip_id: tripId });
@@ -528,6 +564,7 @@ export const tripService = {
     if (error) throw error;
   },
   async boardPassenger(qrToken: string) {
+    invalidateAvailableTrips();
     if (!useSupabase) throw new Error('SUPABASE_REQUIRED');
     ensureSupabaseConfigured();
     const { error } = await supabase.rpc('board_passenger', { p_qr_token: qrToken });
@@ -536,6 +573,7 @@ export const tripService = {
   },
   /** Cancels the trip (even with reserved seats) and tells the affected passengers. */
   async cancelTrip(tripId: string): Promise<Trip | undefined> {
+    invalidateAvailableTrips();
     if (useSupabase) {
       ensureSupabaseConfigured();
       const { data, error } = await supabase.rpc('cancel_trip', { p_trip_id: tripId });
