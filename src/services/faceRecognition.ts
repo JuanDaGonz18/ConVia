@@ -31,7 +31,7 @@ import {
   WORKING_SIZE,
 } from '@/services/faceCore';
 import { downloadVerified } from '@/services/modelDownload';
-import { regionsAroundFace, regionsAroundFaces, toBase64 } from '@/services/studentCard';
+import { coveredShare, maskBoxes, MAX_MASKED_SHARE, paintBoxes, toBase64 } from '@/services/studentCard';
 
 export { FaceCheckError };
 export type { FaceSource };
@@ -282,13 +282,13 @@ export type StudentCardAnalysis =
   | { ok: true; embedding: number[] | null; crops: string[] }
   | { ok: false; reason: 'face_not_found' | 'several_faces' | 'face_unusable' | 'nothing_to_read' };
 
-/** Longest side of each crop sent to the server (text stays legible, uploads stay small). */
-const CARD_CROP_MAX_SIDE = 1024;
+/** Longest side of the card sent to the server (text stays legible, uploads stay small). */
+const CARD_MAX_SIDE = 1600;
 
 /**
  * Student card: finds the card's portrait once, computes its embedding (compared with the
- * user's selfie in the database, like the license) and cuts the card into crops AROUND the
- * face, from the same upright image the face was found in, so no face pixels are sent. Any
+ * user's selfie in the database, like the license) and sends the whole card with every face
+ * painted gray, from the same upright image the face was found in, so no face pixels are sent. Any
  * doubt (no face, several faces, unusable face, nothing readable around it) returns a reason
  * instead, and the check goes to manual review without sending the photo. Deletes the photo
  * (when it is an app cache copy) and every intermediate file.
@@ -311,12 +311,10 @@ export async function analyzeStudentCard(photoUri: string): Promise<StudentCardA
       throw error;
     }
     const { image, faces } = detected;
-    // Every face is cut out (a second, small security photo too); the crops never touch any of them.
+    // Every face (a second, small security photo too) is painted over before anything is sent.
     const boxes = faces.map((f) => f.bounds as { x: number; y: number; width: number; height: number });
-    const regions = faces.length === 1
-      ? regionsAroundFace(boxes[0], image.width, image.height)
-      : regionsAroundFaces([...boxes].sort((a, b) => b.width - a.width), image.width, image.height);
-    if (!regions.length) return { ok: false, reason: 'nothing_to_read' };
+    const masks = maskBoxes(boxes, image.width, image.height);
+    if (coveredShare(masks, image.width, image.height) > MAX_MASKED_SHARE) return { ok: false, reason: 'nothing_to_read' };
 
     // The face is compared only when there is exactly one clear face; otherwise the crops still go
     // to the server and a person reviews them (face_not_checked).
@@ -333,15 +331,15 @@ export async function analyzeStudentCard(photoUri: string): Promise<StudentCardA
       }
     }
 
-    const crops: string[] = [];
-    for (const region of regions) {
-      const crop = await image.cropAsync(region.startX, region.startY, region.endX, region.endY);
-      const shrink = Math.min(1, CARD_CROP_MAX_SIDE / Math.max(crop.width, crop.height));
-      const sized = shrink < 1 ? await crop.resizeAsync(Math.round(crop.width * shrink), Math.round(crop.height * shrink)) : crop;
-      const encoded = await sized.toEncodedImageDataAsync('jpg', 80);
-      crops.push(toBase64(new Uint8Array(encoded.buffer)));
-    }
-    return { ok: true, embedding, crops };
+    // The whole card, faces painted gray (a copy of the pixels: the original stays untouched).
+    const raw = await image.toRawPixelDataAsync();
+    const pixels = new Uint8Array(raw.buffer.slice(0));
+    paintBoxes(pixels, raw.width, raw.height, raw.pixelFormat, masks);
+    const masked = await images.loadFromRawPixelDataAsync({ ...raw, buffer: pixels.buffer });
+    const shrink = Math.min(1, CARD_MAX_SIDE / Math.max(masked.width, masked.height));
+    const sized = shrink < 1 ? await masked.resizeAsync(Math.round(masked.width * shrink), Math.round(masked.height * shrink)) : masked;
+    const encoded = await sized.toEncodedImageDataAsync('jpg', 85);
+    return { ok: true, embedding, crops: [toBase64(new Uint8Array(encoded.buffer))] };
   } catch (error) {
     if (error === MODEL_OFFLINE) throw error;
     if (__DEV__) console.warn('[face] student card error:', error instanceof Error ? error.message : String(error));

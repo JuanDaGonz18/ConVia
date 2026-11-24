@@ -67,3 +67,45 @@ describe('crops around several faces', () => {
     }
   });
 });
+
+describe('painting the faces over', () => {
+  test('paints every pixel of the box gray and nothing outside it (RGBA and ARGB)', async () => {
+    const { paintBoxes, MASK_GRAY } = await import('./studentCard.ts');
+    for (const format of ['RGBA', 'ARGB']) {
+      const w = 10;
+      const h = 6;
+      const pixels = new Uint8Array(w * h * 4).fill(7);
+      paintBoxes(pixels, w, h, format, [{ x0: 2, y0: 1, x1: 5, y1: 4 }]);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          const inside = x >= 2 && x < 5 && y >= 1 && y < 4;
+          const px = [...pixels.slice(i, i + 4)];
+          if (!inside) assert.deepEqual(px, [7, 7, 7, 7]);
+          else if (format === 'RGBA') assert.deepEqual(px, [MASK_GRAY, MASK_GRAY, MASK_GRAY, 255]);
+          else assert.deepEqual(px, [255, MASK_GRAY, MASK_GRAY, MASK_GRAY]);
+        }
+      }
+    }
+  });
+
+  test('handles padded rows', async () => {
+    const { paintBoxes, MASK_GRAY } = await import('./studentCard.ts');
+    const w = 3;
+    const h = 2;
+    const stride = 16; // 12 bytes of pixels + 4 of padding
+    const pixels = new Uint8Array(stride * h);
+    paintBoxes(pixels, w, h, 'RGBA', [{ x0: 0, y0: 1, x1: 3, y1: 2 }]);
+    assert.equal(pixels[stride], MASK_GRAY);
+    assert.equal(pixels[stride + 11], 255);
+    assert.equal(pixels[stride + 12], 0);
+    assert.equal(pixels[0], 0);
+  });
+
+  test('covered share counts overlaps once', async () => {
+    const { coveredShare } = await import('./studentCard.ts');
+    assert.equal(coveredShare([{ x0: 0, y0: 0, x1: 50, y1: 100 }], 100, 100), 0.5);
+    assert.equal(coveredShare([{ x0: 0, y0: 0, x1: 50, y1: 100 }, { x0: 25, y0: 0, x1: 75, y1: 100 }], 100, 100), 0.75);
+    assert.equal(coveredShare([], 100, 100), 0);
+  });
+});

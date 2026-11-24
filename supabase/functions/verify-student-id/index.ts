@@ -8,8 +8,9 @@ import { checkLegal } from '../_shared/legal.ts';
 /**
  * verify-student-id: the user's student card says they belong to the institution they chose.
  *
- * The phone (or browser) never sends the whole photo: only crops of the card AROUND the face,
- * so no face pixels reach the server or Meta. Muse Spark 1.3 reads the crops as strict JSON;
+ * The phone (or browser) never sends the face: it sends the whole card with every face painted
+ * gray (older app versions sent crops around the face instead). No face pixels reach the server
+ * or Meta. Muse Spark 1.3 reads the image(s) as strict JSON;
  * decide.ts decides. The face is compared on the phone (embedding vs the user's selfie, stored
  * by submit_student_card_face), on the phone and in the browser alike. Only the result is
  * recorded (no name, last 4 ID digits only). When a check goes to manual review, the images Muse
@@ -63,9 +64,9 @@ const CARD_SCHEMA = {
 
 const SYSTEM = [
   'You read Colombian university student ID cards for a carpooling app.',
-  'You receive crops of ONE card photo; the area around the person\'s photo was removed on purpose. Read all crops together.',
+  'You receive ONE card photo where the person\'s photo was covered with a gray box on purpose (or, from older apps, several crops of it around that photo: read them together). The gray box is expected; never treat it as a problem.',
   'Return JSON only. Copy text exactly as printed; use null for anything you cannot read with certainty. Never guess.',
-  'is_student_id_card: the crops show a student (or university) ID card.',
+  'is_student_id_card: the image shows a student (or university) ID card.',
   'looks_like_screen_or_printout: the card is shown on a screen, or is a photocopy/printout, not the physical card (moiré, pixels, screen glare, flat paper).',
   'readable: the main text (name, institution) can be read.',
   'expiry_date: the validity/expiry ("Vigencia", "Válido hasta", "Vence") as printed; if only a year or month/year, give that.',
@@ -268,7 +269,7 @@ Deno.serve(async (request) => {
       messages: [
         { role: 'system', content: SYSTEM },
         { role: 'user', content: [
-          { type: 'text', text: `The user chose: ${institution.nombre}. Read the card crops.` },
+          { type: 'text', text: `The user chose: ${institution.nombre}. Read the card.` },
           ...crops.map((crop) => ({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${crop}` } })),
         ] },
       ],
