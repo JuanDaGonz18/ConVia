@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
-import { Platform } from 'react-native';
+import { Platform, TurboModuleRegistry } from 'react-native';
 
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
@@ -126,6 +126,67 @@ async function signInWithOAuthProvider({ provider, flag, method, scopes, queryPa
   return user;
 }
 
+/**
+ * Google's Web client ID (Google Cloud project of ConVía). Public: it is in every Google sign-in
+ * page. The native Android sign-in asks Google for an ID token for this client, which is the one
+ * Supabase's Google provider checks.
+ */
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+  || '838011381220-91oa592r2inufq210np6do44309vcdtp.apps.googleusercontent.com';
+
+type GoogleSigninLib = typeof import('@react-native-google-signin/google-signin');
+
+/**
+ * The native Google sign-in library, on Android builds that include it. An APK from before it was
+ * added gets this code by an over-the-air update without the native part: then null, and the
+ * browser flow is used. (Importing the library without its native module would throw.)
+ */
+function nativeGoogleSignin(): GoogleSigninLib | null {
+  if (Platform.OS !== 'android' || !TurboModuleRegistry.get('RNGoogleSignin')) return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('@react-native-google-signin/google-signin') as GoogleSigninLib;
+  } catch {
+    return null;
+  }
+}
+
+class GoogleNativeUnavailable extends Error {}
+
+/**
+ * Android: Google's own account picker (a bottom sheet), no browser. Returns null when the person
+ * closes it. Throws GoogleNativeUnavailable when the native path can't be used here (no Play
+ * services, or the Android client isn't set up in Google Cloud), so the caller falls back to the
+ * browser flow.
+ */
+async function signInWithGoogleNative(lib: GoogleSigninLib): Promise<User | null> {
+  const { GoogleSignin, statusCodes } = lib;
+  let idToken: string | null = null;
+  try {
+    GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    // Forget the last account so the picker always shows (as prompt=select_account does on the web).
+    await GoogleSignin.signOut().catch(() => undefined);
+    const response = await GoogleSignin.signIn();
+    if (response.type !== 'success') return null;
+    idToken = response.data.idToken;
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code === statusCodes.SIGN_IN_CANCELLED) return null;
+    monitoring.reportError(error);
+    throw new GoogleNativeUnavailable(String(code ?? 'native_google_failed'));
+  }
+  if (!idToken) throw new GoogleNativeUnavailable('no_id_token');
+
+  const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken });
+  if (error) throw error;
+  const user = await getSupabaseUser();
+  if (!user) throw new Error('No se encontró el perfil del usuario.');
+  await acceptTermsIfNeeded(user.id);
+  monitoring.track('login', { method: 'google' });
+  return user;
+}
+
 /** Marks on the callback URL that a password-reset link was opened: the next screen sets the new password. */
 export const RESET_PASSWORD_NEXT = 'reset-password';
 
@@ -211,7 +272,17 @@ export const authService = {
    * server at once (handle_new_user), any other chooses its institution after
    * logging in. Signs in and also creates the account the first time.
    */
-  signInWithGoogle(): Promise<User | null> {
+  async signInWithGoogle(): Promise<User | null> {
+    ensureSupabaseConfigured();
+    const native = nativeGoogleSignin();
+    if (native) {
+      try {
+        return await signInWithGoogleNative(native);
+      } catch (error) {
+        if (!(error instanceof GoogleNativeUnavailable)) throw error;
+        // Falls through to the browser, which always works.
+      }
+    }
     return signInWithOAuthProvider({
       provider: 'google',
       flag: GOOGLE_CALLBACK_FLAG,
