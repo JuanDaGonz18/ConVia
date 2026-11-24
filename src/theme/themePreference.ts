@@ -2,7 +2,7 @@ import { Appearance, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 /**
- * Display theme: light, dark or the phone's setting ("Sistema", the default).
+ * Display theme: light (the default), dark or the phone's setting ("Sistema").
  *
  * Read synchronously when the app starts (SecureStore.getItem on phones, localStorage on the
  * web), because every StyleSheet is created once from `colors`: the palette is chosen before
@@ -29,9 +29,9 @@ function readRaw(): string | null {
 export function readThemePreference(): ThemePreference {
   try {
     const saved = readRaw();
-    return isPreference(saved) ? saved : 'system';
+    return isPreference(saved) ? saved : 'light';
   } catch {
-    return 'system';
+    return 'light';
   }
 }
 
