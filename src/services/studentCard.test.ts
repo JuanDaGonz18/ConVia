@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { excludedBox, overlaps, regionsAroundFace, toBase64 } from './studentCard.ts';
+import { excludedBox, overlaps, regionsAroundFace, regionsAroundFaces, toBase64 } from './studentCard.ts';
 
 describe('crops around the face', () => {
   test('a typical card (photo on the left) gives text on the right and around it', () => {
@@ -46,6 +46,24 @@ describe('toBase64', () => {
     for (const text of ['', 'f', 'fo', 'foo', 'foob', 'fooba', 'foobar', 'ConVía ✨']) {
       const bytes = new TextEncoder().encode(text);
       assert.equal(toBase64(bytes), Buffer.from(bytes).toString('base64'), text);
+    }
+  });
+});
+
+describe('crops around several faces', () => {
+  test('with one face it is the same as regionsAroundFace', () => {
+    const face = { x: 150, y: 300, width: 350, height: 450 };
+    assert.deepEqual(regionsAroundFaces([face], 1600, 1000), regionsAroundFace(face, 1600, 1000));
+  });
+
+  test('no crop touches any face (main photo + small ghost photo)', () => {
+    const main = { x: 150, y: 300, width: 350, height: 450 };
+    const ghost = { x: 1250, y: 650, width: 150, height: 190 };
+    const regions = regionsAroundFaces([main, ghost], 1600, 1000);
+    assert.ok(regions.length > 0);
+    for (const face of [main, ghost]) {
+      const box = excludedBox(face, 1600, 1000);
+      for (const region of regions) assert.equal(overlaps(region, box), false);
     }
   });
 });

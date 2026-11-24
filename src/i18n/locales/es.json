@@ -808,7 +808,7 @@
     "confirmCancel": "Sí, cancelar viaje",
     "confirmFinish": "Sí, finalizar",
     "cancelMessage": "Avisaremos a todos los pasajeros, incluso a los que ya tienen cupo reservado, y sus solicitudes quedarán canceladas. No se puede deshacer.",
-    "finishMessage": "Confirma que el viaje ya se realizó. Avisaremos a tus pasajeros y podrás marcar pagos y calificarlos.",
+    "finishMessage": "Confirma que el viaje ya se realizó. Los pasajeros a los que no les escaneaste el QR quedan como no abordados y no podrán calificar ni ser calificados.",
     "cancelled": "Viaje cancelado. Avisamos a los pasajeros",
     "cancelFailed": "No se pudo cancelar el viaje.",
     "finishFailed": "No se pudo finalizar el viaje.",
@@ -857,7 +857,19 @@
     "cancelled": "Cancelaste tu solicitud y liberaste el cupo",
     "cancelFailed": "No se pudo cancelar la solicitud.",
     "rejectTitle": "¿Rechazar esta solicitud?",
-    "cancelTitle": "¿Cancelar tu solicitud?"
+    "cancelTitle": "¿Cancelar tu solicitud?",
+    "map": {
+      "show": "Ver recogida en el mapa",
+      "hide": "Ocultar mapa",
+      "label": "Mapa con el punto de recogida en {{place}}",
+      "pickup": "Recogida: {{place}}",
+      "dropoff": "Dónde se baja",
+      "trip": "Inicio y fin de tu viaje",
+      "tripStart": "Inicio de tu viaje",
+      "tripEnd": "Fin de tu viaje",
+      "approximate": "Ubicación aproximada (unos 400 m) hasta que aceptes la solicitud.",
+      "noLocation": "El pasajero no marcó su punto de recogida en el mapa."
+    }
   },
   "tripDetails": {
     "errors": {
@@ -1900,7 +1912,9 @@
     "saveComment": "Guardar comentario",
     "saved": "Guardado",
     "rateFirst": "Primero elige una calificación.",
-    "addComment": "Dejar un comentario"
+    "addComment": "Dejar un comentario",
+    "notBoardedPassenger": "No se registró tu abordaje: tu QR no se escaneó, así que este viaje no cuenta como realizado y no puedes calificar al conductor.",
+    "notBoardedDriver": "No abordó: su QR no se escaneó. No se puede calificar."
   },
   "legalGate": {
     "title": "Actualizamos los Términos y la Política de datos",

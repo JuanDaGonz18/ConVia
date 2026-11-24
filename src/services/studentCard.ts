@@ -46,6 +46,34 @@ export function regionsAroundFace(face: Box, width: number, height: number): Reg
   });
 }
 
+/**
+ * Crops around SEVERAL faces (e.g. the main photo plus a small security "ghost" photo): starts from
+ * the crops around the first face and cuts every other face box (plus its margin) out of them, so
+ * no crop touches any face. With one face it gives exactly regionsAroundFace.
+ */
+export function regionsAroundFaces(faces: Box[], width: number, height: number): Region[] {
+  if (!faces.length) return [];
+  let regions = regionsAroundFace(faces[0], width, height);
+  for (const face of faces.slice(1)) {
+    const box = excludedBox(face, width, height);
+    regions = regions.flatMap((region) => {
+      if (!overlaps(region, box)) return [region];
+      const pieces: Region[] = [
+        { side: region.side, startX: region.startX, startY: region.startY, endX: Math.min(region.endX, box.x0), endY: region.endY },
+        { side: region.side, startX: Math.max(region.startX, box.x1), startY: region.startY, endX: region.endX, endY: region.endY },
+        { side: region.side, startX: Math.max(region.startX, box.x0), startY: region.startY, endX: Math.min(region.endX, box.x1), endY: Math.min(region.endY, box.y0) },
+        { side: region.side, startX: Math.max(region.startX, box.x0), startY: Math.max(region.startY, box.y1), endX: Math.min(region.endX, box.x1), endY: region.endY },
+      ];
+      return pieces.filter((piece) => {
+        const w = piece.endX - piece.startX;
+        const h = piece.endY - piece.startY;
+        return w >= MIN_SIDE * width && h >= MIN_SIDE * height;
+      });
+    });
+  }
+  return regions;
+}
+
 /** True when the two rectangles share any pixel. */
 export function overlaps(region: Region, box: { x0: number; y0: number; x1: number; y1: number }) {
   return region.startX < box.x1 && region.endX > box.x0 && region.startY < box.y1 && region.endY > box.y0;

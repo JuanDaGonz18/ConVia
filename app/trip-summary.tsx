@@ -74,7 +74,10 @@ export default function TripSummaryScreen() {
   const trip = members?.trip;
   const status = trip ? STATUS[trip.status] : null;
   // Passenger view of a finished trip: they can rate the driver once.
-  const canRateDriver = !!members && !members.viewerIsDriver && trip?.status === 'finalizado' && !members.myDriverRating;
+  // Only if their boarding QR was scanned: without it the trip doesn't count as ridden.
+  const myStatus = members?.passengers.find((item) => item.isMe)?.status;
+  const notBoarded = !!members && !members.viewerIsDriver && trip?.status === 'finalizado' && myStatus !== 'abordado';
+  const canRateDriver = !!members && !members.viewerIsDriver && trip?.status === 'finalizado' && !members.myDriverRating && !notBoarded;
   const openRating = useCallback(() => {
     if (!members) return;
     setRateTarget({
@@ -93,7 +96,7 @@ export default function TripSummaryScreen() {
   const canReview = members?.viewerIsDriver && trip?.status === 'finalizado';
   const passengers = members?.passengers ?? [];
   const paidCount = passengers.filter((item) => item.paid === true).length;
-  const pendingReview = passengers.filter((item) => item.paid === null || !item.myRating).length;
+  const pendingReview = passengers.filter((item) => item.paid === null || (item.status === 'abordado' && !item.myRating)).length;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -161,6 +164,8 @@ export default function TripSummaryScreen() {
                   </View>
                 ) : canRateDriver ? (
                   <ButtonPrimary icon="star-outline" onPress={openRating} title={t('tripSummary.rate', { name: members.driver.name })} />
+                ) : notBoarded ? (
+                  <Notice tone="warning">{t('tripSummary.notBoardedPassenger')}</Notice>
                 ) : null}
               </View>
             ) : null}
@@ -299,6 +304,10 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
         {saving === 'payment' ? <ActivityIndicator color={colors.primary} size="small" /> : null}
       </View>
 
+      {passenger.status !== 'abordado' ? (
+        <Text style={styles.muted}>{t('tripSummary.notBoardedDriver')}</Text>
+      ) : (
+        <>
       <Text style={styles.fieldLabel}>{t('tripSummary.rating')}</Text>
       <View style={styles.ratingRow}>
         <StarRating
@@ -341,6 +350,8 @@ function PassengerReview({ passenger, onChange }: Readonly<{ passenger: TripMemb
           <Ionicons color={colors.primary} name="chatbox-ellipses-outline" size={16} />
           <Text style={styles.addCommentText}>{t('tripSummary.addComment')}</Text>
         </Pressable>
+      )}
+        </>
       )}
       {error ? <Notice tone="error">{error}</Notice> : null}
     </View>

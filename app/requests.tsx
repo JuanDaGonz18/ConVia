@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 
+import { RequestPickupMap } from '@/components/map/RequestPickupMap';
 import { MatchSummary } from '@/components/trip/MatchSummary';
 import { PlusBadge } from '@/components/subscription/PlusBadge';
 import { Notice } from '@/components/ui/Notice';
@@ -53,6 +54,7 @@ export default function RequestsScreen() {
   const userId = useAppStore((state) => state.currentUser?.id);
   // Request waiting for the driver's face check before it is accepted.
   const [pendingAccept, setPendingAccept] = useState<string | null>(null);
+  const [mapOpenId, setMapOpenId] = useState<string | null>(null);
   // Rejecting or cancelling waits for an explicit confirmation.
   const [confirm, setConfirm] = useState<{ requestId: string; kind: 'reject' | 'cancel' } | null>(null);
   const [requests, setRequests] = useState<TripRequestRecord[]>([]);
@@ -173,6 +175,16 @@ export default function RequestsScreen() {
               </View>
               {isDriver && request.match ? <MatchSummary match={request.match} maxReasons={2} /> : null}
               <MetaRow icon="location-outline" text={t('requests.pickup', { place: request.pickupLabel || request.direccion })} />
+              {isDriver && request.points?.pickup ? (
+                mapOpenId === request.id ? (
+                  <>
+                    <RequestPickupMap pickupLabel={request.pickupLabel || request.direccion} points={request.points} />
+                    <ButtonSecondary icon="chevron-up" onPress={() => setMapOpenId(null)} title={t('requests.map.hide')} />
+                  </>
+                ) : (
+                  <ButtonSecondary icon="map-outline" onPress={() => setMapOpenId(request.id)} title={t('requests.map.show')} />
+                )
+              ) : null}
               {request.dropoffLabel ? <MetaRow icon="flag-outline" text={t('requests.dropoff', { place: request.dropoffLabel })} /> : null}
               {isDriver && request.tripLabel ? <MetaRow icon="navigate-outline" text={request.tripLabel} /> : null}
               {request.tripDepartureAt ? <MetaRow icon="time-outline" text={formatDateTime(request.tripDepartureAt)} /> : null}

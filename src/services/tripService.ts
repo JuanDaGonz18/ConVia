@@ -85,7 +85,23 @@ export type TripRequestRecord = {
   dropoffLabel: string | null;
   /** Driver view: how well the request fits the trip, computed by the server. */
   match: TripMatch | null;
+  /**
+   * Driver view, for the map: where the passenger asked to be picked up and dropped off (rounded
+   * to ~400 m until the request is accepted) and the trip's own start and end.
+   */
+  points?: {
+    pickup: MapPoint | null;
+    dropoff: MapPoint | null;
+    tripOrigin: MapPoint | null;
+    tripDestination: MapPoint | null;
+    approximate: boolean;
+  };
 };
+
+export type MapPoint = { latitude: number; longitude: number };
+
+const point = (lat: number | null | undefined, lng: number | null | undefined): MapPoint | null =>
+  typeof lat === 'number' && typeof lng === 'number' ? { latitude: lat, longitude: lng } : null;
 
 export type DriverTripStatus = 'por_empezar' | 'en_curso' | 'finalizado' | 'cancelado' | 'no_iniciado';
 
@@ -371,6 +387,13 @@ export const tripService = {
       pickupLabel: row.recogida_nombre || null,
       dropoffLabel: row.destino_nombre || null,
       match: matchFromServer({ score: row.match_score, level: row.match_level, pickupKm: row.pickup_km, dropoffKm: row.dropoff_km }),
+      points: {
+        pickup: point(row.pickup_lat, row.pickup_lng),
+        dropoff: point(row.dropoff_lat, row.dropoff_lng),
+        tripOrigin: point(row.trip_origen_lat, row.trip_origen_lng),
+        tripDestination: point(row.trip_destino_lat, row.trip_destino_lng),
+        approximate: row.estado !== 'aceptado' && row.estado !== 'abordado',
+      },
     }));
   },
 
@@ -606,10 +629,10 @@ export type PassengerTripRecord = {
   myDriverScore: number | null;
 };
 
-/** A finished trip whose driver the passenger has not rated yet. */
+/** A finished trip the passenger boarded (QR scanned) and whose driver they have not rated yet. */
 export function needsDriverRating(trip: PassengerTripRecord) {
-  return trip.status === 'finalizado' && trip.myDriverScore === null
-    && (trip.requestStatus === 'aceptado' || trip.requestStatus === 'abordado');
+  // Only passengers whose boarding QR was scanned rode the trip, so only they rate it.
+  return trip.status === 'finalizado' && trip.myDriverScore === null && trip.requestStatus === 'abordado';
 }
 
 export type TripMember = {

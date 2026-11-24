@@ -2285,6 +2285,8 @@ export type Database = {
           destino_viaje: string
           direccion: string
           dropoff_km: number
+          dropoff_lat: number | null
+          dropoff_lng: number | null
           estado: Database["public"]["Enums"]["request_status"]
           id: string
           match_level: string
@@ -2294,11 +2296,17 @@ export type Database = {
           passenger_is_plus: boolean
           passenger_nombre: string
           pickup_km: number
+          pickup_lat: number | null
+          pickup_lng: number | null
           qr_token: string
           recogida_nombre: string
           responded_at: string
           salida_at: string
+          trip_destino_lat: number | null
+          trip_destino_lng: number | null
           trip_id: string
+          trip_origen_lat: number | null
+          trip_origen_lng: number | null
         }[]
       }
       finish_trip: { Args: { p_trip_id: string }; Returns: Json }

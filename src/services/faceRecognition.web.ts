@@ -24,7 +24,7 @@ import {
   SIZE,
   WORKING_SIZE,
 } from '@/services/faceCore';
-import { regionsAroundFace } from '@/services/studentCard';
+import { regionsAroundFace, regionsAroundFaces } from '@/services/studentCard';
 import { importUrl, loadScript } from '@/web/loadScript';
 
 export { FaceCheckError };
@@ -276,7 +276,8 @@ export async function computeFaceEmbedding(photoUri: string, source: FaceSource 
 
 /** What leaves the browser for a student-card check: the face's embedding and crops without the face. */
 export type StudentCardAnalysis =
-  | { ok: true; embedding: number[]; crops: string[] }
+  // embedding null: the card's face couldn't be compared (several faces, blurry…): the check goes to review.
+  | { ok: true; embedding: number[] | null; crops: string[] }
   | { ok: false; reason: 'face_not_found' | 'several_faces' | 'face_unusable' | 'nothing_to_read' };
 
 /** Longest side of each crop sent to the server. */
@@ -298,23 +299,24 @@ export async function analyzeStudentCard(photoUri: string): Promise<StudentCardA
       throw error;
     }
     const { image, faces } = detected;
-    if (faces.length !== 1) return { ok: false, reason: 'several_faces' };
-    let face: WebFace;
-    try {
-      face = checkFace(faces, image.width, 'document');
-    } catch {
-      return { ok: false, reason: 'face_unusable' };
-    }
-    const regions = regionsAroundFace(face.box, image.width, image.height);
+    // Every face is cut out (a second, small security photo too); the crops never touch any of them.
+    const regions = faces.length === 1
+      ? regionsAroundFace(faces[0].box, image.width, image.height)
+      : regionsAroundFaces([...faces].sort((a, b) => b.box.width - a.box.width).map((f) => f.box), image.width, image.height);
     if (!regions.length) return { ok: false, reason: 'nothing_to_read' };
 
-    let embedding: number[];
-    try {
-      const tensor = alignFace(readPixels(image), landmarkPoints(face, 'document'));
-      checkImageQuality(tensor, 'document');
-      embedding = await embed(tensor);
-    } catch {
-      return { ok: false, reason: 'face_unusable' };
+    // The face is compared only when there is exactly one clear face; otherwise the crops still go
+    // to the server and a person reviews them (face_not_checked).
+    let embedding: number[] | null = null;
+    if (faces.length === 1) {
+      try {
+        const face = checkFace(faces, image.width, 'document');
+        const tensor = alignFace(readPixels(image), landmarkPoints(face, 'document'));
+        checkImageQuality(tensor, 'document');
+        embedding = await embed(tensor);
+      } catch {
+        embedding = null;
+      }
     }
 
     const crops = regions.map((region) => {

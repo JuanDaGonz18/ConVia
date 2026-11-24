@@ -49,7 +49,8 @@ export default function StudentCardScreen() {
         setPhase({ kind: 'noFace', reason: analysis.reason });
         return;
       }
-      await membershipService.submitCardFace(analysis.embedding);
+      // Without a usable face (several faces, blurry) the card still goes out, face removed, for review.
+      if (analysis.embedding) await membershipService.submitCardFace(analysis.embedding);
       setPhase({ kind: 'working', step: 'reading' });
       const result = await membershipService.verifyCard(analysis.crops);
       setPhase({ kind: 'done', decision: result.decision, reasons: result.reasons });
