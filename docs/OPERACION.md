@@ -288,6 +288,19 @@ Desde 100 usuarios casi todos los errores son peticiones que se cortan a los
 debajo del 1 %, pero el p95 es 15 veces la meta. Incluso sin carga no se
 alcanzaría: en el EXPLAIN, una sola búsqueda en la base ya tarda ~1,0 s.
 
+### Resultados (2026-11-24, rama `perf/busqueda-rapida`: ruta pública precalculada + límite de 150)
+
+| Usuarios virtuales | p95 (todas) | Errores | p95 búsqueda | p95 `driver_trip_requests` | Datos recibidos (10 min) |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 50  | 223 ms | 0 %    | 236 ms | 797 ms | 274 MB (antes 1,9 GB) |
+| 100 | 292 ms | 0 %    | 314 ms | 1,2 s  | 546 MB |
+| 300 | 10 s   | ~10 %  | —      | —      | — |
+
+50 y 100 usuarios **cumplen las metas** (p95 < 500 ms, < 1 % de errores).
+En el EXPLAIN la búsqueda pasó de ~1,0 s a ~137 ms. Con 300 todavía se
+satura el runner; lo siguiente es `driver_trip_requests` (~0,45 s por llamada
+sin carga).
+
 ### Dónde se va el tiempo
 
 La búsqueda: `available_trips` devuelve **todos** los viajes abiertos de la
@@ -303,7 +316,7 @@ todas las filas. En el EXPLAIN, el detalle de un solo viaje tarda 1,08 s, frente
 a 1,02 s de la lista completa. Entre las dos se llevan el 95 % del tiempo de la
 base; la siguiente consulta (`driver_trip_requests`, ~0,9 s) es el 4 %.
 
-### Arreglo previsto (pendiente, no implementado)
+### Arreglo previsto (1 y 2 en parte hechos: ruta precalculada y límite de 150; falta lo demás)
 
 1. **Filtrar en el servidor**: RPC de búsqueda con parámetros (zona/destino,
    franja horaria) que filtre dentro de la función, con índice
